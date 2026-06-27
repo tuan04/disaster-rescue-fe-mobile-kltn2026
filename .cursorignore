@@ -1,0 +1,36 @@
+# === BỎ QUA CHO TẤT CẢ CÁC MÔ HÌNH AI ===
+
+# 1. Hệ thống & Thư viện (Siêu nặng)
+node_modules/
+.expo/
+.git/
+.github/
+
+# 2. Toàn bộ thư mục Native (AI không cần đọc code build Java/Kotlin/C++)
+android/
+ios/
+
+# 3. Các thư mục cache riêng của từng con AI (Né việc con này đọc lịch sử chat con kia)
+.claude/
+.chat/
+.cursor/
+.continue/
+
+# 4. Định dạng file nặng & ảnh (AI không cần đọc pixel ảnh)
+assets/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.gif
+*.mp4
+*.mp3
+*.ttf
+*.woff
+
+# 5. File build tĩnh & Log rác
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
