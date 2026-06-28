@@ -2,46 +2,60 @@ import { Spacing } from '@/contants/theme';
 import React from 'react';
 import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EdgeInsets, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
-    children: React.ReactNode;
-    scrollable?: boolean; // Có cho phép cuộn trang không
-    style?: ViewStyle;    // Style bổ sung nếu muốn
+    children: React.ReactNode | ((insets: EdgeInsets) => React.ReactNode);
+    scrollable?: boolean;
+    style?: ViewStyle;
+    isEdgeToEdge?: boolean;
 }
 
-export default function ScreenContainer({ children, scrollable = false, style }: Props) {
+export default function ScreenContainer({ children, scrollable = false, style, isEdgeToEdge = false }: Props) {
     const theme = useTheme();
+    const insets = useSafeAreaInsets(); // Lấy số đo tai thỏ
 
-    // Khung chứa gốc tự động ăn màu nền hệ thống và né tai thỏ
+    // Khung gốc bọc ngoài cùng
     const containerStyle = [
-        styles.safeArea,
+        styles.baseContainer,
         { backgroundColor: theme.colors.background }
     ];
 
-    // Nội dung bên trong tự động ăn khoảng cách mx, my chuẩn
+    // Nội dung bên trong: Nếu TRÀN VIỀN thì xóa sạch padding, nếu KHÔNG TRÀN thì giữ padding chuẩn của ông
     const contentStyle = [
         styles.content,
-        { paddingHorizontal: Spacing.screenHorizontal, paddingVertical: Spacing.screenVertical },
+        !isEdgeToEdge && {
+            paddingTop: insets.top + Spacing.screenVertical,
+            paddingBottom: insets.bottom + Spacing.screenVertical,
+            paddingHorizontal: Spacing.screenHorizontal,
+        },
         style
     ];
 
+    // Hàm render con để hỗ trợ truyền thông số tai thỏ ra ngoài nếu trang con cần dùng để né nút bấm
+    const renderChildren = () => {
+        if (typeof children === 'function') {
+            return children(insets);
+        }
+        return children;
+    };
+
     return (
-        <SafeAreaView style={containerStyle}>
+        <View style={containerStyle}>
             {scrollable ? (
                 <ScrollView contentContainerStyle={contentStyle} showsVerticalScrollIndicator={false}>
-                    {children}
+                    {renderChildren()}
                 </ScrollView>
             ) : (
                 <View style={contentStyle}>
-                    {children}
+                    {renderChildren()}
                 </View>
             )}
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1 },
+    baseContainer: { flex: 1 },
     content: { flex: 1 },
 });

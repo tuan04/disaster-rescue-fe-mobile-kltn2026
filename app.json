@@ -12,6 +12,11 @@
       "supportsTablet": true
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -38,6 +43,21 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Cho phép ứng dụng sử dụng vị trí của bạn."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép ứng dụng sử dụng camera của bạn",
+          "microphonePermission": "Cho phép ứng dụng sử dụng micro của bạn",
+          "recordAudioAndroid": true,
+          "barcodeScannerEnabled": true
         }
       ],
       "expo-sqlite"
