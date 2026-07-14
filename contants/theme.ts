@@ -68,9 +68,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const scale = SCREEN_WIDTH / 375;
 
 export function scaleFont(size: number) {
-  const newSize = size * scale;
-  // Trả về số đã bo tròn theo mật độ điểm ảnh của từng máy
-  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+  Math.round(
+    PixelRatio.roundToNearestPixel(
+      size * Math.max(0.9, Math.min(scale, 1.2))
+    )
+  )
 }
 
 export const Typography = {
