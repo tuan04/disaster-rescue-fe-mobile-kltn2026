@@ -11,4 +11,4 @@ export interface ErrorResponse {
     message: string;
     details?: Record<string, string>;
     timestamp: string;
-}
+} 
