@@ -25,6 +25,19 @@ export function useLocation() {
           return;
         }
 
+        const servicesEnabled = await Location.hasServicesEnabledAsync();
+        if (!servicesEnabled) {
+          let lastLoc = await Location.getLastKnownPositionAsync({});
+          if (lastLoc) {
+            setCoords({
+              latitude: lastLoc.coords.latitude,
+              longitude: lastLoc.coords.longitude,
+            });
+          }
+          setPermissionDenied(false);
+          return;
+        }
+
         // 2. Thử lấy nhanh từ bộ nhớ đệm (Cache)
         let lastLoc = await Location.getLastKnownPositionAsync({});
         if (lastLoc) {

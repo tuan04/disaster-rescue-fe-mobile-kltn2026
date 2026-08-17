@@ -7,8 +7,8 @@ import {
 } from "react-native-responsive-screen";
 
 // ĐỊNH NGHĨA HỆ MÀU CỨU TRỢ (Bổ sung vào React Native Paper)
-const customColors = {
-  danger: "#D9383A", // Cảnh báo nguy hiểm, sạt lở
+export const customColors = {
+  danger: "#ff0004", // Cảnh báo nguy hiểm, sạt lở
   success: "#2E7D32", // Ca cứu trợ hoàn thành, vùng an toàn
   warning: "#F59E0B", // Đang xử lý, vùng có nguy cơ ngập
 };

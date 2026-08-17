@@ -1,21 +1,27 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
-import MapMarker from "@/components/map/MapMarker";
+import SosMarker from "@/components/map/SosMarker";
 import { useLocation } from "@/hooks/useLocation";
-import { getMapPoints } from "@/services/map";
-import { useQuery } from "@tanstack/react-query";
-import React from "react";
-import { StyleSheet } from "react-native";
-import MapView, { Marker } from "react-native-maps";
-import { ActivityIndicator } from "react-native-paper";
+import { MOCK_POINTS } from "@/mocks/map";
+import { PointType } from "@/types/map";
+import React, { useRef } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import MapView, { Marker, Region } from "react-native-maps";
+import { ActivityIndicator, useTheme } from "react-native-paper";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function MapScreen() {
   const { coords, permissionDenied, loading } = useLocation();
+  const theme = useTheme();
+  const mapRef = useRef<MapView>(null);
 
-  // Fetch map points using TanStack React Query
-  const { data: points = [], isLoading: fetching, error } = useQuery({
-    queryKey: ["mapPoints"],
-    queryFn: getMapPoints,
+  const regionRef = useRef<Region>({
+    latitude: coords?.latitude ?? 10.8231,
+    longitude: coords?.longitude ?? 106.6297,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
   });
+
+  const points = MOCK_POINTS;
 
   if (loading) {
     return (
@@ -25,15 +31,43 @@ export default function MapScreen() {
     );
   }
 
+  const handleZoomIn = () => {
+    if (!mapRef.current) return;
+    const currentRegion = regionRef.current;
+    const newRegion = {
+      ...currentRegion,
+      latitudeDelta: currentRegion.latitudeDelta / 2,
+      longitudeDelta: currentRegion.longitudeDelta / 2,
+    };
+    regionRef.current = newRegion;
+    mapRef.current.animateToRegion(newRegion, 300);
+  };
+
+  const handleZoomOut = () => {
+    if (!mapRef.current) return;
+    const currentRegion = regionRef.current;
+    const newRegion = {
+      ...currentRegion,
+      latitudeDelta: Math.min(currentRegion.latitudeDelta * 2, 180),
+      longitudeDelta: Math.min(currentRegion.longitudeDelta * 2, 180),
+    };
+    regionRef.current = newRegion;
+    mapRef.current.animateToRegion(newRegion, 300);
+  };
+
   return (
     <ScreenContainer isEdgeToEdge={true}>
       <MapView
+        ref={mapRef}
         showsPointsOfInterest={false}
         initialRegion={{
           latitude: coords.latitude,
           longitude: coords.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
+        }}
+        onRegionChangeComplete={(newRegion) => {
+          regionRef.current = newRegion;
         }}
         style={{ height: "100%", width: "100%" }}
       >
@@ -46,14 +80,31 @@ export default function MapScreen() {
           title={permissionDenied ? "Vị trí mặc định" : "Vị trí của bạn"}
         />
 
-        {points.map((point) => (
-          <MapMarker
-            key={point.id}
-            point={point}
-            userRole="citizen"
-          />
-        ))}
+        {/* SOS Markers */}
+        {points
+          .filter((p) => p.pointType === PointType.SOS)
+          .map((point) => (
+            <SosMarker key={point.id} point={point} />
+          ))}
       </MapView>
+
+      {/* Zoom In/Out Buttons */}
+      <View style={styles.zoomContainer}>
+        <TouchableOpacity
+          style={[styles.zoomButton, { backgroundColor: theme.colors.surface }]}
+          onPress={handleZoomIn}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="add" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.zoomButton, { backgroundColor: theme.colors.surface }]}
+          onPress={handleZoomOut}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="remove" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+      </View>
     </ScreenContainer>
   );
 }
@@ -63,5 +114,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  zoomContainer: {
+    position: "absolute",
+    bottom: 24,
+    right: 14,
+    flexDirection: "column",
+  },
+  zoomButton: {
+    width: 35,
+    height: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    // Shadow for iOS
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    // Elevation for Android
+    elevation: 5,
   },
 });

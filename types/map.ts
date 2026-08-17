@@ -18,5 +18,7 @@ export interface MapPointRes {
   pointType: PointType;
   latitude: number;
   longitude: number;
-  subType?: string; // Maps to HazardType or other sub-types
+  priority?: string;
+  subType?: string;
+  status?: string;
 }
