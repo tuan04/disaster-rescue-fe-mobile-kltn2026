@@ -10,8 +10,8 @@ import type {
   VerifyForgotPasswordOtpResponse,
   VerifyOtpRequest,
 } from "@/types/auth";
-import { get, post } from "./api";
 import { ApiResponse } from "@/types/response";
+import { get, post } from "./api";
 
 export const registerAccount = async (
   role: UserRole,

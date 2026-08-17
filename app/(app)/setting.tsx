@@ -26,7 +26,7 @@ export default function Setting() {
 
         await clearTokens();
         dispatch(logout());
-        router.replace('/auth/login');
+        router.replace('/(auth)/login');
     };
 
     return (
@@ -44,7 +44,7 @@ export default function Setting() {
                     <Button
                         mode="contained"
                         className="mt-6"
-                        onPress={() => router.push('/auth/register')}
+                        onPress={() => router.push('/(auth)/register')}
                     >
                         Đăng ký tài khoản
                     </Button>

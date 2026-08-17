@@ -5,15 +5,12 @@ import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
 import { login, logout } from "@/store/authSlice";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { StatusBar, useColorScheme, View } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import "../global.css";
-
-// Create a client for React Query
-const queryClient = new QueryClient();
 
 export default function RootLayout() {
   return (
@@ -34,11 +31,8 @@ function RootNavigator() {
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth?.isAuthenticated,
   );
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
     const bootstrapAuth = async () => {
       try {
         if (user || isAuthenticated) {
@@ -61,34 +55,21 @@ function RootNavigator() {
       } catch {
         await clearTokens();
         dispatch(logout());
-      } finally {
-        if (isMounted) {
-          setIsCheckingAuth(false);
-        }
       }
     };
 
     bootstrapAuth();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [dispatch, user]);
+  }, [dispatch, isAuthenticated, user]);
 
   useEffect(() => {
-    if (isCheckingAuth) {
-      return;
-    }
-
     const firstSegment = segments[0];
-    const inAuthScreen = firstSegment === "auth";
-    const inAppScreen = firstSegment === "(app)";
+    const inAuthScreen = firstSegment === "(auth)";
 
     if (isAuthenticated && (pathname === "/" || inAuthScreen)) {
       router.replace("/(app)");
       return;
     }
-  }, [isAuthenticated, isCheckingAuth, pathname, router, segments]);
+  }, [isAuthenticated, pathname, router, segments]);
 
   return (
     <SafeAreaProvider>
@@ -97,20 +78,19 @@ function RootNavigator() {
           barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         />
 
-        {isCheckingAuth ? (
-          <View className="flex-1 bg-slate-50" />
-        ) : (
+        <View
+          className={
+            colorScheme === "dark"
+              ? "dark flex-1 bg-background"
+              : "flex-1 bg-background"
+          }
+        >
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(app)" />
-            <Stack.Screen name="auth/login" />
-            <Stack.Screen name="auth/register" />
-            <Stack.Screen name="auth/otp-verification" />
-            <Stack.Screen name="auth/forgot-password" />
-            <Stack.Screen name="auth/verify-reset-otp" />
-            <Stack.Screen name="auth/reset-password" />
+            <Stack.Screen name="(auth)" />
           </Stack>
-        )}
+        </View>
       </PaperProvider>
     </SafeAreaProvider>
   );

@@ -37,7 +37,7 @@ export default function HomeScreen() {
               Theo dõi tin tức, đưa cảnh báo và nhận hỗ trợ trong thời gian thực.
             </Text>
             <Pressable
-              onPress={() => router.push("/auth/login")}
+              onPress={() => router.push("/(auth)/login")}
               className="mt-4 self-start rounded-full bg-white px-4 py-2"
             >
               <Text className="font-bold text-orange-600">Đăng nhập ngay</Text>
@@ -89,7 +89,7 @@ export default function HomeScreen() {
           {!user && (
             <View className="mt-3 space-y-3">
               <Pressable
-                onPress={() => router.push("/auth/login")}
+                onPress={() => router.push("/(auth)/login")}
                 className="rounded-2xl bg-sky-600 px-4 py-4"
               >
                 <Text className="text-base font-bold text-white">Đăng nhập để báo cáo</Text>

@@ -1,5 +1,5 @@
-import type { UserInfoResponse } from '@/types/auth';
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { UserInfoResponse } from "@/types/auth";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 interface AuthState {
   user: UserInfoResponse | null;
@@ -12,7 +12,7 @@ const initialState: AuthState = {
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     login: (state, action: PayloadAction<UserInfoResponse>) => {

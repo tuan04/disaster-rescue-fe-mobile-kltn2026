@@ -51,7 +51,7 @@ const resolvePendingRequests = (newAccessToken: string) => {
 const handleSessionExpired = async () => {
     await clearTokens();
     store.dispatch(logout());
-    router.replace('/auth/login');
+    router.replace('/(auth)/login');
 };
 
 const refreshAccessToken = async (): Promise<{ accessToken: string; refreshToken?: string }> => {
