@@ -1,11 +1,9 @@
-
 import { Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function CitizenLayout() {
   const theme = useTheme();
- 
 
   return (
     <Tabs

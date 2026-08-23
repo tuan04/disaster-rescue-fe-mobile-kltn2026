@@ -1,4 +1,3 @@
-// theme.ts
 import { Dimensions, PixelRatio, Platform } from "react-native";
 import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
 import {
@@ -6,23 +5,62 @@ import {
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
-// ĐỊNH NGHĨA HỆ MÀU CỨU TRỢ (Bổ sung vào React Native Paper)
-const customColors = {
-  danger: "#D9383A", // Cảnh báo nguy hiểm, sạt lở
-  success: "#2E7D32", // Ca cứu trợ hoàn thành, vùng an toàn
-  warning: "#F59E0B", // Đang xử lý, vùng có nguy cơ ngập
+export const ColorTokens = {
+  light: {
+    primary: "#dc2626",
+    secondary: "#0ea5e9",
+    background: "#f8fafc",
+    surface: "#ffffff",
+    danger: "#dc2626",
+    success: "#16a34a",
+    warning: "#d97706",
+    text: "#0f172a",
+    textMuted: "#64748b",
+  },
+  dark: {
+    primary: "#ef4444",
+    secondary: "#38bdf8",
+    background: "#0f172a",
+    surface: "#1e293b",
+    danger: "#ef4444",
+    success: "#22c55e",
+    warning: "#f59e0b",
+    text: "#f8fafc",
+    textMuted: "#94a3b8",
+  },
+} as const;
+
+export const customColors = {
+  danger: ColorTokens.light.danger,
+  success: ColorTokens.light.success,
+  warning: ColorTokens.light.warning,
 };
 
 export const LightTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: "#FF6B00", // Cam cứu hộ (Màu chủ đạo)
-    secondary: "#1A365D", // Xanh Navy (Màu phụ)
-    background: "#F9FAFB", // Nền sáng dịu mắt
-    surface: "#FFFFFF", // Nền của Card/Component
-    text: "#11181C",
-    ...customColors,
+    primary: ColorTokens.light.primary,
+    secondary: ColorTokens.light.secondary,
+    background: ColorTokens.light.background,
+    surface: ColorTokens.light.surface,
+    error: ColorTokens.light.danger,
+    onBackground: ColorTokens.light.text,
+    onSurface: ColorTokens.light.text,
+    onPrimary: ColorTokens.light.surface,
+    onSecondary: ColorTokens.light.surface,
+    outline: ColorTokens.light.textMuted,
+    surfaceVariant: "#eef2f7",
+    onSurfaceVariant: ColorTokens.light.textMuted,
+    elevation: {
+      ...MD3LightTheme.colors.elevation,
+      level1: "#eef2f7",
+    },
+    danger: ColorTokens.light.danger,
+    success: ColorTokens.light.success,
+    warning: ColorTokens.light.warning,
+    text: ColorTokens.light.text,
+    textMuted: ColorTokens.light.textMuted,
   },
 };
 
@@ -30,12 +68,27 @@ export const DarkTheme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: "#FF7A1A", // Cam sáng hơn trên nền tối
-    secondary: "#2A4365", // Xanh Navy tối
-    background: "#121212", // Đen ròng (OLED tinh chỉnh tiết kiệm pin)
-    surface: "#1E1E1E", // Nền Card tối
-    text: "#ECEDEE",
-    ...customColors,
+    primary: ColorTokens.dark.primary,
+    secondary: ColorTokens.dark.secondary,
+    background: ColorTokens.dark.background,
+    surface: ColorTokens.dark.surface,
+    error: ColorTokens.dark.danger,
+    onBackground: ColorTokens.dark.text,
+    onSurface: ColorTokens.dark.text,
+    onPrimary: ColorTokens.dark.text,
+    onSecondary: ColorTokens.dark.text,
+    outline: ColorTokens.dark.textMuted,
+    surfaceVariant: ColorTokens.dark.surface,
+    onSurfaceVariant: ColorTokens.dark.textMuted,
+    elevation: {
+      ...MD3DarkTheme.colors.elevation,
+      level1: ColorTokens.dark.surface,
+    },
+    danger: ColorTokens.dark.danger,
+    success: ColorTokens.dark.success,
+    warning: ColorTokens.dark.warning,
+    text: ColorTokens.dark.text,
+    textMuted: ColorTokens.dark.textMuted,
   },
 };
 
@@ -61,29 +114,29 @@ export const Fonts = Platform.select({
   },
 });
 
-// Reponsive
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-// Máy chuẩn để thiết kế thường là màn hình có chiều rộng 375px (như iPhone X/Pixel 3)
 const scale = SCREEN_WIDTH / 375;
 
 export function scaleFont(size: number) {
-  Math.round(
-    PixelRatio.roundToNearestPixel(
-      size * Math.max(0.9, Math.min(scale, 1.2))
-    )
-  )
+  return Math.round(
+    PixelRatio.roundToNearestPixel(size * Math.max(0.9, Math.min(scale, 1.2))),
+  );
 }
 
 export const Typography = {
   sizes: {
-    xs: scaleFont(12), // Caption, thời gian gửi, text cực nhỏ
-    sm: scaleFont(14), // Body phụ, nhãn phụ dưới icon, mô tả ngắn
-    md: scaleFont(16), // Chữ body mặc định
-    lg: scaleFont(18), // Tiêu đề nhỏ, tiêu đề các thẻ Card
-    xl: scaleFont(22), // Tiêu đề màn hình chính (Header Title)
-    xxl: scaleFont(32), // Số liệu lớn, hoặc chữ khẩn cấp tầm trung
-    sos: scaleFont(50), // Dành riêng cho chữ S O S khổng lồ
+    xs: scaleFont(12),
+    sm: scaleFont(14),
+    md: scaleFont(15),
+    lg: scaleFont(18),
+    titleSm: scaleFont(20),
+    titleMd: scaleFont(22),
+    title: scaleFont(24),
+    heading: scaleFont(32),
+    display: scaleFont(40),
+    xl: scaleFont(24),
+    xxl: scaleFont(32),
+    sos: scaleFont(50),
   },
   weights: {
     regular: "400" as const,
@@ -94,13 +147,8 @@ export const Typography = {
 };
 
 export const Spacing = {
-  // Khoảng cách lề ngang (Margin/Padding Horizontal - mx)
-  screenHorizontal: wp("5%"), // Luôn cách lề trái/phải đúng 5% chiều rộng màn hình
-
-  // Khoảng cách lề dọc (Margin/Padding Vertical - my)
-  screenVertical: hp("2%"), // Cách lề trên/dưới 2% chiều cao màn hình
-
-  // Các khoảng cách nhỏ hơn để dùng bên trong các thẻ Card, Button
+  screenHorizontal: wp("5%"),
+  screenVertical: hp("2%"),
   xs: 4,
   sm: 8,
   md: 16,

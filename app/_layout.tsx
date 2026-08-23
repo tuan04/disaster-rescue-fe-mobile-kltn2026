@@ -1,39 +1,49 @@
-import "../global.css";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { getCurrentUser } from "@/services/auth.service";
-import { login, logout } from "@/store/authSlice";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
+import { login, logout } from "@/store/authSlice";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { StatusBar, useColorScheme, View } from "react-native";
-import { Provider , useDispatch, useSelector} from "react-redux";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import "../global.css";
+
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   return (
-    <Provider store={store}>
-      <RootNavigator />
-    </Provider>
+    <GestureHandlerRootView className="flex-1">
+      <BottomSheetModalProvider>
+        <QueryClientProvider client={queryClient}>
+          <Provider store={store}>
+            <RootNavigator />
+          </Provider>
+        </QueryClientProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
 function RootNavigator() {
   const colorScheme = useColorScheme();
-  const currentTheme = colorScheme === 'dark' ? DarkTheme : LightTheme;
+  const currentTheme = colorScheme === "dark" ? DarkTheme : LightTheme;
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const pathname = usePathname();
   const segments = useSegments();
   const user = useSelector((state: RootState) => state.auth?.user);
-  const isAuthenticated = useSelector((state: RootState) => state.auth?.isAuthenticated);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const isAuthenticated = useSelector(
+    (state: RootState) => state.auth?.isAuthenticated,
+  );
 
   useEffect(() => {
-    let isMounted = true;
-
     const bootstrapAuth = async () => {
       try {
         if (user || isAuthenticated) {
@@ -56,55 +66,42 @@ function RootNavigator() {
       } catch {
         await clearTokens();
         dispatch(logout());
-      } finally {
-        if (isMounted) {
-          setIsCheckingAuth(false);
-        }
       }
     };
 
     bootstrapAuth();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [dispatch, user]);
+  }, [dispatch, isAuthenticated, user]);
 
   useEffect(() => {
-    if (isCheckingAuth) {
-      return;
-    }
-
     const firstSegment = segments[0];
-    const inAuthScreen = firstSegment === 'auth';
-    const inAppScreen = firstSegment === '(app)';
+    const inAuthScreen = firstSegment === "(auth)";
 
-    if (isAuthenticated && (pathname === '/' || inAuthScreen)) {
-      router.replace('/(app)');
+    if (isAuthenticated && (pathname === "/" || inAuthScreen)) {
+      router.replace("/(app)");
       return;
     }
+  }, [isAuthenticated, pathname, router, segments]);
 
-  }, [isAuthenticated, isCheckingAuth, pathname, router, segments]);
-  
   return (
     <SafeAreaProvider>
       <PaperProvider theme={currentTheme}>
-        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        />
 
-        {isCheckingAuth ? (
-          <View className="flex-1 bg-slate-50" />
-        ) : (
+        <View
+          className={
+            colorScheme === "dark"
+              ? "dark flex-1 bg-background"
+              : "flex-1 bg-background"
+          }
+        >
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(app)" />
-            <Stack.Screen name="auth/login" />
-            <Stack.Screen name="auth/register" />
-            <Stack.Screen name="auth/otp-verification" />
-            <Stack.Screen name="auth/forgot-password" />
-            <Stack.Screen name="auth/verify-reset-otp" />
-            <Stack.Screen name="auth/reset-password" />
+            <Stack.Screen name="(auth)" />
           </Stack>
-        )}
+        </View>
       </PaperProvider>
     </SafeAreaProvider>
   );

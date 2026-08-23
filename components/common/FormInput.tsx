@@ -1,35 +1,64 @@
-import { RegisterFormValues } from "@/types/auth";
 import React from "react";
-import { Controller, useForm } from "react-hook-form";
-import { TextInput, View, Text } from "react-native";
+import {
+  Controller,
+  type Control,
+  type FieldValues,
+  type Path,
+} from "react-hook-form";
+import { Text, View } from "react-native";
+import {
+  TextInput as PaperTextInput,
+  useTheme,
+  type TextInputIconProps,
+} from "react-native-paper";
 
+type FormInputProps<TFieldValues extends FieldValues> = {
+  control: Control<TFieldValues>;
+  name: Path<TFieldValues>;
+  label: string;
+  icon?: TextInputIconProps["icon"];
+  error?: string;
+  formatValue?: (value: string) => string;
+} & Omit<
+  React.ComponentProps<typeof PaperTextInput>,
+  "error" | "label" | "left" | "onBlur" | "onChangeText" | "value"
+>;
 
-function FormInput({
+function FormInput<TFieldValues extends FieldValues>({
   control,
   name,
   label,
+  icon,
   error,
+  formatValue,
+  mode = "outlined",
   ...inputProps
-}: {
-  control: ReturnType<typeof useForm<RegisterFormValues>>["control"];
-  name: keyof RegisterFormValues;
-  label: string;
-  error?: string;
-} & React.ComponentProps<typeof TextInput>) {
+}: FormInputProps<TFieldValues>) {
+  const theme = useTheme();
+
   return (
     <Controller
       control={control}
       name={name}
       render={({ field: { value, onChange, onBlur } }) => (
         <View className="mt-4">
-          <Text className="mb-2 font-medium text-slate-700">{label}</Text>
-          <TextInput
+          <PaperTextInput
             value={typeof value === "string" ? value : ""}
-            onChangeText={onChange}
+            onChangeText={(text) =>
+              onChange(formatValue ? formatValue(text) : text)
+            }
             onBlur={onBlur}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900"
+            mode={mode}
+            label={label}
+            error={Boolean(error)}
+            left={icon ? <PaperTextInput.Icon icon={icon} /> : undefined}
             placeholder={label}
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={theme.colors.outline}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.secondary}
+            textColor={theme.colors.onSurface}
+            style={{ backgroundColor: theme.colors.background }}
+            outlineStyle={{ borderRadius: 12 }}
             {...inputProps}
           />
           {error && <ErrorText message={error} />}

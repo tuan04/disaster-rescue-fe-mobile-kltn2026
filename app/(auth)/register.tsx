@@ -25,6 +25,8 @@ import {
 } from "@/validations/registerValidation";
 
 import FormInput from "@/components/common/FormInput";
+import Button from "@/components/common/Button";
+import TextLink from "@/components/common/TextLink";
 import { ApiResponse } from "@/types/response";
 
 const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
@@ -92,7 +94,7 @@ export default function RegisterScreen() {
 
       if (res.success === true) {
         router.push({
-          pathname: "/auth/otp-verification",
+          pathname: "/(auth)/otp-verification",
           params: {
             phone: payload.phone,
             id: registrationId ? String(registrationId) : "",
@@ -232,24 +234,18 @@ export default function RegisterScreen() {
             </View>
           )}
         />
-        <Pressable
-          disabled={isSubmitting}
+        <Button
+          title={isSubmitting ? "Đang đăng ký..." : "Đăng ký"}
+          loading={isSubmitting}
           onPress={handleSubmit(onSubmit)}
-          className={`mt-8 rounded-xl py-4 ${isSubmitting ? "bg-orange-300" : "bg-orange-600"}`}
-        >
-          <Text className="text-center text-base font-bold text-white">
-            {isSubmitting ? "Đang đăng ký..." : "Đăng ký"}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.replace("/auth/login")}
-          className="mt-5"
-        >
-          <Text className="text-center text-slate-600">
-            Đã có tài khoản?{" "}
-            <Text className="font-bold text-orange-600">Đăng nhập</Text>
-          </Text>
-        </Pressable>
+          style={{ marginTop: 32 }}
+        />
+        <TextLink
+          text="Đã có tài khoản?"
+          title="Đăng nhập"
+          onPress={() => router.replace("/(auth)/login")}
+          style={{ marginTop: 20 }}
+        />
       </ScrollView>
     </SafeAreaView>
   );
