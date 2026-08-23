@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --primary: #171d2f;
-    --secondary: #10b4c0;
-    --background: #f9fafb;
+    --primary: #dc2626;
+    --secondary: #0ea5e9;
+    --background: #f8fafc;
     --surface: #ffffff;
-    --danger: #d9383a;
-    --success: #10ce19;
-    --warning: #f59e0b;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --warning: #d97706;
 
-    --text: #111827;
-    --text-muted: #b6b6b6;
+    --text: #0f172a;
+    --text-muted: #64748b;
 
     --font-family-base:
       system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -23,16 +23,16 @@
   }
 
   .dark {
-    --primary: #171d2f;
-    --secondary: #10b4c0;
-    --background: #121212;
-    --surface: #12183b;
-    --danger: #d9383a;
-    --success: #10ce19;
+    --primary: #ef4444;
+    --secondary: #38bdf8;
+    --background: #0f172a;
+    --surface: #1e293b;
+    --danger: #ef4444;
+    --success: #22c55e;
     --warning: #f59e0b;
 
-    --text: #ffffff;
-    --text-muted: #9ba1a6;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
 
     color-scheme: dark;
   }

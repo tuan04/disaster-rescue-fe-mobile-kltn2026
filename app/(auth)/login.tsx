@@ -103,7 +103,6 @@ export default function LoginScreen() {
         />
 
         <Button
-          variant="secondary"
           title={isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
           loading={isSubmitting}
           onPress={handleSubmit(onSubmit)}

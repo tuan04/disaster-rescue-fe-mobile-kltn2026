@@ -4,19 +4,30 @@ import { getCurrentUser } from "@/services/auth.service";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
 import { login, logout } from "@/store/authSlice";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { StatusBar, useColorScheme, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import "../global.css";
 
+const queryClient = new QueryClient();
+
 export default function RootLayout() {
   return (
-    <Provider store={store}>
-      <RootNavigator />
-    </Provider>
+    <GestureHandlerRootView className="flex-1">
+      <BottomSheetModalProvider>
+        <QueryClientProvider client={queryClient}>
+          <Provider store={store}>
+            <RootNavigator />
+          </Provider>
+        </QueryClientProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 

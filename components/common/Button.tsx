@@ -1,9 +1,9 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import {
-    Button as PaperButton,
-    useTheme,
-    type ButtonProps as PaperButtonProps,
+  Button as PaperButton,
+  useTheme,
+  type ButtonProps as PaperButtonProps,
 } from "react-native-paper";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
