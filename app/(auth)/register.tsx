@@ -17,22 +17,13 @@ import type {
   RegisterFormValues,
   RegisterRequest,
   Sex,
-  UserRole,
 } from "@/types/auth";
-import {
-  citizenRegisterSchema,
-  rescuerRegisterSchema,
-} from "@/validations/registerValidation";
+import { citizenRegisterSchema } from "@/validations/registerValidation";
 
 import FormInput from "@/components/common/FormInput";
 import Button from "@/components/common/Button";
 import TextLink from "@/components/common/TextLink";
 import { ApiResponse } from "@/types/response";
-
-const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
-  { label: "Người dân", value: "CITIZEN" },
-  { label: "Người cứu hộ", value: "RESCUER" },
-];
 
 const SEX_OPTIONS: { label: string; value: Sex }[] = [
   { label: "Nam", value: "MALE" },
@@ -48,31 +39,21 @@ const formatDate = (date: Date) => {
 };
 
 export default function RegisterScreen() {
-  const [role, setRole] = useState<UserRole>("CITIZEN");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     control,
     handleSubmit,
     formState: { errors },
-    reset,
   } = useForm<RegisterFormValues>({
-    resolver: yupResolver(
-      role === "CITIZEN" ? citizenRegisterSchema : rescuerRegisterSchema,
-    ),
+    resolver: yupResolver(citizenRegisterSchema),
     defaultValues: {
       phone: "",
       password: "",
       confirmPassword: "",
       fullName: "",
-      cccdNumber: "",
     },
   });
-
-  const changeRole = (nextRole: UserRole) => {
-    setRole(nextRole);
-    reset();
-  };
 
   const onSubmit = async (values: RegisterFormValues) => {
     if (!values.birthDate || !values.sex) return;
@@ -85,11 +66,8 @@ export default function RegisterScreen() {
         fullName: values.fullName.trim(),
         birthDate: formatDate(values.birthDate),
         sex: values.sex,
-        ...(role === "RESCUER"
-          ? { cccdNumber: values.cccdNumber?.trim() }
-          : {}),
       };
-      const res: ApiResponse = await registerAccount(role, payload);
+      const res: ApiResponse = await registerAccount(payload);
       const registrationId = res.data?.id;
 
       if (res.success === true) {
@@ -123,129 +101,107 @@ export default function RegisterScreen() {
       >
         <Text className="text-3xl font-bold text-slate-900">Tạo tài khoản</Text>
         <Text className="mt-2 text-slate-600">
-          Chọn vai trò và điền thông tin của bạn.
+          Điền thông tin của bạn để đăng ký tài khoản người dân.
         </Text>
-        <View className="mt-6 flex-row rounded-xl bg-slate-200 p-1">
-          {ROLE_OPTIONS.map((item) => (
-            <Pressable
-              key={item.value}
-              onPress={() => changeRole(item.value)}
-              className={`flex-1 rounded-lg py-3 ${role === item.value ? "bg-white" : ""}`}
-            >
-              <Text
-                className={`text-center font-semibold ${role === item.value ? "text-orange-600" : "text-slate-600"}`}
-              >
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <FormInput
-          control={control}
-          name="fullName"
-          label="Họ và tên"
-          error={errors.fullName?.message}
-        />
-        <FormInput
-          control={control}
-          name="phone"
-          label="Số điện thoại"
-          keyboardType="phone-pad"
-          error={errors.phone?.message}
-        />
-        <FormInput
-          control={control}
-          name="password"
-          label="Mật khẩu"
-          secureTextEntry
-          error={errors.password?.message}
-        />
-        <FormInput
-          control={control}
-          name="confirmPassword"
-          label="Xác nhận mật khẩu"
-          secureTextEntry
-          error={errors.confirmPassword?.message}
-        />
-        {role === "RESCUER" && (
+        <View className="mt-6">
           <FormInput
             control={control}
-            name="cccdNumber"
-            label="Số CCCD"
-            keyboardType="number-pad"
-            error={errors.cccdNumber?.message}
+            name="fullName"
+            label="Họ và tên"
+            error={errors.fullName?.message}
           />
-        )}
-        <Controller
-          control={control}
-          name="birthDate"
-          render={({ field: { value, onChange } }) => (
-            <View className="mt-4">
-              <Text className="mb-2 font-medium text-slate-700">Ngày sinh</Text>
-              <Pressable
-                onPress={() => setShowDatePicker(true)}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-3"
-              >
-                <Text className={value ? "text-slate-900" : "text-slate-400"}>
-                  {value ? formatDate(value) : "Chọn ngày sinh"}
-                </Text>
-              </Pressable>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={value ?? new Date(2000, 0, 1)}
-                  mode="date"
-                  maximumDate={new Date()}
-                  onChange={(_, selectedDate) => {
-                    if (Platform.OS === "android") setShowDatePicker(false);
-                    if (selectedDate) onChange(selectedDate);
-                  }}
-                />
-              )}
-              {errors.birthDate?.message && (
-                <ErrorText message={errors.birthDate.message} />
-              )}
-            </View>
-          )}
-        />
-        <Controller
-          control={control}
-          name="sex"
-          render={({ field: { value, onChange } }) => (
-            <View className="mt-4">
-              <Text className="mb-2 font-medium text-slate-700">Giới tính</Text>
-              <View className="flex-row gap-2">
-                {SEX_OPTIONS.map((item) => (
-                  <Pressable
-                    key={item.value}
-                    onPress={() => onChange(item.value)}
-                    className={`flex-1 rounded-xl border px-2 py-3 ${value === item.value ? "border-orange-500 bg-orange-50" : "border-slate-300 bg-white"}`}
-                  >
-                    <Text
-                      className={`text-center ${value === item.value ? "font-semibold text-orange-600" : "text-slate-700"}`}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                ))}
+          <FormInput
+            control={control}
+            name="phone"
+            label="Số điện thoại"
+            keyboardType="phone-pad"
+            error={errors.phone?.message}
+          />
+          <FormInput
+            control={control}
+            name="password"
+            label="Mật khẩu"
+            secureTextEntry
+            error={errors.password?.message}
+          />
+          <FormInput
+            control={control}
+            name="confirmPassword"
+            label="Xác nhận mật khẩu"
+            secureTextEntry
+            error={errors.confirmPassword?.message}
+          />
+          <Controller
+            control={control}
+            name="birthDate"
+            render={({ field: { value, onChange } }) => (
+              <View className="mt-4">
+                <Text className="mb-2 font-medium text-slate-700">Ngày sinh</Text>
+                <Pressable
+                  onPress={() => setShowDatePicker(true)}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-3"
+                >
+                  <Text className={value ? "text-slate-900" : "text-slate-400"}>
+                    {value ? formatDate(value) : "Chọn ngày sinh"}
+                  </Text>
+                </Pressable>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={value ?? new Date(2000, 0, 1)}
+                    mode="date"
+                    maximumDate={new Date()}
+                    onChange={(_, selectedDate) => {
+                      if (Platform.OS === "android") setShowDatePicker(false);
+                      if (selectedDate) onChange(selectedDate);
+                    }}
+                  />
+                )}
+                {errors.birthDate?.message && (
+                  <ErrorText message={errors.birthDate.message} />
+                )}
               </View>
-              {errors.sex?.message && (
-                <ErrorText message={errors.sex.message} />
-              )}
-            </View>
-          )}
-        />
-        <Button
-          title={isSubmitting ? "Đang đăng ký..." : "Đăng ký"}
-          loading={isSubmitting}
-          onPress={handleSubmit(onSubmit)}
-          style={{ marginTop: 32 }}
-        />
-        <TextLink
-          text="Đã có tài khoản?"
-          title="Đăng nhập"
-          onPress={() => router.replace("/(auth)/login")}
-          style={{ marginTop: 20 }}
-        />
+            )}
+          />
+          <Controller
+            control={control}
+            name="sex"
+            render={({ field: { value, onChange } }) => (
+              <View className="mt-4">
+                <Text className="mb-2 font-medium text-slate-700">Giới tính</Text>
+                <View className="flex-row gap-2">
+                  {SEX_OPTIONS.map((item) => (
+                    <Pressable
+                      key={item.value}
+                      onPress={() => onChange(item.value)}
+                      className={`flex-1 rounded-xl border px-2 py-3 ${value === item.value ? "border-orange-500 bg-orange-50" : "border-slate-300 bg-white"}`}
+                    >
+                      <Text
+                        className={`text-center ${value === item.value ? "font-semibold text-orange-600" : "text-slate-700"}`}
+                      >
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {errors.sex?.message && (
+                  <ErrorText message={errors.sex.message} />
+                )}
+              </View>
+            )}
+          />
+          <Button
+            title={isSubmitting ? "Đang đăng ký..." : "Đăng ký"}
+            loading={isSubmitting}
+            onPress={handleSubmit(onSubmit)}
+            style={{ marginTop: 32 }}
+          />
+          <TextLink
+            text="Đã có tài khoản?"
+            title="Đăng nhập"
+            onPress={() => router.replace("/(auth)/login")}
+            style={{ marginTop: 20 }}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -254,3 +210,4 @@ export default function RegisterScreen() {
 function ErrorText({ message }: { message: string }) {
   return <Text className="mt-1 text-sm text-red-600">{message}</Text>;
 }
+

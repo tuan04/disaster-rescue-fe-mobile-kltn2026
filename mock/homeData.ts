@@ -1,3 +1,4 @@
+import { ColorTokens } from "@/contants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 
@@ -23,58 +24,62 @@ export const UTILITIES: UtilityItem[] = [
     id: "map",
     label: "Bản đồ thảm họa",
     icon: "map-outline",
-    color: "#2563eb", // blue-600
-    bgColor: "bg-blue-50",
+    color: ColorTokens.light.secondary,
+    bgColor: "bg-secondary/10",
     route: "/(app)/map",
   },
   {
-    id: "rescue",
-    label: "Gửi cứu hộ",
+    id: "sos-point",
+    label: "Cần cứu trợ",
     icon: "alert-circle-outline",
-    color: "#dc2626", // red-600
-    bgColor: "bg-red-50",
+    color: ColorTokens.light.danger,
+    bgColor: "bg-danger/10",
+    route: "/(pages)/sos-point",
   },
   {
-    id: "team",
-    label: "Đội cứu hộ",
-    icon: "shield-checkmark-outline",
-    color: "#d97706", // amber-600
-    bgColor: "bg-amber-50",
+    id: "hazard-point",
+    label: "Điểm nguy hiểm",
+    icon: "warning-outline",
+    color: ColorTokens.light.warning,
+    bgColor: "bg-warning/10",
+    route: "/(pages)/hazard-point",
   },
   {
     id: "safe-point",
     label: "Điểm an toàn",
-    icon: "navigate-outline",
-    color: "#059669", // emerald-600
-    bgColor: "bg-emerald-50",
+    icon: "shield-checkmark-outline",
+    color: ColorTokens.light.success,
+    bgColor: "bg-success/10",
+    route: "/(pages)/safe-point",
+  },
+  {
+    id: "warehouse-point",
+    label: "Kho cứu trợ",
+    icon: "cube-outline",
+    color: ColorTokens.light.secondary,
+    bgColor: "bg-secondary/10",
+    route: "/(pages)/warehouse-point",
+  },
+  {
+    id: "team",
+    label: "Đội cứu hộ",
+    icon: "people-outline",
+    color: ColorTokens.light.warning,
+    bgColor: "bg-warning/10",
   },
   {
     id: "emergency-call",
     label: "SĐT Khẩn cấp",
     icon: "call-outline",
-    color: "#e11d48", // rose-600
-    bgColor: "bg-rose-50",
+    color: ColorTokens.light.danger,
+    bgColor: "bg-danger/10",
   },
   {
     id: "guide",
     label: "Hướng dẫn",
     icon: "book-outline",
-    color: "#7c3aed", // purple-600
-    bgColor: "bg-purple-50",
-  },
-  {
-    id: "donate",
-    label: "Quyên góp",
-    icon: "heart-outline",
-    color: "#db2777", // pink-600
-    bgColor: "bg-pink-50",
-  },
-  {
-    id: "feedback",
-    label: "Góp ý",
-    icon: "chatbox-ellipses-outline",
-    color: "#4f46e5", // indigo-600
-    bgColor: "bg-indigo-50",
+    color: ColorTokens.light.primary,
+    bgColor: "bg-primary/10",
   },
 ];
 

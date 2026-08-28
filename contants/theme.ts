@@ -1,5 +1,5 @@
 import { Dimensions, PixelRatio, Platform } from "react-native";
-import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
+import { MD3DarkTheme, MD3LightTheme, useTheme } from "react-native-paper";
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
@@ -91,6 +91,9 @@ export const DarkTheme = {
     textMuted: ColorTokens.dark.textMuted,
   },
 };
+
+export type AppTheme = typeof LightTheme;
+export const useAppTheme = () => useTheme<AppTheme>();
 
 export const Fonts = Platform.select({
   ios: {

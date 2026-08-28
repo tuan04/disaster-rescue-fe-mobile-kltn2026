@@ -1,5 +1,7 @@
+import SosAlertModal from "@/components/common/SosAlertModal";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { getCurrentUser } from "@/services/auth.service";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
@@ -42,6 +44,9 @@ function RootNavigator() {
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth?.isAuthenticated,
   );
+
+  // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
+  useNotificationSocket();
 
   useEffect(() => {
     const bootstrapAuth = async () => {
@@ -100,7 +105,11 @@ function RootNavigator() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(app)" />
             <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(pages)" />
           </Stack>
+
+          {/* Modal cảnh báo cứu hộ khẩn cấp thời gian thực */}
+          <SosAlertModal />
         </View>
       </PaperProvider>
     </SafeAreaProvider>
