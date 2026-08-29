@@ -1,5 +1,6 @@
 import { customToastConfig } from "@/components/common/CustomToast";
 import { DarkTheme, LightTheme } from "@/contants/theme";
+import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { getCurrentUser } from "@/services/auth.service";
 import type { AppDispatch, RootState } from "@/store";
@@ -8,6 +9,7 @@ import { login, logout } from "@/store/authSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
+import { SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
 import { StatusBar, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -24,7 +26,13 @@ export default function RootLayout() {
     <GestureHandlerRootView className="flex-1">
       <QueryClientProvider client={queryClient}>
         <Provider store={store}>
-          <RootNavigator />
+          <SQLiteProvider
+            databaseName={DATABASE_NAME}
+            onInit={migrateDbIfNeeded}
+            useSuspense={false}
+          >
+            <RootNavigator />
+          </SQLiteProvider>
         </Provider>
       </QueryClientProvider>
     </GestureHandlerRootView>
