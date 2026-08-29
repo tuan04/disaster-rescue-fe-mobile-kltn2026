@@ -1,3 +1,4 @@
+import { customToastConfig } from "@/components/common/CustomToast";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { getCurrentUser } from "@/services/auth.service";
@@ -12,6 +13,7 @@ import { StatusBar, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import "../global.css";
 
@@ -20,13 +22,11 @@ const queryClient = new QueryClient();
 export default function RootLayout() {
   return (
     <GestureHandlerRootView className="flex-1">
-      <BottomSheetModalProvider>
-        <QueryClientProvider client={queryClient}>
-          <Provider store={store}>
-            <RootNavigator />
-          </Provider>
-        </QueryClientProvider>
-      </BottomSheetModalProvider>
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>
+          <RootNavigator />
+        </Provider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
@@ -85,23 +85,26 @@ function RootNavigator() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={currentTheme}>
-        <StatusBar
-          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        />
+        <BottomSheetModalProvider>
+          <StatusBar
+            barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          />
 
-        <View
-          className={
-            colorScheme === "dark"
-              ? "dark flex-1 bg-background"
-              : "flex-1 bg-background"
-          }
-        >
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="(auth)" />
-          </Stack>
-        </View>
+          <View
+            className={
+              colorScheme === "dark"
+                ? "dark flex-1 bg-background"
+                : "flex-1 bg-background"
+            }
+          >
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(app)" />
+              <Stack.Screen name="(auth)" />
+            </Stack>
+          </View>
+          <Toast config={customToastConfig} />
+        </BottomSheetModalProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

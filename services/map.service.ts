@@ -2,6 +2,7 @@ import {
   MapPointDetailRes,
   MapPointFilterRequest,
   MapPointRes,
+  RouteResponse,
 } from "../types/map";
 
 import { get } from "./api";
@@ -53,5 +54,22 @@ export const getMapPointDetail = async (
   id: string,
 ): Promise<MapPointDetailRes> => {
   const response = await get<MapPointDetailRes>(`/map-points/${id}`);
+  return response.data;
+};
+
+export const getRoute = async (
+  startLat: number,
+  startLng: number,
+  requestId: string,
+  profile: string = "driving",
+): Promise<RouteResponse> => {
+  const response = await get<RouteResponse>("/routes", {
+    params: {
+      startLat,
+      startLng,
+      requestId,
+      profile,
+    },
+  });
   return response.data;
 };

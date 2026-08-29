@@ -1,21 +1,21 @@
 import {
-    clearTokens,
-    getAccessToken,
-    getRefreshToken,
-    saveTokens,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  saveTokens,
 } from "@/helper/secureStore";
 import { store } from "@/store";
 import { logout } from "@/store/authSlice";
 import type { LoginResponse } from "@/types/auth";
 import type { ApiResponse, ErrorResponse } from "@/types/response";
 import axios, {
-    create,
-    isAxiosError,
-    type AxiosError,
-    type AxiosInstance,
-    type AxiosRequestConfig,
-    type AxiosResponse,
-    type InternalAxiosRequestConfig,
+  create,
+  isAxiosError,
+  type AxiosError,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
 } from "axios";
 import { router } from "expo-router";
 
