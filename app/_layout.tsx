@@ -1,6 +1,7 @@
 import { customToastConfig } from "@/components/common/CustomToast";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
+import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { getCurrentUser } from "@/services/auth.service";
 import type { AppDispatch, RootState } from "@/store";
@@ -50,6 +51,9 @@ function RootNavigator() {
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth?.isAuthenticated,
   );
+
+  // kích hoạt theo dõi vị trí khi user có role LEADER
+  useTeamLocationTracking();
 
   useEffect(() => {
     const bootstrapAuth = async () => {

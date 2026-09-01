@@ -1,4 +1,4 @@
-export type UserRole = 'CITIZEN' | 'RESCUER' | 'ADMIN';
+export type UserRole = 'CITIZEN' | 'RESCUER' | 'ADMIN' | 'LEADER';
 export type Sex = 'MALE' | 'FEMALE' | 'OTHER';
 
 export interface RegisterFormValues {
