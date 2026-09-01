@@ -1,8 +1,10 @@
 import { customToastConfig } from "@/components/common/CustomToast";
+import SosAlertModal from "@/components/common/SosAlertModal";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
 import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { getCurrentUser } from "@/services/auth.service";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
@@ -54,6 +56,8 @@ function RootNavigator() {
 
   // kích hoạt theo dõi vị trí khi user có role LEADER
   useTeamLocationTracking();
+  // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
+  useNotificationSocket();
 
   useEffect(() => {
     const bootstrapAuth = async () => {
@@ -113,8 +117,11 @@ function RootNavigator() {
               <Stack.Screen name="index" />
               <Stack.Screen name="(app)" />
               <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(pages)" />
             </Stack>
           </View>
+          {/* Modal cảnh báo cứu hộ khẩn cấp thời gian thực */}
+          <SosAlertModal />
           <Toast config={customToastConfig} />
         </BottomSheetModalProvider>
       </PaperProvider>

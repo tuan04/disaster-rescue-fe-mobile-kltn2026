@@ -109,34 +109,46 @@ const refreshAccessToken = async (): Promise<{
   };
 };
 
+// Danh sách các endpoint công khai không cần gán Bearer Token và không chạy cơ chế Refresh Token khi 401/403
+const PUBLIC_AUTH_ENDPOINTS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/verify-otp",
+  "/auth/forgot-password",
+  "/auth/refresh-token",
+];
+
+const isPublicAuthEndpoint = (url?: string): boolean => {
+  if (!url) return false;
+  return PUBLIC_AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+};
+
 // Request Interceptor:
 // 1) Chạy trước mọi HTTP request đi ra từ axios instance `api`.
-// 2) Đọc access token từ SecureStore.
+// 2) Đọc access token từ SecureStore (bỏ qua các API auth công khai).
 // 3) Nếu có token thì tự động gắn header Authorization dạng Bearer.
-// => Mục tiêu: các service không cần truyền token thủ công cho từng API.
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
+      // Không cần gắn access token cho các API auth công khai (login, register, v.v.)
+      if (isPublicAuthEndpoint(config.url)) {
+        return config;
+      }
+
       // Lấy access token hiện tại trong bộ nhớ bảo mật của thiết bị.
       const token = await getAccessToken();
 
       // Chỉ gắn header khi thực sự có token và object headers đã được khởi tạo.
-      // Header sau khi gắn sẽ có dạng: Authorization: Bearer <access-token>
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      // Không chặn request khi đọc token lỗi.
-      // Lúc này request vẫn được gửi đi (thường sẽ bị 401 và response interceptor xử lý).
       console.error("Error fetching token from SecureStore:", error);
     }
 
-    // Bắt buộc trả lại config để axios tiếp tục gửi request.
     return config;
   },
   (error) => {
-    // Lỗi phát sinh trước khi request được gửi (ví dụ lỗi build config).
-    // Chuyển tiếp lỗi để bên gọi hoặc interceptor khác xử lý.
     return Promise.reject(error);
   },
 );
@@ -144,14 +156,13 @@ api.interceptors.request.use(
 // Response Interceptor: Xử lý tập trung lỗi phản hồi
 api.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Nhánh thành công: trả nguyên response để các hàm get/post/put... đọc response.data.
     return response;
   },
   async (error) => {
     // Chỉ xử lý sâu với lỗi do Axios ném ra.
     if (isAxiosError(error)) {
-      // Request gốc dùng để retry sau khi refresh token thành công.
       const originalRequest = error.config as RetryableAxiosRequestConfig;
+      const isAuthApi = isPublicAuthEndpoint(originalRequest?.url);
 
       // Timeout phía client (quá thời gian chờ phản hồi từ server).
       if (error.code === "ECONNABORTED") {
@@ -167,15 +178,14 @@ api.interceptors.response.use(
         console.warn(error.response);
         const errorData = error.response.data as ErrorResponse;
 
-        // Token không hợp lệ/hết hạn (401/403):
+        // Token không hợp lệ/hết hạn (401/403) và KHÔNG PHẢI là API auth công khai (login, register, ...):
         // thử refresh token và gửi lại request cũ tối đa 1 lần (_retry guard).
         if (
           (status === 401 || status === 403) &&
+          !isAuthApi &&
           originalRequest &&
           !originalRequest._retry
         ) {
-          // Nếu đang có request khác refresh rồi, request hiện tại sẽ xếp hàng đợi.
-          // Khi refresh xong, callback sẽ nhận access token mới để retry.
           if (isRefreshing) {
             return new Promise((resolve) => {
               queuePendingRequest((newAccessToken: string) => {
@@ -187,36 +197,27 @@ api.interceptors.response.use(
             });
           }
 
-          // Đánh dấu request này đã retry để tránh vòng lặp vô hạn.
           originalRequest._retry = true;
-          // Khóa refresh toàn cục: chỉ cho phép 1 tiến trình refresh chạy tại một thời điểm.
           isRefreshing = true;
 
           try {
-            // Gọi endpoint refresh-token để lấy access token mới.
             const refreshedTokens = await refreshAccessToken();
 
-            // Cập nhật token mới cho request đang lỗi để retry ngay.
             if (originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${refreshedTokens.accessToken}`;
             }
 
-            // Mở khóa toàn bộ request đang chờ bằng access token mới.
             resolvePendingRequests(refreshedTokens.accessToken);
-
-            // Gửi lại request gốc với token mới.
             return api(originalRequest);
           } catch (refreshError) {
-            // Refresh thất bại: coi như phiên đã hết hạn, xóa token và đưa user về login.
             await handleSessionExpired();
             return Promise.reject(refreshError as AxiosError);
           } finally {
-            // Dù thành công hay thất bại đều phải mở cờ refreshing.
             isRefreshing = false;
           }
         }
 
-        // Không thuộc trường hợp refresh được: map lỗi server sang ApiError thống nhất.
+        // Map lỗi server sang ApiError để màn hình gọi API (như Login, Register) hứng được ErrorResponse
         const errorMessage =
           errorData?.message || error.message || "Đã xảy ra lỗi hệ thống";
         const errorCode = errorData?.code;

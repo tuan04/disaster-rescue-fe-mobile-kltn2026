@@ -1,6 +1,7 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
+import { useAppTheme } from "@/contants/theme";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
 import type { RootState } from "@/store";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,28 +11,31 @@ import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function AppIndex() {
+  const theme = useAppTheme();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const unreadNotificationCount = 3;
+  const unreadNotificationCount = useSelector(
+    (state: RootState) => state.notification?.unreadCount || 0,
+  );
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable className="bg-background">
       <View className="mb-5 flex-row items-center justify-between">
         <View className="flex-row items-center">
-          <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <Ionicons name="person" size={24} color="#dc2626" />
+          <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-danger/10">
+            <Ionicons name="person" size={24} color={theme.colors.danger} />
           </View>
 
           {isAuthenticated && user ? (
             <View>
-              <Text className="text-xs text-slate-500">Xin chào,</Text>
-              <Text className="text-base font-bold text-slate-900">
+              <Text className="text-xs text-text-muted">Xin chào,</Text>
+              <Text className="text-base font-bold text-text">
                 {user.fullName || user.phone || "Người dùng"}
               </Text>
             </View>
           ) : (
             <Pressable onPress={() => router.push("/(auth)/login")}>
-              <Text className="text-xs text-slate-500">Tài khoản</Text>
-              <Text className="text-base font-semibold text-red-600 underline">
+              <Text className="text-xs text-text-muted">Tài khoản</Text>
+              <Text className="text-base font-semibold text-danger underline">
                 Bạn muốn đăng nhập ?
               </Text>
             </Pressable>
@@ -39,12 +43,12 @@ export default function AppIndex() {
         </View>
 
         <Pressable
-          className="relative h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 active:bg-slate-50"
-          onPress={() => { }}
+          className="relative h-11 w-11 items-center justify-center rounded-full bg-surface shadow-sm active:opacity-70"
+          onPress={() => router.push("/(pages)/sos-point")}
         >
-          <Ionicons name="notifications-outline" size={24} color="#334155" />
+          <Ionicons name="notifications-outline" size={24} color={theme.colors.onSurface} />
           {isAuthenticated && unreadNotificationCount > 0 && (
-            <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1">
+            <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1">
               <Text className="text-[10px] font-bold text-white">
                 {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
               </Text>
@@ -53,8 +57,8 @@ export default function AppIndex() {
         </Pressable>
       </View>
 
-      <View className="mb-5 rounded-2xl bg-white p-3 shadow-sm border border-slate-100">
-        <Text className="mb-3 text-base font-bold text-slate-900">Các tiện ích</Text>
+      <View className="mb-5 rounded-2xl bg-surface p-3 shadow-sm">
+        <Text className="mb-3 text-base font-bold text-text">Các tiện ích</Text>
         <View className="flex-row flex-wrap">
           {UTILITIES.map((item) => (
             <UtilityCard
@@ -67,7 +71,7 @@ export default function AppIndex() {
       </View>
 
       <Pressable
-        className="mb-6 flex-row items-center justify-center rounded-2xl bg-red-600 py-4 px-5 shadow-md active:bg-red-700"
+        className="mb-6 flex-row items-center justify-center rounded-2xl bg-danger py-4 px-5 shadow-md active:opacity-85"
         onPress={() => router.push("/(app)/map")}
       >
         <Ionicons name="megaphone-outline" size={24} color="#ffffff" />
@@ -77,7 +81,7 @@ export default function AppIndex() {
       </Pressable>
 
       <View>
-        <Text className="mb-3 text-base font-bold text-slate-900">Tin tức</Text>
+        <Text className="mb-3 text-base font-bold text-text">Tin tức</Text>
         <View className="space-y-3">
           {NEWS_ITEMS.map((news) => (
             <NewsCard key={news.id} item={news} />
