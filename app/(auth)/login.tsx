@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { useForm } from "react-hook-form";
 import { Alert, Text, View } from "react-native";
 import { useDispatch } from "react-redux";
+import { ApiError } from "@/services/api";
 
 export default function LoginScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -48,7 +49,9 @@ export default function LoginScreen() {
         response.message || "Vui lòng thử lại.",
       );
     } catch (error) {
-      console.error("Login error:", error);
+      if(error instanceof ApiError) {
+        
+      }
       Alert.alert(
         "Đăng nhập thất bại",
         error instanceof Error

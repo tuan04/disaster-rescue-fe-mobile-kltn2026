@@ -5,7 +5,6 @@ import type {
   RegisterRequest,
   ResetForgotPasswordRequest,
   UserInfoResponse,
-  UserRole,
   VerifyForgotPasswordOtpRequest,
   VerifyForgotPasswordOtpResponse,
   VerifyOtpRequest,
@@ -14,12 +13,9 @@ import { ApiResponse } from "@/types/response";
 import { get, post } from "./api";
 
 export const registerAccount = async (
-  role: UserRole,
   payload: RegisterRequest,
 ): Promise<ApiResponse> => {
-  const endpoint =
-    role === "CITIZEN" ? "/register/citizen" : "/register/rescuer";
-  const data = await post<unknown>(`/auth/${endpoint}`, payload);
+  const data = await post<unknown>(`/auth/register`, payload);
   return data;
 };
 
@@ -104,3 +100,4 @@ export const resetForgotPassword = async (
   );
   return data;
 };
+

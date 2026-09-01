@@ -25,7 +25,7 @@ export default function UtilityCard({
         <Ionicons name={item.icon} size={22} color={item.color} />
       </View>
       <Text
-        className="text-center text-xs font-medium text-slate-700"
+        className="text-center text-xs font-medium text-text"
         numberOfLines={2}
       >
         {item.label}
