@@ -49,8 +49,8 @@ export default function LoginScreen() {
         response.message || "Vui lòng thử lại.",
       );
     } catch (error) {
-      if(error instanceof ApiError) {
-        
+      if (error instanceof ApiError) {
+
       }
       Alert.alert(
         "Đăng nhập thất bại",
