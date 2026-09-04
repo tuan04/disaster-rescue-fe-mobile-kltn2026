@@ -1,7 +1,7 @@
 import { customToastConfig } from "@/components/common/CustomToast";
 import SosAlertModal from "@/components/common/SosAlertModal";
 import { DarkTheme, LightTheme } from "@/contants/theme";
-import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
+import { DATABASE_NAME } from "@/database";
 import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
@@ -31,7 +31,6 @@ export default function RootLayout() {
         <Provider store={store}>
           <SQLiteProvider
             databaseName={DATABASE_NAME}
-            onInit={migrateDbIfNeeded}
             useSuspense={false}
           >
             <RootNavigator />

@@ -14,16 +14,10 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     }
 
     if (currentDbVersion === 0) {
-      console.log("[SQLite] Initializing database schema v1...");
+      console.log("[SQLite] Initializing database schema...");
       await db.execAsync(INITIAL_SCHEMA_V1);
-      currentDbVersion = 1;
+      currentDbVersion = DATABASE_VERSION;
     }
-
-    // Future version migrations can be added here:
-    // if (currentDbVersion === 1) {
-    //   await db.execAsync(SCHEMA_V2_MIGRATION);
-    //   currentDbVersion = 2;
-    // }
 
     await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
     console.log(`[SQLite] Database migrated to version ${DATABASE_VERSION}`);

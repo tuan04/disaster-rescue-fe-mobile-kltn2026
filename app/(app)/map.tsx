@@ -24,7 +24,7 @@ import {
   Marker,
 } from "@maplibre/maplibre-react-native";
 import React, { useCallback, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -72,6 +72,7 @@ export default function MapScreen() {
 
   const {
     activeRoute,
+    activeMission,
     routeGeoJSON,
     fetchRoute,
     clearRoute,
@@ -307,30 +308,62 @@ export default function MapScreen() {
 
       {activeRoute && activeRoute.routes && activeRoute.routes.length > 0 && (
         <View
-          className="absolute left-4 right-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 flex-row items-center justify-between z-20"
+          className="absolute left-4 right-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 z-20"
           style={{ bottom: insets.bottom + 16 }}
         >
-          <View className="flex-1 mr-3">
-            <Text className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">
-              Đường đi cứu hộ
-            </Text>
+          <View className="flex-row items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+            <View className="flex-1 mr-2">
+              <Text
+                className="text-sm font-bold text-slate-900 dark:text-white"
+                numberOfLines={1}
+              >
+                {activeMission?.address || "Đang hướng đến điểm cứu hộ"}
+              </Text>
+              {activeMission?.reporter_phone && (
+                <Text className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  SĐT: {activeMission.reporter_phone}
+                </Text>
+              )}
+            </View>
+
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  "Xác nhận hủy",
+                  "Bạn có chắc muốn hủy lộ trình dẫn đường ca cứu hộ này không?",
+                  [
+                    { text: "Không", style: "cancel" },
+                    {
+                      text: "Đồng ý",
+                      style: "destructive",
+                      onPress: clearRoute,
+                    },
+                  ],
+                );
+              }}
+              className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 active:opacity-80"
+            >
+              <Text className="text-red-500 dark:text-red-400 font-bold text-xs">
+                Hủy dẫn đường
+              </Text>
+            </Pressable>
+          </View>
+
+          <View className="flex-row items-center justify-between">
             <View className="flex-row items-baseline gap-1.5">
-              <Text className="text-xl font-bold text-slate-900 dark:text-white">
+              <Text className="text-xl font-bold text-blue-600 dark:text-blue-400">
                 {(activeRoute.routes[0].distance / 1000).toFixed(1)} km
               </Text>
               <Text className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                ({Math.round(activeRoute.routes[0].duration / 60)} phút)
+                (khoảng {Math.round(activeRoute.routes[0].duration / 60)} phút)
+              </Text>
+            </View>
+            <View className="bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full">
+              <Text className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Đang dẫn đường
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={clearRoute}
-            className="px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 active:opacity-80"
-          >
-            <Text className="text-red-500 dark:text-red-400 font-bold text-sm">
-              Hủy dẫn đường
-            </Text>
-          </Pressable>
         </View>
       )}
     </ScreenContainer>

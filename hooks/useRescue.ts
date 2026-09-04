@@ -1,3 +1,4 @@
+import { saveActiveMission } from "@/database";
 import { acceptRescueRequest } from "@/services/assignment.service";
 import type { RootState } from "@/store";
 import type { MapPointDetailRes } from "@/types/map";
@@ -42,8 +43,9 @@ export function useRescue({
       requestId: string;
       pointId: string;
       leaderId: string;
+      detail: MapPointDetailRes;
     }) => acceptRescueRequest(requestId, leaderId),
-    onSuccess: async (_, { requestId, pointId }) => {
+    onSuccess: async (res, { requestId, pointId, leaderId, detail }) => {
       Toast.show({
         type: "success",
         text1: "Thành công",
@@ -53,8 +55,31 @@ export function useRescue({
       queryClient.invalidateQueries({ queryKey: ["mapPointDetail", pointId] });
       detailSheetRef?.current?.dismiss();
 
+      let routeData = null;
       if (onRouteCalculated) {
-        await onRouteCalculated(currentLat, currentLng, requestId);
+        routeData = await onRouteCalculated(currentLat, currentLng, requestId);
+      }
+
+      // Lưu trạng thái và tuyến đường vào SQLite để offline/reload không bị mất
+      try {
+        await saveActiveMission({
+          id: res?.data?.id,
+          requestId,
+          pointId,
+          leaderId,
+          targetLatitude: detail.latitude,
+          targetLongitude: detail.longitude,
+          address: detail.address,
+          reporterPhone:
+            detail.pointType === "SOS" ? detail.detail.reporterPhone : null,
+          content: detail.pointType === "SOS" ? detail.detail.content : null,
+          emergencyLevel:
+            detail.pointType === "SOS" ? detail.detail.emergencyLevel : null,
+          routeData,
+          status: "IN_PROGRESS",
+        });
+      } catch (e) {
+        console.warn("[useRescue] Lỗi khi lưu SQLite active mission:", e);
       }
     },
     onError: (error: any) => {
@@ -100,7 +125,8 @@ export function useRescue({
               acceptRescueMutation.mutate({
                 requestId: detail.detail.id,
                 pointId: detail.id,
-                leaderId: user?.id || "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                leaderId: user?.id || "",
+                detail,
               }),
           },
         ],

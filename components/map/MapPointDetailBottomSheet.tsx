@@ -72,7 +72,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth?.user);
-  const isRescuer = user?.role === "RESCUER";
+  const isRescuer = user?.role === "LEADER";
 
   const snapPoints = useMemo(
     () => customSnapPoints || ["60%", "90%"],

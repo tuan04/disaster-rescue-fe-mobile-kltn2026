@@ -1,7 +1,12 @@
+import {
+  clearActiveMission,
+  getActiveMission,
+  type ActiveMissionParsed,
+} from "@/database";
 import { getRoute } from "@/services/map.service";
 import type { RouteResponse } from "@/types/map";
 import type { CameraRef } from "@maplibre/maplibre-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Toast from "react-native-toast-message";
 
 export const getCoordinatesBounds = (
@@ -30,9 +35,57 @@ export interface UseRouteProps {
 
 export function useRoute({ cameraRef }: UseRouteProps = {}) {
   const [activeRoute, setActiveRoute] = useState<RouteResponse | null>(null);
+  const [activeMission, setActiveMission] =
+    useState<ActiveMissionParsed | null>(null);
+
+  // Tự động khôi phục tuyến đường và ca cứu hộ từ SQLite khi mở lại ứng dụng
+  useEffect(() => {
+    let isMounted = true;
+    const restoreMission = async () => {
+      try {
+        const savedMission = await getActiveMission();
+        if (isMounted && savedMission) {
+          setActiveMission(savedMission);
+          if (savedMission.route && savedMission.route.routes?.length > 0) {
+            setActiveRoute(savedMission.route);
+
+            const coordinates =
+              savedMission.route.routes[0]?.geometry?.coordinates;
+            const bounds = getCoordinatesBounds(coordinates);
+            if (bounds && cameraRef?.current) {
+              // Delay nhỏ để map render xong
+              setTimeout(() => {
+                cameraRef?.current?.setStop({
+                  bounds,
+                  padding: {
+                    left: 40,
+                    right: 40,
+                    top: 80,
+                    bottom: 40,
+                  },
+                  duration: 1000,
+                });
+              }, 500);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[useRoute] Lỗi khi khôi phục lộ trình từ SQLite:", err);
+      }
+    };
+
+    restoreMission();
+    return () => {
+      isMounted = false;
+    };
+  }, [cameraRef]);
 
   const routeGeoJSON = useMemo(() => {
-    if (!activeRoute || !activeRoute.routes || activeRoute.routes.length === 0) {
+    if (
+      !activeRoute ||
+      !activeRoute.routes ||
+      activeRoute.routes.length === 0
+    ) {
       return null;
     }
     return {
@@ -90,15 +143,23 @@ export function useRoute({ cameraRef }: UseRouteProps = {}) {
     [cameraRef],
   );
 
-  const clearRoute = useCallback(() => {
+  const clearRoute = useCallback(async () => {
     setActiveRoute(null);
+    setActiveMission(null);
+    try {
+      await clearActiveMission();
+    } catch (err) {
+      console.warn("[useRoute] Lỗi khi xóa active mission trong SQLite:", err);
+    }
   }, []);
 
   return {
     activeRoute,
+    activeMission,
     routeGeoJSON,
     fetchRoute,
     clearRoute,
     setActiveRoute,
+    setActiveMission,
   };
 }
