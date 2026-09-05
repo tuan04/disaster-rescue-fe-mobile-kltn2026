@@ -1,3 +1,4 @@
+import Button from "@/components/common/Button";
 import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
 import {
   hazardTypeLabel,
@@ -34,6 +35,7 @@ export interface MapPointDetailBottomSheetProps {
   onDismiss?: () => void;
   snapPoints?: string[];
   onRescue?: (detail: MapPointDetailRes) => void;
+  isAccepting?: boolean;
 }
 
 function DetailRow({
@@ -66,7 +68,7 @@ function DetailRow({
 export const MapPointDetailBottomSheet = React.forwardRef<
   BottomSheetModal,
   MapPointDetailBottomSheetProps
->(({ pointId, onDismiss, snapPoints: customSnapPoints, onRescue }, ref) => {
+>(({ pointId, onDismiss, snapPoints: customSnapPoints, onRescue, isAccepting = false }, ref) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth?.user);
@@ -249,12 +251,13 @@ export const MapPointDetailBottomSheet = React.forwardRef<
           <Text className="mt-1 text-center text-xs text-text-muted">
             Đã có lỗi xảy ra khi lấy dữ liệu điểm thảm họa này.
           </Text>
-          <Pressable
+          <Button
+            title="Thử lại"
             onPress={() => refetch()}
-            className="mt-4 rounded-xl bg-danger px-4 py-2 active:opacity-80"
-          >
-            <Text className="text-xs font-bold text-white">Thử lại</Text>
-          </Pressable>
+            variant="danger"
+            style={{ marginTop: 16 }}
+            contentStyle={{ minHeight: 40 }}
+          />
         </View>
       )}
 
@@ -282,41 +285,45 @@ export const MapPointDetailBottomSheet = React.forwardRef<
           {(() => {
             const phone = getPhone(detail);
             const showRescueButton = detail.pointType === "SOS";
+            const isPending = detail.pointType === "SOS" && detail.detail.status === "PENDING";
+            const canRescue = isRescuer && isPending && !isAccepting;
 
             if (!phone && !showRescueButton) return null;
 
             return (
               <View className="mt-6 flex-row gap-3">
                 {showRescueButton && (
-                  <Pressable
-                    onPress={() => isRescuer && onRescue?.(detail)}
-                    disabled={!isRescuer}
-                    className={`flex-1 flex-row items-center justify-center rounded-xl py-3.5 px-4 shadow-sm ${isRescuer
-                      ? "bg-danger active:opacity-80"
-                      : "bg-danger opacity-60"
-                      }`}
-                  >
-                    <Ionicons
-                      name="shield-checkmark-outline"
-                      size={18}
-                      color="#FFFFFF"
-                    />
-                    <Text className="ml-2 text-sm font-bold text-white">
-                      Cứu hộ
-                    </Text>
-                  </Pressable>
+                  <Button
+                    title={
+                      isPending
+                        ? "Cứu hộ"
+                        : rescueStatusLabel[detail.detail.status] || detail.detail.status
+                    }
+                    onPress={() => canRescue && onRescue?.(detail)}
+                    disabled={!canRescue}
+                    loading={isAccepting}
+                    variant="primary"
+                    icon={({ size, color }) => (
+                      <Ionicons
+                        name="shield-checkmark-outline"
+                        size={size}
+                        color={color}
+                      />
+                    )}
+                    style={{ flex: 1 }}
+                  />
                 )}
 
                 {phone && (
-                  <Pressable
+                  <Button
+                    title="Gọi điện"
                     onPress={() => handleCallPhone(phone)}
-                    className="flex-1 flex-row items-center justify-center rounded-xl bg-success py-3.5 px-4 active:opacity-80 shadow-sm"
-                  >
-                    <Ionicons name="call-outline" size={18} color="#FFFFFF" />
-                    <Text className="ml-2 text-sm font-bold text-white">
-                      Gọi điện
-                    </Text>
-                  </Pressable>
+                    variant="success"
+                    icon={({ size, color }) => (
+                      <Ionicons name="call-outline" size={size} color={color} />
+                    )}
+                    style={{ flex: 1 }}
+                  />
                 )}
               </View>
             );

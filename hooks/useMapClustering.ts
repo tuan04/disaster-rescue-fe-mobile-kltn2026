@@ -13,15 +13,18 @@ export interface ClusterRenderItem {
   coordinates: [number, number];
 }
 
-export interface UseMapClustersProps {
+export interface UseMapClusteringProps {
   mapPoints: MapPointRes[];
   cameraRef?: React.RefObject<CameraRef | null>;
 }
 
-export function useMapClusters({ mapPoints, cameraRef }: UseMapClustersProps) {
+export function useMapClustering({
+  mapPoints,
+  cameraRef,
+}: UseMapClusteringProps) {
   const [zoom, setZoom] = useState<number>(14);
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(
-    null
+    null,
   );
 
   const superclusters = useMemo(() => {
@@ -125,7 +128,7 @@ export function useMapClusters({ mapPoints, cameraRef }: UseMapClustersProps) {
         });
       }
     },
-    [superclusters, zoom, cameraRef]
+    [superclusters, zoom, cameraRef],
   );
 
   const handleRegionDidChange = useCallback((e: any) => {

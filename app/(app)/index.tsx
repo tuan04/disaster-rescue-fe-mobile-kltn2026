@@ -3,19 +3,33 @@ import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
 import { useAppTheme } from "@/contants/theme";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
+import { getNotifications } from "@/services/notification.service";
 import type { RootState } from "@/store";
+import type { NotificationItem } from "@/types/notification";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function AppIndex() {
   const theme = useAppTheme();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const unreadNotificationCount = useSelector(
-    (state: RootState) => state.notification?.unreadCount || 0,
-  );
+
+  const { data: serverNotifications = [] } = useQuery<NotificationItem[]>({
+    queryKey: ["notifications", "home"],
+    queryFn: async () => {
+      const res = await getNotifications(0, 20);
+      return res.data?.content || [];
+    },
+    enabled: isAuthenticated,
+    staleTime: 1000 * 30,
+  });
+
+  const unreadNotificationCount = useMemo(() => {
+    return serverNotifications.filter((n) => !n.isRead).length;
+  }, [serverNotifications]);
 
   return (
     <ScreenContainer scrollable className="bg-background">
@@ -44,7 +58,7 @@ export default function AppIndex() {
 
         <Pressable
           className="relative h-11 w-11 items-center justify-center rounded-full bg-surface shadow-sm active:opacity-70"
-          onPress={() => router.push("/(pages)/sos-point")}
+          onPress={() => router.push("/(pages)/notifications")}
         >
           <Ionicons name="notifications-outline" size={24} color={theme.colors.onSurface} />
           {isAuthenticated && unreadNotificationCount > 0 && (

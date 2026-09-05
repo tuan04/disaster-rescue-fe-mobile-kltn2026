@@ -1,18 +1,19 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import {
   Button as PaperButton,
   useTheme,
   type ButtonProps as PaperButtonProps,
 } from "react-native-paper";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
 
 type ButtonProps = {
   title: string;
   loading?: boolean;
   disabled?: boolean;
   variant?: ButtonVariant;
+  labelClassName?: string;
 } & Omit<
   PaperButtonProps,
   "children" | "loading" | "disabled" | "mode" | "buttonColor" | "textColor"
@@ -26,6 +27,7 @@ export default function Button({
   contentStyle,
   labelStyle,
   style,
+  labelClassName,
   ...props
 }: ButtonProps) {
   const theme = useTheme();
@@ -36,6 +38,7 @@ export default function Button({
     outline: "outlined",
     ghost: "text",
     danger: "contained",
+    success: "contained",
   };
 
   const colorByVariant: Record<
@@ -60,6 +63,10 @@ export default function Button({
       buttonColor: theme.colors.error,
       textColor: theme.colors.onError,
     },
+    success: {
+      buttonColor: (theme.colors as any).success,
+      textColor: "#ffffff",
+    },
   };
 
   return (
@@ -69,11 +76,15 @@ export default function Button({
       disabled={disabled || loading}
       style={[styles.button, style]}
       contentStyle={[styles.content, contentStyle]}
-      labelStyle={[styles.label, labelStyle]}
       {...colorByVariant[variant]}
       {...props}
     >
-      {title}
+      <Text
+        className={`text-md font-bold ${labelClassName || ""}`}
+        style={[{ color: colorByVariant[variant].textColor }, labelStyle]}
+      >
+        {title}
+      </Text>
     </PaperButton>
   );
 }
@@ -83,10 +94,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   content: {
-    minHeight: 52,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "700",
+    minHeight: 45,
   },
 });

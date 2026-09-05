@@ -1,5 +1,8 @@
+import { customToastConfig } from "@/components/common/CustomToast";
 import SosAlertModal from "@/components/common/SosAlertModal";
 import { DarkTheme, LightTheme } from "@/contants/theme";
+import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
+import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { getCurrentUser } from "@/services/auth.service";
@@ -9,11 +12,13 @@ import { login, logout } from "@/store/authSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
+import { SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
 import { StatusBar, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import "../global.css";
 
@@ -22,13 +27,17 @@ const queryClient = new QueryClient();
 export default function RootLayout() {
   return (
     <GestureHandlerRootView className="flex-1">
-      <BottomSheetModalProvider>
-        <QueryClientProvider client={queryClient}>
-          <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>
+          <SQLiteProvider
+            databaseName={DATABASE_NAME}
+            onInit={migrateDbIfNeeded}
+            useSuspense={false}
+          >
             <RootNavigator />
-          </Provider>
-        </QueryClientProvider>
-      </BottomSheetModalProvider>
+          </SQLiteProvider>
+        </Provider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
@@ -45,6 +54,8 @@ function RootNavigator() {
     (state: RootState) => state.auth?.isAuthenticated,
   );
 
+  // kích hoạt theo dõi vị trí khi user có role LEADER
+  useTeamLocationTracking();
   // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
   useNotificationSocket();
 
@@ -90,27 +101,29 @@ function RootNavigator() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={currentTheme}>
-        <StatusBar
-          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        />
+        <BottomSheetModalProvider>
+          <StatusBar
+            barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+          />
 
-        <View
-          className={
-            colorScheme === "dark"
-              ? "dark flex-1 bg-background"
-              : "flex-1 bg-background"
-          }
-        >
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(pages)" />
-          </Stack>
-
+          <View
+            className={
+              colorScheme === "dark"
+                ? "dark flex-1 bg-background"
+                : "flex-1 bg-background"
+            }
+          >
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(app)" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(pages)" />
+            </Stack>
+          </View>
           {/* Modal cảnh báo cứu hộ khẩn cấp thời gian thực */}
           <SosAlertModal />
-        </View>
+          <Toast config={customToastConfig} />
+        </BottomSheetModalProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

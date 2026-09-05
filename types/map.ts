@@ -119,3 +119,19 @@ export type MapPointDetailRes =
       pointType: "WARE_HOUSE";
       detail: WarehouseDetailRes;
     });
+
+export interface GeometryDto {
+  type: string;
+  coordinates: number[][];
+}
+
+export interface RouteDto {
+  distance: number;
+  duration: number;
+  geometry: GeometryDto;
+}
+
+export interface RouteResponse {
+  code: string;
+  routes: RouteDto[];
+}
