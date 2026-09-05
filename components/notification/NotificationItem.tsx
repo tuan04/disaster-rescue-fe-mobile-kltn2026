@@ -1,6 +1,7 @@
 import { formatDateTime } from "@/helper/date";
 import type { NotificationItem as NotificationItemType } from "@/types/notification";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -69,12 +70,49 @@ export default function NotificationItem({
   onDelete,
   onPress,
 }: NotificationItemProps) {
-  const { id, type, content, isRead, createdAt } = notification;
+  const { id, type, referenceId, content, isRead, createdAt } = notification;
   const config = TYPE_CONFIGS[type] || DEFAULT_CONFIG;
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress(notification);
+      return;
+    }
+
+    const typeUpper = (type || "").toUpperCase();
+    const refId = referenceId;
+
+    if (typeUpper.includes("SOS") || typeUpper.includes("RESCUE")) {
+      router.push({
+        pathname: "/(pages)/sos-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else if (typeUpper.includes("HAZARD")) {
+      router.push({
+        pathname: "/(pages)/hazard-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else if (typeUpper.includes("SAFE")) {
+      router.push({
+        pathname: "/(pages)/safe-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else if (typeUpper.includes("WARE")) {
+      router.push({
+        pathname: "/(pages)/warehouse-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else {
+      router.push({
+        pathname: "/(pages)/sos-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    }
+  };
 
   return (
     <Pressable
-      onPress={() => onPress?.(notification)}
+      onPress={handlePress}
       className={`relative mb-2 flex-row items-center rounded-xl py-2.5 px-3 border transition-all active:opacity-85 shadow-sm ${
         !isRead
           ? "bg-blue-50/70 dark:bg-sky-950/30 border-blue-200/80 dark:border-sky-800/60 shadow-blue-100/50"

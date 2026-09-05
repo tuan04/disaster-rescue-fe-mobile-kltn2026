@@ -1,5 +1,4 @@
 import { customToastConfig } from "@/components/common/CustomToast";
-import SosAlertModal from "@/components/common/SosAlertModal";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
 import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
@@ -120,8 +119,6 @@ function RootNavigator() {
               <Stack.Screen name="(pages)" />
             </Stack>
           </View>
-          {/* Modal cảnh báo cứu hộ khẩn cấp thời gian thực */}
-          <SosAlertModal />
           <Toast config={customToastConfig} />
         </BottomSheetModalProvider>
       </PaperProvider>

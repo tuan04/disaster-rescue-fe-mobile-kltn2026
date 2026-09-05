@@ -1,21 +1,20 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
+import SafePointItem from "@/components/map/SafePointItem";
 import { safePointTypeLabel } from "@/contants/mapPointLables";
-import { getSafePointIconDetails } from "@/contants/mapPointMeta";
-import { calculateDistanceKm, formatDistance } from "@/helper/distance";
+import { useAppTheme } from "@/contants/theme";
+import { calculateDistanceKm } from "@/helper/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { MapPointRes, SafePointType, SafeZoneMapPointRes } from "@/types/map";
-import { useAppTheme } from "@/contants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   Text,
@@ -34,11 +33,24 @@ const SAFE_POINT_TYPE_OPTIONS: Array<{ key: SafePointType | "ALL"; label: string
 export default function SafePointScreen() {
   const theme = useAppTheme();
   const { coords } = useLocation();
+  const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
-  const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
+  const [selectedPointId, setSelectedPointId] = useState<string | null>(
+    params.pointId || null,
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<SafePointType | "ALL">("ALL");
+
+  useEffect(() => {
+    if (params.pointId) {
+      setSelectedPointId(params.pointId);
+      const timer = setTimeout(() => {
+        detailSheetRef.current?.present();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [params.pointId]);
 
   const {
     data: mapPoints = [],
@@ -148,6 +160,7 @@ export default function SafePointScreen() {
           data={SAFE_POINT_TYPE_OPTIONS}
           keyExtractor={(item) => item.key}
           showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 16 }}
           renderItem={({ item }) => {
             const isSelected = selectedType === item.key;
             return (
@@ -161,7 +174,7 @@ export default function SafePointScreen() {
               >
                 <Text
                   className={`text-xs font-medium ${
-                    isSelected ? "text-white" : "text-text-muted"
+                    isSelected ? "text-white font-semibold" : "text-text-muted"
                   }`}
                 >
                   {item.label}
@@ -185,18 +198,22 @@ export default function SafePointScreen() {
           data={safePoints}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <SafePointItem item={item} onPress={handleOpenDetail} />
+          )}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
               colors={[theme.colors.success]}
+              tintColor={theme.colors.success}
             />
           }
           contentContainerStyle={{ paddingBottom: 24 }}
           ListEmptyComponent={
             <View className="items-center justify-center rounded-2xl bg-surface p-8 border border-outline/20 mt-6">
               <View className="h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-3">
-                <Ionicons name="navigate-outline" size={36} color={theme.colors.success} />
+                <Ionicons name="shield-checkmark-outline" size={36} color={theme.colors.success} />
               </View>
               <Text className="text-base font-bold text-text">
                 Chưa có điểm an toàn
@@ -206,72 +223,6 @@ export default function SafePointScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const label = safePointTypeLabel[item.subType as SafePointType] || "Điểm an toàn";
-            const iconDetails = getSafePointIconDetails(item);
-            const distance = formatDistance(item.distanceKm);
-
-            return (
-              <Pressable
-                onPress={() => handleOpenDetail(item.id)}
-                className="mb-3 rounded-2xl bg-surface p-4 border border-outline/20 shadow-sm active:opacity-75"
-              >
-                <View className="flex-row items-start justify-between">
-                  <View className="flex-row items-center flex-1 mr-2">
-                    <View className="mr-3 h-12 w-12 items-center justify-center rounded-xl bg-success/10 border border-success/20">
-                      {iconDetails?.iconUrl ? (
-                        <Image
-                          source={iconDetails.iconUrl}
-                          className="h-8 w-8"
-                          resizeMode="contain"
-                        />
-                      ) : (
-                        <Ionicons name="shield-checkmark" size={24} color={theme.colors.success} />
-                      )}
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-text" numberOfLines={1}>
-                        {label}
-                      </Text>
-                      {distance ? (
-                        <Text className="text-xs text-success font-medium">
-                          📍 Cách bạn {distance}
-                        </Text>
-                      ) : (
-                        <Text className="text-xs text-text-muted">
-                          Tọa độ: {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  <View className="rounded-full bg-success/10 px-2.5 py-1 border border-success/30">
-                    <Text className="text-[11px] font-semibold text-success">
-                      Sẵn sàng tiếp nhận
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Bottom row */}
-                <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
-                  <View className="flex-row items-center">
-                    <Ionicons name="location-outline" size={14} color={theme.colors.textMuted} />
-                    <Text className="ml-1 text-xs text-text-muted">
-                      Khu vực trú ẩn an toàn & y tế
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => handleOpenDetail(item.id)}
-                    className="rounded-lg bg-success/10 px-3 py-1.5 active:bg-success/20"
-                  >
-                    <Text className="text-xs font-semibold text-success">
-                      Xem chi tiết
-                    </Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            );
-          }}
         />
       )}
 
@@ -284,3 +235,4 @@ export default function SafePointScreen() {
     </ScreenContainer>
   );
 }
+

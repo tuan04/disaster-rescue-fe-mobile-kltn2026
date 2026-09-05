@@ -1,20 +1,19 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
-import { getWarehouseIconDetails } from "@/contants/mapPointMeta";
-import { calculateDistanceKm, formatDistance } from "@/helper/distance";
+import WarehousePointItem from "@/components/map/WarehousePointItem";
+import { useAppTheme } from "@/contants/theme";
+import { calculateDistanceKm } from "@/helper/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { MapPointRes, WarehouseMapPointRes } from "@/types/map";
-import { useAppTheme } from "@/contants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   Text,
@@ -25,10 +24,23 @@ import {
 export default function WarehousePointScreen() {
   const theme = useAppTheme();
   const { coords } = useLocation();
+  const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
-  const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
+  const [selectedPointId, setSelectedPointId] = useState<string | null>(
+    params.pointId || null,
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (params.pointId) {
+      setSelectedPointId(params.pointId);
+      const timer = setTimeout(() => {
+        detailSheetRef.current?.present();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [params.pointId]);
 
   const {
     data: mapPoints = [],
@@ -78,8 +90,6 @@ export default function WarehousePointScreen() {
     setSelectedPointId(id);
     detailSheetRef.current?.present();
   };
-
-  const warehouseMeta = getWarehouseIconDetails();
 
   return (
     <ScreenContainer scrollable={false} className="flex-1 bg-background">
@@ -143,11 +153,15 @@ export default function WarehousePointScreen() {
           data={warehousePoints}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <WarehousePointItem item={item} onPress={handleOpenDetail} />
+          )}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
               colors={[theme.colors.secondary]}
+              tintColor={theme.colors.secondary}
             />
           }
           contentContainerStyle={{ paddingBottom: 24 }}
@@ -164,70 +178,6 @@ export default function WarehousePointScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const distance = formatDistance(item.distanceKm);
-
-            return (
-              <Pressable
-                onPress={() => handleOpenDetail(item.id)}
-                className="mb-3 rounded-2xl bg-surface p-4 border border-outline/20 shadow-sm active:opacity-75"
-              >
-                <View className="flex-row items-start justify-between">
-                  <View className="flex-row items-center flex-1 mr-2">
-                    <View className="mr-3 h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 border border-secondary/20">
-                      {warehouseMeta?.iconUrl ? (
-                        <Image
-                          source={warehouseMeta.iconUrl}
-                          className="h-8 w-8"
-                          resizeMode="contain"
-                        />
-                      ) : (
-                        <Ionicons name="cube" size={24} color={theme.colors.secondary} />
-                      )}
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-text" numberOfLines={1}>
-                        {item.subType || "Kho tiếp tế cứu trợ"}
-                      </Text>
-                      {distance ? (
-                        <Text className="text-xs text-secondary font-medium">
-                          📦 Cách bạn {distance}
-                        </Text>
-                      ) : (
-                        <Text className="text-xs text-text-muted">
-                          Tọa độ: {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  <View className="rounded-full bg-secondary/10 px-2.5 py-1 border border-secondary/30">
-                    <Text className="text-[11px] font-semibold text-secondary">
-                      Đang mở cửa
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Bottom row */}
-                <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
-                  <View className="flex-row items-center">
-                    <Ionicons name="gift-outline" size={14} color={theme.colors.textMuted} />
-                    <Text className="ml-1 text-xs text-text-muted">
-                      Nhu yếu phẩm, lương thực, áo phao
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => handleOpenDetail(item.id)}
-                    className="rounded-lg bg-secondary/10 px-3 py-1.5 active:bg-secondary/20"
-                  >
-                    <Text className="text-xs font-semibold text-secondary">
-                      Xem chi tiết
-                    </Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            );
-          }}
         />
       )}
 
@@ -240,3 +190,4 @@ export default function WarehousePointScreen() {
     </ScreenContainer>
   );
 }
+

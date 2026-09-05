@@ -174,18 +174,34 @@ export default function NotificationsScreen() {
       markReadMutation.mutate(item.id);
     }
 
-    if (item.type === "SOS" || item.type === "SOS_ALERT") {
-      Alert.alert("Chi tiết cảnh báo SOS", item.content, [
-        { text: "Đóng", style: "cancel" },
-        {
-          text: "Xem danh sách SOS",
-          onPress: () => router.push("/(pages)/sos-point"),
-        },
-        {
-          text: "Xem Bản đồ",
-          onPress: () => router.push("/(app)/map"),
-        },
-      ]);
+    const typeUpper = (item.type || "").toUpperCase();
+    const refId = item.referenceId;
+
+    if (typeUpper.includes("SOS") || typeUpper.includes("RESCUE")) {
+      router.push({
+        pathname: "/(pages)/sos-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else if (typeUpper.includes("HAZARD")) {
+      router.push({
+        pathname: "/(pages)/hazard-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else if (typeUpper.includes("SAFE")) {
+      router.push({
+        pathname: "/(pages)/safe-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else if (typeUpper.includes("WARE")) {
+      router.push({
+        pathname: "/(pages)/warehouse-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
+    } else {
+      router.push({
+        pathname: "/(pages)/sos-point",
+        params: refId ? { pointId: refId } : undefined,
+      });
     }
   };
 
