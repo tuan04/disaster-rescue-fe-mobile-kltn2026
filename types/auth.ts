@@ -1,5 +1,5 @@
-export type UserRole = 'CITIZEN' | 'RESCUER' | 'ADMIN' | 'LEADER';
-export type Sex = 'MALE' | 'FEMALE' | 'OTHER';
+export type UserRole = "CITIZEN" | "RESCUER" | "ADMIN" | "LEADER";
+export type Sex = "MALE" | "FEMALE" | "OTHER";
 
 export interface RegisterFormValues {
   phone: string;
@@ -49,7 +49,6 @@ export interface LoginFormValues {
   phoneNumber: string;
   password: string;
 }
-
 
 export interface ForgotPasswordSendOtpRequest {
   phoneNumber: string;

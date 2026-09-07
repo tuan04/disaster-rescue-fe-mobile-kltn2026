@@ -27,10 +27,10 @@ export function useTeamLocationTracking({
   onSuccess,
   onError,
 }: UseTeamLocationTrackingOptions = {}) {
-  const user = useSelector((state: RootState) => state.auth?.user);
+  const profile = useSelector((state: RootState) => state.auth?.profile);
 
   // Chỉ bật tracking khi có user và user có role là LEADER (và enabled = true)
-  const isLeader = user?.role === "LEADER";
+  const isLeader = profile?.volunteerProfile?.currentRoleInTeam === "LEADER";
   const shouldTrack = enabled && isLeader;
 
   const [isTracking, setIsTracking] = useState<boolean>(false);
@@ -96,14 +96,8 @@ export function useTeamLocationTracking({
           const payload: UpdateTeamLocationRequest = {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
-            speed:
-              location.coords.speed != null && location.coords.speed >= 0
-                ? location.coords.speed
-                : null,
-            heading:
-              location.coords.heading != null && location.coords.heading >= 0
-                ? location.coords.heading
-                : null,
+            speed: location.coords.speed,
+            heading: location.coords.heading,
           };
 
           isSendingRef.current = true;
@@ -129,7 +123,7 @@ export function useTeamLocationTracking({
           const initialLocation = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.High,
           });
-          if (isMounted && initialLocation) {
+          if (isMounted) {
             sendLocation(initialLocation);
           }
         } catch {
@@ -144,9 +138,7 @@ export function useTeamLocationTracking({
             distanceInterval,
           },
           (location) => {
-            if (isMounted) {
-              sendLocation(location);
-            }
+            sendLocation(location);
           },
         );
 

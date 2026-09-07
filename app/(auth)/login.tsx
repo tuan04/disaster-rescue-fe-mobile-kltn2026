@@ -5,8 +5,9 @@ import TextLink from "@/components/common/TextLink";
 import { saveTokens } from "@/helper/secureStore";
 import { loginAccount } from "@/services/auth.service";
 import type { AppDispatch } from "@/store";
-import { login } from "@/store/authSlice";
+import { login, setProfile } from "@/store/authSlice";
 import type { LoginFormValues } from "@/types/auth";
+import { getMyProfile } from "@/services/user.service";
 import { loginSchema } from "@/validations/registerValidation";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
@@ -40,6 +41,16 @@ export default function LoginScreen() {
       if (response.success === true) {
         await saveTokens(response.data.accessToken, response.data.refreshToken);
         dispatch(login(response.data.userInfoResponse));
+
+        try {
+          const profileRes = await getMyProfile();
+          if (profileRes.success && profileRes.data) {
+            dispatch(setProfile(profileRes.data));
+          }
+        } catch (profileError) {
+          console.warn("Could not fetch full profile on login:", profileError);
+        }
+
         router.replace("/(app)");
         return;
       }

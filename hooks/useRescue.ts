@@ -65,18 +65,12 @@ export function useRescue({
         await saveActiveMission({
           id: res?.data?.id,
           requestId,
-          pointId,
-          leaderId,
           targetLatitude: detail.latitude,
           targetLongitude: detail.longitude,
           address: detail.address,
           reporterPhone:
             detail.pointType === "SOS" ? detail.detail.reporterPhone : null,
-          content: detail.pointType === "SOS" ? detail.detail.content : null,
-          emergencyLevel:
-            detail.pointType === "SOS" ? detail.detail.emergencyLevel : null,
           routeData,
-          status: "IN_PROGRESS",
         });
       } catch (e) {
         console.warn("[useRescue] Lỗi khi lưu SQLite active mission:", e);

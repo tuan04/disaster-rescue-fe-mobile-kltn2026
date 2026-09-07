@@ -6,14 +6,16 @@ import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { clearTokens, getAccessToken } from "@/helper/secureStore";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { getCurrentUser } from "@/services/auth.service";
+import { getMyProfile } from "@/services/user.service";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
-import { login, logout } from "@/store/authSlice";
+import { login, logout, setProfile } from "@/store/authSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
+
 import { StatusBar, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
@@ -73,6 +75,16 @@ function RootNavigator() {
         const response = await getCurrentUser(token);
         if (response.success && response.data) {
           dispatch(login(response.data));
+
+          try {
+            const profileRes = await getMyProfile();
+            if (profileRes.success && profileRes.data) {
+              dispatch(setProfile(profileRes.data));
+            }
+          } catch (profileError) {
+            console.warn("Could not fetch full profile on bootstrap:", profileError);
+          }
+
           return;
         }
 

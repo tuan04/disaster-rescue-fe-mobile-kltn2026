@@ -39,16 +39,11 @@ export const INITIAL_SCHEMA_V1 = `
   CREATE TABLE IF NOT EXISTS active_rescue_mission (
     id TEXT PRIMARY KEY,
     request_id TEXT NOT NULL,
-    point_id TEXT,
-    leader_id TEXT,
     target_latitude REAL NOT NULL,
     target_longitude REAL NOT NULL,
     address TEXT,
     reporter_phone TEXT,
-    content TEXT,
-    emergency_level TEXT,
     route_json TEXT, -- Toàn bộ object JSON RouteResponse từ OSRM/Map service
-    status TEXT DEFAULT 'IN_PROGRESS',
     started_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );

@@ -4,16 +4,11 @@ import { getDatabaseAsync } from "./connection";
 export interface ActiveMissionEntity {
   id: string;
   request_id: string;
-  point_id: string | null;
-  leader_id: string | null;
   target_latitude: number;
   target_longitude: number;
   address: string | null;
   reporter_phone: string | null;
-  content: string | null;
-  emergency_level: string | null;
   route_json: string | null; // JSON string of RouteResponse
-  status: string;
   started_at: number;
   updated_at: number;
 }
@@ -28,16 +23,11 @@ export interface ActiveMissionParsed extends Omit<
 export interface SaveActiveMissionInput {
   id: string;
   requestId: string;
-  pointId?: string | null;
-  leaderId?: string | null;
   targetLatitude: number;
   targetLongitude: number;
   address?: string | null;
   reporterPhone?: string | null;
-  content?: string | null;
-  emergencyLevel?: string | null;
   routeData?: RouteResponse | null;
-  status?: string;
 }
 
 /**
@@ -49,28 +39,21 @@ export async function saveActiveMission(
   const db = await getDatabaseAsync();
   const now = Date.now();
   const routeJson = input.routeData ? JSON.stringify(input.routeData) : null;
-  const status = input.status || "IN_PROGRESS";
 
   await db.runAsync(
     `INSERT OR REPLACE INTO active_rescue_mission (
-      id, request_id, point_id, leader_id,
+      id, request_id,
       target_latitude, target_longitude, address,
-      reporter_phone, content, emergency_level,
-      route_json, status, started_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      reporter_phone, route_json, started_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.id,
       input.requestId,
-      input.pointId || null,
-      input.leaderId || null,
       input.targetLatitude,
       input.targetLongitude,
       input.address || null,
       input.reporterPhone || null,
-      input.content || null,
-      input.emergencyLevel || null,
       routeJson,
-      status,
       now,
       now,
     ],
@@ -79,12 +62,12 @@ export async function saveActiveMission(
 }
 
 /**
- * Lấy ca cứu hộ đang hoạt động (IN_PROGRESS) từ SQLite
+ * Lấy ca cứu hộ đang hoạt động từ SQLite
  */
 export async function getActiveMission(): Promise<ActiveMissionParsed | null> {
   const db = await getDatabaseAsync();
   const row = await db.getFirstAsync<ActiveMissionEntity>(
-    `SELECT * FROM active_rescue_mission WHERE status = 'IN_PROGRESS' ORDER BY updated_at DESC LIMIT 1`,
+    `SELECT * FROM active_rescue_mission ORDER BY updated_at DESC LIMIT 1`,
   );
 
   if (!row) {
