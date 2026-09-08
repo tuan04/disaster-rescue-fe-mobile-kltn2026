@@ -6,8 +6,9 @@ import {
 import { getRoute } from "@/services/map.service";
 import type { RouteResponse } from "@/types/map";
 import type { CameraRef } from "@maplibre/maplibre-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
+import { getRemainingRouteCoordinates } from "@/helpers/route";
 
 export const getCoordinatesBounds = (
   coordinates: number[][],
@@ -31,12 +32,26 @@ export const getCoordinatesBounds = (
 
 export interface UseRouteProps {
   cameraRef?: React.RefObject<CameraRef | null>;
+  currentLat?: number | null;
+  currentLng?: number | null;
 }
 
-export function useRoute({ cameraRef }: UseRouteProps = {}) {
+export function useRoute({
+  cameraRef,
+  currentLat,
+  currentLng,
+}: UseRouteProps = {}) {
   const [activeRoute, setActiveRoute] = useState<RouteResponse | null>(null);
   const [activeMission, setActiveMission] =
     useState<ActiveMissionParsed | null>(null);
+
+  // Lưu lại index gần nhất đã duyệt qua để đảm bảo route chỉ tiến tới, không giật lùi khi GPS dao động
+  const lastNearestIndexRef = useRef<number>(0);
+
+  // Khi activeRoute thay đổi (đổi ca hoặc nạp lộ trình mới), reset index về 0
+  useEffect(() => {
+    lastNearestIndexRef.current = 0;
+  }, [activeRoute]);
 
   // Tự động khôi phục tuyến đường và ca cứu hộ từ SQLite khi mở lại ứng dụng
   useEffect(() => {
@@ -98,6 +113,50 @@ export function useRoute({ cameraRef }: UseRouteProps = {}) {
     };
   }, [activeRoute]);
 
+  // Tuyến đường còn lại (cắt từ vị trí hiện tại của đội cứu hộ đến đích)
+  const remainingRouteGeoJSON = useMemo(() => {
+    if (
+      !activeRoute ||
+      !activeRoute.routes ||
+      activeRoute.routes.length === 0
+    ) {
+      return null;
+    }
+
+    const fullCoordinates = activeRoute.routes[0]?.geometry?.coordinates;
+    if (!fullCoordinates || fullCoordinates.length === 0) return null;
+
+    // Nếu chưa có vị trí GPS/WS hợp lệ thì trả về toàn bộ tuyến đường ban đầu
+    if (
+      currentLat === undefined ||
+      currentLat === null ||
+      currentLng === undefined ||
+      currentLng === null ||
+      (currentLat === 0 && currentLng === 0)
+    ) {
+      return routeGeoJSON;
+    }
+
+    const { remainingCoordinates, nearestIndex } = getRemainingRouteCoordinates(
+      fullCoordinates,
+      currentLat,
+      currentLng,
+      lastNearestIndexRef.current,
+    );
+
+    // Cập nhật index gần nhất đã tiến tới
+    lastNearestIndexRef.current = nearestIndex;
+
+    return {
+      type: "Feature" as const,
+      properties: {},
+      geometry: {
+        type: "LineString" as const,
+        coordinates: remainingCoordinates,
+      },
+    };
+  }, [activeRoute, currentLat, currentLng, routeGeoJSON]);
+
   const fetchRoute = useCallback(
     async (startLat: number, startLng: number, requestId: string) => {
       try {
@@ -146,6 +205,7 @@ export function useRoute({ cameraRef }: UseRouteProps = {}) {
   const clearRoute = useCallback(async () => {
     setActiveRoute(null);
     setActiveMission(null);
+    lastNearestIndexRef.current = 0;
     try {
       await clearActiveMission();
     } catch (err) {
@@ -157,6 +217,8 @@ export function useRoute({ cameraRef }: UseRouteProps = {}) {
     activeRoute,
     activeMission,
     routeGeoJSON,
+    remainingRouteGeoJSON,
+    nearestRouteIndex: lastNearestIndexRef.current,
     fetchRoute,
     clearRoute,
     setActiveRoute,
