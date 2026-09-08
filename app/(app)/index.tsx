@@ -1,21 +1,24 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
+import SOSRequestModal from "@/components/sos/SOSRequestModal";
 import { useAppTheme } from "@/contants/theme";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
 import { getNotifications } from "@/services/notification.service";
 import type { RootState } from "@/store";
 import type { NotificationItem } from "@/types/notification";
 import { Ionicons } from "@expo/vector-icons";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function AppIndex() {
   const theme = useAppTheme();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const sosModalRef = useRef<BottomSheetModal>(null);
 
   const { data: serverNotifications = [] } = useQuery<NotificationItem[]>({
     queryKey: ["notifications", "home"],
@@ -30,6 +33,10 @@ export default function AppIndex() {
   const unreadNotificationCount = useMemo(() => {
     return serverNotifications.filter((n) => !n.isRead).length;
   }, [serverNotifications]);
+
+  const handleOpenSOS = () => {
+    sosModalRef.current?.present();
+  };
 
   return (
     <ScreenContainer scrollable className="bg-background">
@@ -86,7 +93,7 @@ export default function AppIndex() {
 
       <Pressable
         className="mb-6 flex-row items-center justify-center rounded-2xl bg-danger py-4 px-5 shadow-md active:opacity-85"
-        onPress={() => router.push("/(app)/map")}
+        onPress={handleOpenSOS}
       >
         <Ionicons name="megaphone-outline" size={24} color="#ffffff" />
         <Text className="ml-2 text-center text-lg font-bold text-white">
@@ -102,8 +109,9 @@ export default function AppIndex() {
           ))}
         </View>
       </View>
+
+      {/* Modal gửi yêu cầu cứu hộ khẩn cấp */}
+      <SOSRequestModal ref={sosModalRef} />
     </ScreenContainer>
   );
 }
-
-
