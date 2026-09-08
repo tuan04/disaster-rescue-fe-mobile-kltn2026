@@ -55,7 +55,7 @@ export default function MapPointMarker({ point, onPress }: MapPointMarkerProps) 
 
     const scale = pulseAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: [1, 2.2],
+      outputRange: [1, 1.6],
     });
 
     const opacity = pulseAnim.interpolate({
@@ -88,14 +88,14 @@ export default function MapPointMarker({ point, onPress }: MapPointMarkerProps) 
               styles.sosCircle,
               {
                 backgroundColor: color,
-                width: isCompleted ? 26 : 32,
-                height: isCompleted ? 26 : 32,
-                borderRadius: isCompleted ? 13 : 16,
+                width: isCompleted ? 20 : 22,
+                height: isCompleted ? 20 : 22,
+                borderRadius: isCompleted ? 13 : 11,
               },
             ]}
           >
             {isCompleted && (
-              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
             )}
           </View>
         </View>
@@ -123,7 +123,7 @@ export default function MapPointMarker({ point, onPress }: MapPointMarkerProps) 
       onPress={() => onPress?.(point)}
     >
       <Image
-        className="w-8 h-8"
+        className="w-6 h-6"
         source={iconDetails.iconUrl}
         resizeMode="contain"
       />
@@ -133,20 +133,20 @@ export default function MapPointMarker({ point, onPress }: MapPointMarkerProps) 
 
 const styles = StyleSheet.create({
   sosContainer: {
-    width: 60,
-    height: 60,
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
   },
   pulseRing: {
     position: "absolute",
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   sosCircle: {
     borderColor: "#FFFFFF",
-    borderWidth: 3,
+    borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",

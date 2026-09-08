@@ -9,74 +9,123 @@ const DEFAULT_COORDS = {
 
 export function useLocation() {
   const [coords, setCoords] = useState(DEFAULT_COORDS);
-  const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isRealLocation, setIsRealLocation] = useState<boolean>(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isRealLocation, setIsRealLocation] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
 
-  const getGPSLocation = useCallback(async (isRefresh = false) => {
-    let obtained = false;
-    try {
+  const [heading, setHeading] = useState(0);
+  const [speed, setSpeed] = useState(0);
+
+  // Cập nhật vị trí & tốc độ (km/h) từ LocationObject
+  const updateLocationState = useCallback(
+    (loc: Location.LocationObject | null) => {
+      if (!loc) return;
+      setCoords({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      const s = loc.coords.speed ?? 0;
+      setSpeed(s > 0 ? Math.round(s * 3.6) : 0);
+      setIsRealLocation(true);
+    },
+    [],
+  );
+
+  const getGPSLocation = useCallback(
+    async (isRefresh = false): Promise<boolean> => {
       if (!isRefresh) setLoading(true);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setPermissionDenied(true);
+          setIsRealLocation(false);
+          return false;
+        }
+        setPermissionDenied(false);
+        setHasPermission(true);
 
-      // 1. Xin quyền truy cập GPS
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setPermissionDenied(true);
-        setIsRealLocation(false);
-        if (!isRefresh) setLoading(false);
-        return false;
-      }
-      setPermissionDenied(false);
+        // 1. Lấy nhanh từ cache
+        const lastLoc = await Location.getLastKnownPositionAsync({});
+        if (lastLoc) {
+          updateLocationState(lastLoc);
+          if (!isRefresh) setLoading(false);
+        }
 
-      // 2. Lấy nhanh từ bộ nhớ đệm (Cache) để giảm thiểu thời gian loading
-      let lastLoc = await Location.getLastKnownPositionAsync({});
-      if (lastLoc) {
-        setCoords({
-          latitude: lastLoc.coords.latitude,
-          longitude: lastLoc.coords.longitude,
-        });
-        setIsRealLocation(true);
-        obtained = true;
-        if (!isRefresh) setLoading(false);
-      }
-
-      // 3. Quét GPS thời gian thực chạy ngầm
-      const servicesEnabled = await Location.hasServicesEnabledAsync();
-      if (servicesEnabled) {
-        // Dùng Promise.race để khống chế timeout tối đa 6 giây
+        // 2. Lấy vị trí GPS chính xác hiện tại (timeout 6s cho UX)
         const currentLoc = await Promise.race([
           Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
           }),
           new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error("Location timeout")), 6000),
+            setTimeout(() => reject(new Error("Timeout")), 6000),
           ),
         ]);
 
         if (currentLoc) {
-          setCoords({
-            latitude: currentLoc.coords.latitude,
-            longitude: currentLoc.coords.longitude,
-          });
-          setIsRealLocation(true);
-          obtained = true;
+          updateLocationState(currentLoc);
+          return true;
         }
+        return !!lastLoc;
+      } catch (error) {
+        console.log("Lỗi GPS:", error);
+        return false;
+      } finally {
+        if (!isRefresh) setLoading(false);
       }
-    } catch (error) {
-      console.log("Không lấy được GPS:", error);
-    } finally {
-      if (!isRefresh) setLoading(false);
-    }
-    return obtained;
-  }, []);
+    },
+    [updateLocationState],
+  );
 
   useEffect(() => {
     getGPSLocation();
   }, [getGPSLocation]);
 
-  const refresh = useCallback(() => {
-    return getGPSLocation(true);
-  }, [getGPSLocation]);
+  // Theo dõi GPS và tốc độ liên tục khi app mở (Foreground)
+  useEffect(() => {
+    if (!hasPermission) return;
 
-  return { coords, permissionDenied, loading, isRealLocation, refresh };
+    let sub: Location.LocationSubscription | null = null;
+    Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        timeInterval: 1000,
+        distanceInterval: 1,
+      },
+      updateLocationState,
+    )
+      .then((s) => (sub = s))
+      .catch(() => {});
+
+    return () => {
+      sub?.remove();
+    };
+  }, [hasPermission, updateLocationState]);
+
+  // Theo dõi cảm biến la bàn
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    Location.watchHeadingAsync((h) => {
+      const angle = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
+      if (angle >= 0) setHeading(Math.round(angle));
+    })
+      .then((s) => (sub = s))
+      .catch(() => {});
+
+    return () => {
+      sub?.remove();
+    };
+  }, []);
+
+  const refresh = useCallback(() => getGPSLocation(true), [getGPSLocation]);
+
+  return {
+    coords,
+    permissionDenied,
+    loading,
+    isRealLocation,
+    refresh,
+    heading,
+    speed,
+  };
 }
