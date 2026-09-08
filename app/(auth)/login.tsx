@@ -2,7 +2,7 @@ import Button from "@/components/common/Button";
 import FormInput from "@/components/common/FormInput";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import TextLink from "@/components/common/TextLink";
-import { saveTokens } from "@/helper/secureStore";
+import { saveTokens } from "@/helpers/secureStore";
 import { loginAccount } from "@/services/auth.service";
 import type { AppDispatch } from "@/store";
 import { login, setProfile } from "@/store/authSlice";

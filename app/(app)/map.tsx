@@ -6,25 +6,22 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import MapClusterMarker from "@/components/map/MapClusterMarker";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import MapPointMarker from "@/components/map/MapPointMarker";
+import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL, TIME_OPTIONS } from "@/contants/mapConfig";
 import { useLocation } from "@/hooks/useLocation";
 import { useMapClustering } from "@/hooks/useMapClustering";
 import { useMapPoints } from "@/hooks/useMapPoints";
 import { useRescue } from "@/hooks/useRescue";
-import { useRoute } from "@/hooks/useRoute";
 import type { MapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import {
   Camera,
   type CameraRef,
-  GeoJSONSource,
-  Layer,
   Map,
-  Marker,
 } from "@maplibre/maplibre-react-native";
 import React, { useCallback, useRef, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -47,6 +44,7 @@ export default function MapScreen() {
     isRealLocation,
     permissionDenied,
     refresh: refreshLocation,
+    heading,
   } = useLocation();
 
   const currentLat = coords.latitude;
@@ -70,14 +68,6 @@ export default function MapScreen() {
     handleClusterPress,
   } = useMapClustering({ mapPoints, cameraRef });
 
-  const {
-    activeRoute,
-    activeMission,
-    routeGeoJSON,
-    fetchRoute,
-    clearRoute,
-  } = useRoute({ cameraRef });
-
   const { handleRescue, isAccepting } = useRescue({
     isRealLocation,
     permissionDenied,
@@ -85,7 +75,6 @@ export default function MapScreen() {
     currentLat,
     currentLng,
     detailSheetRef,
-    onRouteCalculated: fetchRoute,
   });
 
   const handleFlyToUserLocation = useCallback(() => {
@@ -125,6 +114,8 @@ export default function MapScreen() {
         style={StyleSheet.absoluteFillObject}
         mapStyle={MAP_STYLE_URL}
         onRegionDidChange={handleRegionDidChange}
+        attribution={false}
+        logo={false}
       >
         <Camera
           ref={cameraRef}
@@ -133,48 +124,12 @@ export default function MapScreen() {
             zoom: zoomLevel,
           }}
         />
-        {isRealLocation && (
-          <Marker
-            id="user-location"
-            lngLat={[currentLng, currentLat]}
-            anchor="center"
-          >
-            <View
-              className="w-4.5 h-4.5 rounded-full border-2 border-white"
-              style={{ backgroundColor: theme.colors.primary }}
-            />
-          </Marker>
-        )}
-
-        {routeGeoJSON && (
-          <GeoJSONSource id="routeSource" data={routeGeoJSON}>
-            <Layer
-              id="routeCasing"
-              type="line"
-              paint={{
-                "line-color": "#3b82f6",
-                "line-width": 8,
-                "line-opacity": 0.4,
-              }}
-              layout={{
-                "line-cap": "round",
-                "line-join": "round",
-              }}
-            />
-            <Layer
-              id="routeLine"
-              type="line"
-              paint={{
-                "line-color": "#1d4ed8",
-                "line-width": 4,
-              }}
-              layout={{
-                "line-cap": "round",
-                "line-join": "round",
-              }}
-            />
-          </GeoJSONSource>
-        )}
+        <UserLocationMarker
+          latitude={currentLat}
+          longitude={currentLng}
+          heading={heading}
+          permissionDenied={permissionDenied}
+        />
 
         {clustersToRender.map((item) => {
           if (
@@ -233,7 +188,7 @@ export default function MapScreen() {
       <Pressable
         onPress={handleFlyToUserLocation}
         className="absolute right-4 bg-white dark:bg-slate-800 w-12 h-12 rounded-full items-center justify-center shadow-lg elevation-5 active:opacity-70 z-10"
-        style={{ bottom: activeRoute ? insets.bottom + 104 : 24 }}
+        style={{ bottom: 24 }}
       >
         <Ionicons name="locate" size={22} color={theme.colors.primary} />
       </Pressable>
@@ -303,67 +258,6 @@ export default function MapScreen() {
           style={{ top: insets.top + 120 }}
         >
           <ActivityIndicator size="small" color={theme.colors.primary} />
-        </View>
-      )}
-
-      {activeRoute && activeRoute.routes && activeRoute.routes.length > 0 && (
-        <View
-          className="absolute left-4 right-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 z-20"
-          style={{ bottom: insets.bottom + 16 }}
-        >
-          <View className="flex-row items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
-            <View className="flex-1 mr-2">
-              <Text
-                className="text-sm font-bold text-slate-900 dark:text-white"
-                numberOfLines={1}
-              >
-                {activeMission?.address || "Đang hướng đến điểm cứu hộ"}
-              </Text>
-              {activeMission?.reporter_phone && (
-                <Text className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  SĐT: {activeMission.reporter_phone}
-                </Text>
-              )}
-            </View>
-
-            <Pressable
-              onPress={() => {
-                Alert.alert(
-                  "Xác nhận hủy",
-                  "Bạn có chắc muốn hủy lộ trình dẫn đường ca cứu hộ này không?",
-                  [
-                    { text: "Không", style: "cancel" },
-                    {
-                      text: "Đồng ý",
-                      style: "destructive",
-                      onPress: clearRoute,
-                    },
-                  ],
-                );
-              }}
-              className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 active:opacity-80"
-            >
-              <Text className="text-red-500 dark:text-red-400 font-bold text-xs">
-                Hủy dẫn đường
-              </Text>
-            </Pressable>
-          </View>
-
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-baseline gap-1.5">
-              <Text className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                {(activeRoute.routes[0].distance / 1000).toFixed(1)} km
-              </Text>
-              <Text className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                (khoảng {Math.round(activeRoute.routes[0].duration / 60)} phút)
-              </Text>
-            </View>
-            <View className="bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full">
-              <Text className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                Đang dẫn đường
-              </Text>
-            </View>
-          </View>
         </View>
       )}
     </ScreenContainer>

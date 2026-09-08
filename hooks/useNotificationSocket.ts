@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/helper/secureStore";
+import { getAccessToken } from "@/helpers/secureStore";
 import { websocketService } from "@/services/socket.service";
 import type { AppDispatch, RootState } from "@/store";
 import {

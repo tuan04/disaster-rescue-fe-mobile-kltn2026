@@ -2,7 +2,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { safePointTypeLabel } from "@/contants/mapPointLables";
 import { getSafePointIconDetails } from "@/contants/mapPointMeta";
-import { calculateDistanceKm, formatDistance } from "@/helper/distance";
+import { calculateDistanceKm, formatDistance } from "@/helpers/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { MapPointRes, SafePointType, SafeZoneMapPointRes } from "@/types/map";
@@ -56,11 +56,11 @@ export default function SafePointScreen() {
       .map((pt) => {
         const distanceKm = coords
           ? calculateDistanceKm(
-              coords.latitude,
-              coords.longitude,
-              pt.latitude,
-              pt.longitude,
-            )
+            coords.latitude,
+            coords.longitude,
+            pt.latitude,
+            pt.longitude,
+          )
           : undefined;
         return { ...pt, distanceKm };
       })
@@ -153,16 +153,14 @@ export default function SafePointScreen() {
             return (
               <Pressable
                 onPress={() => setSelectedType(item.key)}
-                className={`mr-2 rounded-full px-3.5 py-1.5 border ${
-                  isSelected
+                className={`mr-2 rounded-full px-3.5 py-1.5 border ${isSelected
                     ? "bg-success border-success"
                     : "bg-surface border-outline/20"
-                }`}
+                  }`}
               >
                 <Text
-                  className={`text-xs font-medium ${
-                    isSelected ? "text-white" : "text-text-muted"
-                  }`}
+                  className={`text-xs font-medium ${isSelected ? "text-white" : "text-text-muted"
+                    }`}
                 >
                   {item.label}
                 </Text>

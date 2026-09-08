@@ -3,7 +3,7 @@ import {
   getAccessToken,
   getRefreshToken,
   saveTokens,
-} from "@/helper/secureStore";
+} from "@/helpers/secureStore";
 import { store } from "@/store";
 import { logout } from "@/store/authSlice";
 import type { LoginResponse } from "@/types/auth";

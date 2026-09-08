@@ -1,7 +1,7 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { getWarehouseIconDetails } from "@/contants/mapPointMeta";
-import { calculateDistanceKm, formatDistance } from "@/helper/distance";
+import { calculateDistanceKm, formatDistance } from "@/helpers/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { MapPointRes, WarehouseMapPointRes } from "@/types/map";
@@ -46,11 +46,11 @@ export default function WarehousePointScreen() {
       .map((pt) => {
         const distanceKm = coords
           ? calculateDistanceKm(
-              coords.latitude,
-              coords.longitude,
-              pt.latitude,
-              pt.longitude,
-            )
+            coords.latitude,
+            coords.longitude,
+            pt.latitude,
+            pt.longitude,
+          )
           : undefined;
         return { ...pt, distanceKm };
       })

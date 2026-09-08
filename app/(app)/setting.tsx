@@ -4,7 +4,7 @@ import SettingItem from "@/components/settings/SettingItem";
 import SettingSection from "@/components/settings/SettingSection";
 import UpgradeRescuerModal from "@/components/settings/UpgradeRescuerModal";
 import { ColorTokens } from "@/contants/theme";
-import { clearTokens, getAccessToken, getRefreshToken } from "@/helper/secureStore";
+import { clearTokens, getAccessToken, getRefreshToken } from "@/helpers/secureStore";
 import { logoutAccount } from "@/services/auth.service";
 import type { RootState } from "@/store";
 import { logout } from "@/store/authSlice";
@@ -116,18 +116,16 @@ export default function Setting() {
             </Text>
             <View className="flex-row items-center mt-1.5">
               <View
-                className={`px-2 py-0.5 rounded-full ${
-                  userRole === "CITIZEN"
+                className={`px-2 py-0.5 rounded-full ${userRole === "CITIZEN"
                     ? "bg-sky-100 dark:bg-sky-950"
                     : "bg-amber-100 dark:bg-amber-950"
-                }`}
+                  }`}
               >
                 <Text
-                  className={`text-[11px] font-bold ${
-                    userRole === "CITIZEN"
+                  className={`text-[11px] font-bold ${userRole === "CITIZEN"
                       ? "text-sky-700 dark:text-sky-300"
                       : "text-amber-700 dark:text-amber-300"
-                  }`}
+                    }`}
                 >
                   {userRole === "CITIZEN" ? "Người dân" : "Đội cứu hộ"}
                 </Text>

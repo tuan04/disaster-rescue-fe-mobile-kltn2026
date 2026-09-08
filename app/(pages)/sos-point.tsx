@@ -2,7 +2,7 @@ import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { rescueStatusLabel } from "@/contants/mapPointLables";
-import { calculateDistanceKm, formatDistance } from "@/helper/distance";
+import { calculateDistanceKm, formatDistance } from "@/helpers/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { EmergencyLevel, MapPointRes, RequestStatus, SosMapPointRes } from "@/types/map";
@@ -48,11 +48,11 @@ export default function SosPointScreen() {
       .map((pt) => {
         const distanceKm = coords
           ? calculateDistanceKm(
-              coords.latitude,
-              coords.longitude,
-              pt.latitude,
-              pt.longitude,
-            )
+            coords.latitude,
+            coords.longitude,
+            pt.latitude,
+            pt.longitude,
+          )
           : undefined;
         return { ...pt, distanceKm };
       })
@@ -147,18 +147,16 @@ export default function SosPointScreen() {
             setStatusFilter("ALL");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            statusFilter === "ALL" && levelFilter === "ALL"
+          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "ALL" && levelFilter === "ALL"
               ? "bg-danger border-danger"
               : "bg-surface border-outline/20"
-          }`}
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              statusFilter === "ALL" && levelFilter === "ALL"
+            className={`text-xs font-medium ${statusFilter === "ALL" && levelFilter === "ALL"
                 ? "text-white"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             Tất cả
           </Text>
@@ -169,16 +167,14 @@ export default function SosPointScreen() {
             setStatusFilter("PENDING");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            statusFilter === "PENDING"
+          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "PENDING"
               ? "bg-warning border-warning"
               : "bg-surface border-outline/20"
-          }`}
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              statusFilter === "PENDING" ? "text-white" : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${statusFilter === "PENDING" ? "text-white" : "text-text-muted"
+              }`}
           >
             Đang chờ
           </Text>
@@ -189,16 +185,14 @@ export default function SosPointScreen() {
             setLevelFilter("HIGH");
             setStatusFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            levelFilter === "HIGH"
+          className={`rounded-full px-3.5 py-1.5 border ${levelFilter === "HIGH"
               ? "bg-danger border-danger"
               : "bg-surface border-outline/20"
-          }`}
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              levelFilter === "HIGH" ? "text-white" : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${levelFilter === "HIGH" ? "text-white" : "text-text-muted"
+              }`}
           >
             Khẩn cấp cao
           </Text>
@@ -209,16 +203,14 @@ export default function SosPointScreen() {
             setStatusFilter("ACCEPTED");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            statusFilter === "ACCEPTED"
+          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "ACCEPTED"
               ? "bg-secondary border-secondary"
               : "bg-surface border-outline/20"
-          }`}
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              statusFilter === "ACCEPTED" ? "text-white" : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${statusFilter === "ACCEPTED" ? "text-white" : "text-text-muted"
+              }`}
           >
             Đã tiếp nhận
           </Text>
@@ -272,9 +264,8 @@ export default function SosPointScreen() {
                 <View className="flex-row items-start justify-between">
                   <View className="flex-row items-center flex-1 mr-2">
                     <View
-                      className={`mr-3 h-10 w-10 items-center justify-center rounded-xl ${
-                        isHigh ? "bg-danger/10" : "bg-warning/10"
-                      }`}
+                      className={`mr-3 h-10 w-10 items-center justify-center rounded-xl ${isHigh ? "bg-danger/10" : "bg-warning/10"
+                        }`}
                     >
                       <Ionicons
                         name="alert-circle"
@@ -307,9 +298,8 @@ export default function SosPointScreen() {
                 <View className="mt-3.5 flex-row items-center justify-between border-t border-outline/10 pt-3">
                   <View className="flex-row items-center">
                     <View
-                      className={`h-2.5 w-2.5 rounded-full mr-2 ${
-                        isPending ? "bg-warning" : "bg-secondary"
-                      }`}
+                      className={`h-2.5 w-2.5 rounded-full mr-2 ${isPending ? "bg-warning" : "bg-secondary"
+                        }`}
                     />
                     <Text className="text-xs font-medium text-text">
                       {rescueStatusLabel[item.status as RequestStatus] || item.status}

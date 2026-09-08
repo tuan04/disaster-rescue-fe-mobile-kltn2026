@@ -2,7 +2,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { hazardTypeLabel } from "@/contants/mapPointLables";
 import { getHazardIconDetails } from "@/contants/mapPointMeta";
-import { calculateDistanceKm, formatDistance } from "@/helper/distance";
+import { calculateDistanceKm, formatDistance } from "@/helpers/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { HazardMapPointRes, HazardType, MapPointRes } from "@/types/map";
@@ -56,11 +56,11 @@ export default function HazardPointScreen() {
       .map((pt) => {
         const distanceKm = coords
           ? calculateDistanceKm(
-              coords.latitude,
-              coords.longitude,
-              pt.latitude,
-              pt.longitude,
-            )
+            coords.latitude,
+            coords.longitude,
+            pt.latitude,
+            pt.longitude,
+          )
           : undefined;
         return { ...pt, distanceKm };
       })
@@ -153,16 +153,14 @@ export default function HazardPointScreen() {
             return (
               <Pressable
                 onPress={() => setSelectedType(item.key)}
-                className={`mr-2 rounded-full px-3.5 py-1.5 border ${
-                  isSelected
+                className={`mr-2 rounded-full px-3.5 py-1.5 border ${isSelected
                     ? "bg-warning border-warning"
                     : "bg-surface border-outline/20"
-                }`}
+                  }`}
               >
                 <Text
-                  className={`text-xs font-medium ${
-                    isSelected ? "text-white" : "text-text-muted"
-                  }`}
+                  className={`text-xs font-medium ${isSelected ? "text-white" : "text-text-muted"
+                    }`}
                 >
                   {item.label}
                 </Text>
@@ -247,14 +245,12 @@ export default function HazardPointScreen() {
                   </View>
 
                   <View
-                    className={`rounded-full px-2.5 py-1 ${
-                      isActive ? "bg-danger/10 border border-danger/30" : "bg-success/10 border border-success/30"
-                    }`}
+                    className={`rounded-full px-2.5 py-1 ${isActive ? "bg-danger/10 border border-danger/30" : "bg-success/10 border border-success/30"
+                      }`}
                   >
                     <Text
-                      className={`text-[11px] font-semibold ${
-                        isActive ? "text-danger" : "text-success"
-                      }`}
+                      className={`text-[11px] font-semibold ${isActive ? "text-danger" : "text-success"
+                        }`}
                     >
                       {isActive ? "Đang diễn ra" : "Đã khắc phục"}
                     </Text>
