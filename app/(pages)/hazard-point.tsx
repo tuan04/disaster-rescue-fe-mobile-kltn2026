@@ -2,7 +2,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { hazardTypeLabel } from "@/contants/mapPointLables";
 import { getHazardIconDetails } from "@/contants/mapPointMeta";
-import { calculateDistanceKm, formatDistance } from "@/helpers/distance";
+import { calculateDistanceKm, formatDistance } from "@/helpers/route";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { HazardMapPointRes, HazardType, MapPointRes } from "@/types/map";

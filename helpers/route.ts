@@ -12,7 +12,7 @@ export function calculateEtaTime(durationSec?: number | null): string {
     durationSec === undefined ||
     durationSec === null ||
     isNaN(durationSec) ||
-    durationSec <= 0
+    durationSec < 0
   ) {
     return "--:--";
   }
@@ -26,21 +26,28 @@ export function calculateEtaTime(durationSec?: number | null): string {
 /**
  * Format thời gian di chuyển thành chuỗi hiển thị dễ đọc
  * @param durationSec Thời gian tính bằng giây
- * @returns Chuỗi như "15 phút" hoặc "1 giờ 20 phút"
+ * @returns Chuỗi như "15 phút", "< 1 phút" hoặc "Đến nơi"
  */
 export function formatDuration(durationSec?: number | null): string {
   if (
     durationSec === undefined ||
     durationSec === null ||
     isNaN(durationSec) ||
-    durationSec <= 0
+    durationSec < 0
   ) {
     return "--";
   }
 
+  if (durationSec === 0) {
+    return "Đến nơi";
+  }
+
   const totalMinutes = Math.round(durationSec / 60);
+  if (totalMinutes < 1) {
+    return "< 1 phút";
+  }
   if (totalMinutes < 60) {
-    return `${Math.max(1, totalMinutes)} phút`;
+    return `${totalMinutes} phút`;
   }
 
   const hours = Math.floor(totalMinutes / 60);
@@ -136,49 +143,11 @@ export function findNearestRoutePointIndex(
 }
 
 /**
- * Tìm chi tiết điểm gần nhất trên route cùng khoảng cách tính bằng mét
- */
-export function findNearestRoutePoint(
-  coordinates: number[][],
-  currentLat: number,
-  currentLng: number,
-  minIndex: number = 0,
-): { point: number[]; index: number; distanceMeters: number } | null {
-  if (!coordinates || coordinates.length === 0) return null;
-
-  const nearestIndex = findNearestRoutePointIndex(
-    coordinates,
-    currentLat,
-    currentLng,
-    minIndex,
-  );
-  const point = coordinates[nearestIndex];
-  const distanceMeters = calculateDistanceMeters(
-    currentLat,
-    currentLng,
-    point[1],
-    point[0],
-  );
-
-  return {
-    point,
-    index: nearestIndex,
-    distanceMeters,
-  };
-}
-
-/**
  * Cắt tuyến đường còn lại từ vị trí hiện tại đến đích:
  * - Không gọi lại Routing API.
  * - Tìm index gần nhất từ lastIndex trở đi (đảm bảo không nhảy lùi).
  * - Cắt route: coordinates.slice(nearestIndex).
  * - Nối vị trí hiện tại của đội cứu hộ vào đầu danh sách để Polyline vẽ liền mạch từ đội đến đích.
- *
- * @param coordinates Mảng tọa độ gốc dạng [[lng, lat], ...]
- * @param currentLat Vĩ độ hiện tại của đội
- * @param currentLng Kinh độ hiện tại của đội
- * @param lastIndex Index đã duyệt trước đó (để tránh dao động GPS)
- * @param includeCurrentLocation Có chèn [currentLng, currentLat] vào đầu nét vẽ hay không (mặc định true)
  */
 export function getRemainingRouteCoordinates(
   coordinates: number[][],
@@ -192,15 +161,7 @@ export function getRemainingRouteCoordinates(
   }
 
   // Nếu tọa độ hiện tại không hợp lệ, giữ nguyên route gốc
-  if (
-    currentLat === undefined ||
-    currentLat === null ||
-    currentLng === undefined ||
-    currentLng === null ||
-    isNaN(currentLat) ||
-    isNaN(currentLng) ||
-    (currentLat === 0 && currentLng === 0)
-  ) {
+  if (!currentLat || !currentLng) {
     return { remainingCoordinates: coordinates, nearestIndex: lastIndex };
   }
 
@@ -223,4 +184,44 @@ export function getRemainingRouteCoordinates(
     remainingCoordinates,
     nearestIndex,
   };
+}
+
+/**
+ * Tính tổng chiều dài (mét) của một chuỗi tọa độ (polyline) dạng [[lng, lat], ...]
+ */
+export function calculatePolylineDistanceMeters(
+  coordinates?: number[][] | null,
+): number {
+  if (!coordinates || coordinates.length < 2) return 0;
+  let total = 0;
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    total += calculateDistanceMeters(
+      coordinates[i][1],
+      coordinates[i][0],
+      coordinates[i + 1][1],
+      coordinates[i + 1][0],
+    );
+  }
+  return Math.round(total);
+}
+
+/**
+ * Tính khoảng cách (km) giữa 2 tọa độ GPS theo công thức Haversine
+ */
+export function calculateDistanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  return calculateDistanceMeters(lat1, lon1, lat2, lon2) / 1000;
+}
+
+/**
+ * Format khoảng cách sang chuỗi dễ đọc ("450 m" hoặc "3.2 km")
+ */
+export function formatDistance(distanceKm?: number): string {
+  if (distanceKm === undefined || isNaN(distanceKm) || distanceKm < 0)
+    return "";
+  return formatRouteDistance(distanceKm * 1000);
 }

@@ -6,108 +6,102 @@ export { calculateDistanceMeters };
 
 export interface ManeuverInfo {
   iconName: keyof typeof MaterialCommunityIcons.glyphMap;
-  instruction: string;
   shortAction: string;
-}
-
-/**
- * Trích xuất danh sách phẳng các bước rẽ (steps) từ dữ liệu RouteResponse
- */
-export function extractRouteSteps(route?: RouteResponse | null): StepDto[] {
-  if (!route || !route.routes || route.routes.length === 0) return [];
-  const primaryRoute = route.routes[0];
-  if (!primaryRoute.legs || primaryRoute.legs.length === 0) return [];
-
-  return primaryRoute.legs.flatMap((leg) => leg.steps || []);
-}
-
-/**
- * Ánh xạ thao tác lái xe (maneuver) từ OSRM sang Icon mũi tên MaterialCommunityIcons và câu lệnh tiếng Việt
- */
-export function getManeuverInfo(step: StepDto): ManeuverInfo {
-  const type = step.maneuver?.type?.toLowerCase() || "";
-  const modifier = step.maneuver?.modifier?.toLowerCase() || "";
-  const streetName = step.name?.trim() ? `vào ${step.name.trim()}` : "";
-
-  if (type === "arrive") {
-    return {
-      iconName: "flag-checkered",
-      instruction: "Đến vị trí người cần cứu nạn",
-      shortAction: "Đến nơi",
-    };
-  }
-
-  if (modifier.includes("left")) {
-    return {
-      iconName: "arrow-left-top",
-      instruction: `Rẽ trái ${streetName}`.trim(),
-      shortAction: "Rẽ trái",
-    };
-  }
-
-  if (
-    modifier.includes("sharp right") ||
-    modifier.includes("slight right") ||
-    modifier.includes("right")
-  ) {
-    return {
-      iconName: "arrow-right-top",
-      instruction: `Rẽ phải ${streetName}`.trim(),
-      shortAction: "Rẽ phải",
-    };
-  }
-
-  if (modifier.includes("uturn")) {
-    return {
-      iconName: "arrow-u-left-top-bold",
-      instruction: `Quay đầu xe ${streetName}`.trim(),
-      shortAction: "Quay đầu",
-    };
-  }
-
-  if (type === "roundabout" || type === "rotary") {
-    return {
-      iconName: "rotate-left",
-      instruction: `Đi vào bùng binh ${streetName}`.trim(),
-      shortAction: "Vào bùng binh",
-    };
-  }
-
-  if (type === "fork") {
-    const isLeft = modifier.includes("left");
-    return {
-      iconName: isLeft ? "arrow-top-left-thick" : "arrow-top-right-thick",
-      instruction:
-        `Đi vào nhánh ${isLeft ? "trái" : "phải"} ${streetName}`.trim(),
-      shortAction: `Nhánh ${isLeft ? "trái" : "phải"}`,
-    };
-  }
-
-  // Đi thẳng, xuất phát hoặc mặc định: DÙNG MŨI TÊN ĐI THẲNG arrow-up-thick
-  return {
-    iconName: "arrow-up",
-    instruction: step.name?.trim()
-      ? `Đi thẳng theo ${step.name.trim()}`
-      : "Đi thẳng theo lộ trình",
-    shortAction: "Đi thẳng",
-  };
 }
 
 export interface NavigationState {
   currentStep: StepDto | null;
   nextStep: StepDto | null;
-  currentStreetName: string; // Tên con đường đang đi
+  currentStreetName: string;
   distanceToManeuver: number;
   distanceText: string;
-  maneuverInfo: ManeuverInfo | null;
-  nextManeuverInfo: ManeuverInfo | null;
+  primaryManeuver: {
+    iconName: keyof typeof MaterialCommunityIcons.glyphMap;
+    streetName: string;
+    actionText?: string;
+  };
+  secondaryManeuver: {
+    iconName: keyof typeof MaterialCommunityIcons.glyphMap;
+    streetName: string;
+    actionText?: string;
+  } | null;
+  showSecondary: boolean;
+  isNearManeuver: boolean;
   currentStepIndex: number;
   totalSteps: number;
 }
 
+const THRESHOLD_NEAR_MANEUVER = 300;
+
 /**
- * Xác định bước rẽ hiện tại dựa trên GPS của xe và danh sách các bước OSRM
+ * Trích xuất danh sách phẳng các bước rẽ (steps) từ dữ liệu RouteResponse
  */
+export function extractRouteSteps(route?: RouteResponse | null): StepDto[] {
+  return route?.routes?.[0]?.legs?.flatMap((leg) => leg.steps || []) || [];
+}
+
+/**
+ * Ánh xạ thao tác lái xe (maneuver) sang icon MaterialCommunityIcons và hành động ngắn
+ */
+export function getManeuverInfo(step: StepDto): ManeuverInfo {
+  const type = step.maneuver?.type?.toLowerCase() || "";
+  const modifier = step.maneuver?.modifier?.toLowerCase() || "";
+
+  if (type === "arrive")
+    return { iconName: "flag-checkered", shortAction: "Đến nơi" };
+  if (type === "depart")
+    return { iconName: "arrow-up", shortAction: "Xuất phát" };
+  if (modifier.includes("uturn"))
+    return { iconName: "arrow-u-left-top-bold", shortAction: "Quay đầu" };
+  if (modifier.includes("sharp left") || modifier === "left")
+    return { iconName: "arrow-left-top", shortAction: "Rẽ trái" };
+  if (modifier.includes("slight left"))
+    return { iconName: "arrow-top-left-thick", shortAction: "Chếch trái" };
+  if (modifier.includes("sharp right") || modifier === "right")
+    return { iconName: "arrow-right-top", shortAction: "Rẽ phải" };
+  if (modifier.includes("slight right"))
+    return { iconName: "arrow-top-right-thick", shortAction: "Chếch phải" };
+  if (type === "roundabout" || type === "rotary")
+    return { iconName: "rotate-left", shortAction: "Vào bùng binh" };
+  if (type === "fork") {
+    const isLeft = modifier.includes("left");
+    return {
+      iconName: isLeft ? "arrow-top-left-thick" : "arrow-top-right-thick",
+      shortAction: `Nhánh ${isLeft ? "trái" : "phải"}`,
+    };
+  }
+
+  return { iconName: "arrow-up", shortAction: "Đi thẳng" };
+}
+
+/**
+ * Tính khoảng cách từ điểm GPS hiện tại đến một đoạn thẳng tọa độ (segment)
+ */
+function distanceToSegmentMeters(
+  pLat: number,
+  pLng: number,
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): number {
+  const dAB2 = (bLat - aLat) ** 2 + (bLng - aLng) ** 2;
+  if (dAB2 === 0) return calculateDistanceMeters(pLat, pLng, aLat, aLng);
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((pLat - aLat) * (bLat - aLat) + (pLng - aLng) * (bLng - aLng)) / dAB2,
+    ),
+  );
+  return calculateDistanceMeters(
+    pLat,
+    pLng,
+    aLat + t * (bLat - aLat),
+    aLng + t * (bLng - aLng),
+  );
+}
+
 export function getNavigationProgress(
   steps: StepDto[],
   currentLat: number,
@@ -121,59 +115,66 @@ export function getNavigationProgress(
       currentStreetName: "Đoạn đường hiện tại",
       distanceToManeuver: 0,
       distanceText: "",
-      maneuverInfo: {
-        iconName: "arrow-up-thick",
-        instruction: "Đi thẳng theo lộ trình",
-        shortAction: "Đi thẳng",
+      primaryManeuver: {
+        iconName: "arrow-up",
+        streetName: "Đoạn đường hiện tại",
+        actionText: "Đi thẳng",
       },
-      nextManeuverInfo: {
-        iconName: "arrow-left-top",
-        instruction: "Sau đó rẽ vào điểm cứu hộ",
-        shortAction: "Rẽ trái",
-      },
+      secondaryManeuver: null,
+      showSecondary: false,
+      isNearManeuver: false,
       currentStepIndex: 0,
       totalSteps: 0,
     };
   }
 
-  // Khi chưa có tọa độ GPS hợp lệ
-  if (!currentLat || !currentLng || (currentLat === 0 && currentLng === 0)) {
-    const currentStep = steps[0];
-    const nextStep = steps.length > 1 ? steps[1] : null;
-    return {
-      currentStep,
-      nextStep,
-      currentStreetName: currentStep?.name?.trim() || "Đoạn đường hiện tại",
-      distanceToManeuver: currentStep?.distance ?? 0,
-      distanceText: formatRouteDistance(currentStep?.distance ?? 0),
-      maneuverInfo: currentStep ? getManeuverInfo(currentStep) : null,
-      nextManeuverInfo: nextStep ? getManeuverInfo(nextStep) : null,
-      currentStepIndex: 0,
-      totalSteps: steps.length,
-    };
-  }
+  const hasGps = Boolean(currentLat && currentLng);
+  let activeIndex =
+    savedStepIndex >= 0 && savedStepIndex < steps.length ? savedStepIndex : 0;
 
-  let activeIndex = 0;
+  if (hasGps) {
+    // 1. Tìm segment gần vị trí xe nhất
+    let bestIndex = activeIndex;
+    let minSegmentDist = Infinity;
 
-  // Xác định bước mà xe đang đi qua dựa trên khoảng cách tới ngã rẽ tiếp theo
-  for (let i = 0; i < steps.length - 1; i++) {
-    const nextStepCandidate = steps[i + 1];
-    if (nextStepCandidate?.maneuver?.location) {
-      const [nextLng, nextLat] = nextStepCandidate.maneuver.location;
+    for (let i = 0; i < steps.length - 1; i++) {
+      const s1 = steps[i]?.maneuver?.location;
+      const s2 = steps[i + 1]?.maneuver?.location;
+      if (s1 && s2) {
+        const segDist = distanceToSegmentMeters(
+          currentLat,
+          currentLng,
+          s1[1],
+          s1[0],
+          s2[1],
+          s2[0],
+        );
+        if (segDist < minSegmentDist) {
+          minSegmentDist = segDist;
+          bestIndex = i;
+        }
+      }
+    }
+
+    if (minSegmentDist < 35 && bestIndex >= savedStepIndex) {
+      activeIndex = bestIndex;
+    }
+
+    // 2. Chuyển sang bước tiếp theo nếu xe đã đến/qua ngã rẽ (< 15m)
+    while (activeIndex < steps.length - 1) {
+      const turnLoc = steps[activeIndex + 1]?.maneuver?.location;
+      if (!turnLoc) break;
       const distToTurn = calculateDistanceMeters(
         currentLat,
         currentLng,
-        nextLat,
-        nextLng,
+        turnLoc[1],
+        turnLoc[0],
       );
-
-      // Nếu còn cách ngã rẽ của bước tiếp theo > 15m, tức là người dùng vẫn đang đi trên bước i
-      if (distToTurn > 15) {
-        activeIndex = i;
+      if (distToTurn < 15 && activeIndex + 1 < steps.length) {
+        activeIndex++;
+      } else {
         break;
       }
-      // Nếu đã đến gần hơn 15m hoặc đã qua ngã rẽ này, thì xe chuyển sang bước tiếp theo
-      activeIndex = i + 1;
     }
   }
 
@@ -181,31 +182,74 @@ export function getNavigationProgress(
   const nextStep =
     activeIndex + 1 < steps.length ? steps[activeIndex + 1] : null;
 
-  // Tính khoảng cách còn lại trên đường này đến ngã rẽ tiếp theo
+  // 3. Tính khoảng cách đếm ngược đến ngã rẽ tiếp theo
   let distanceToManeuver = currentStep?.distance ?? 0;
-  if (nextStep?.maneuver?.location) {
-    const [nextLng, nextLat] = nextStep.maneuver.location;
-    distanceToManeuver = calculateDistanceMeters(
-      currentLat,
-      currentLng,
-      nextLat,
-      nextLng,
-    );
-  } else if (currentStep?.maneuver?.location) {
-    const [stepLng, stepLat] = currentStep.maneuver.location;
-    distanceToManeuver = calculateDistanceMeters(
-      currentLat,
-      currentLng,
-      stepLat,
-      stepLng,
-    );
+  if (hasGps) {
+    const targetLoc =
+      nextStep?.maneuver?.location || currentStep?.maneuver?.location;
+    if (targetLoc) {
+      distanceToManeuver = calculateDistanceMeters(
+        currentLat,
+        currentLng,
+        targetLoc[1],
+        targetLoc[0],
+      );
+    }
   }
+  distanceToManeuver = Math.max(0, distanceToManeuver);
 
   const currentStreetName =
     currentStep?.name?.trim() ||
     (currentStep?.maneuver?.type === "arrive"
-      ? "Điểm cứu hộ"
-      : "Đoạn đường nối");
+      ? "Vị trí cứu nạn"
+      : "Đoạn đường bắt đầu");
+  const nextStreetName =
+    nextStep?.name?.trim() ||
+    (nextStep?.maneuver?.type === "arrive"
+      ? "Vị trí người cần cứu nạn"
+      : "Đoạn tiếp theo");
+  const nextManeuverInfo = nextStep ? getManeuverInfo(nextStep) : null;
+
+  // 4. Kiểm tra ngưỡng 300m (bỏ qua tại điểm khởi hành depart nếu xe chưa di chuyển >= 15m)
+  let isNearManeuver = hasGps && distanceToManeuver <= THRESHOLD_NEAR_MANEUVER;
+  if (
+    isNearManeuver &&
+    activeIndex === 0 &&
+    currentStep?.maneuver?.type === "depart" &&
+    currentStep?.maneuver?.location
+  ) {
+    const [departLng, departLat] = currentStep.maneuver.location;
+    if (
+      calculateDistanceMeters(currentLat, currentLng, departLat, departLng) < 15
+    ) {
+      isNearManeuver = false;
+    }
+  }
+
+  // 5. Cấu hình hiển thị ô chính & ô phụ
+  const secondaryManeuver: NavigationState["secondaryManeuver"] = nextStep
+    ? {
+        iconName: nextManeuverInfo?.iconName || "arrow-up",
+        streetName: nextStreetName,
+        actionText: nextManeuverInfo?.shortAction,
+      }
+    : null;
+
+  const primaryManeuver: NavigationState["primaryManeuver"] = !nextStep
+    ? {
+        iconName: currentStep
+          ? getManeuverInfo(currentStep).iconName
+          : "flag-checkered",
+        streetName: currentStreetName,
+        actionText: "Đến nơi",
+      }
+    : isNearManeuver && secondaryManeuver
+      ? secondaryManeuver
+      : {
+          iconName: "arrow-up",
+          streetName: currentStreetName,
+          actionText: "Đi thẳng",
+        };
 
   return {
     currentStep,
@@ -213,8 +257,10 @@ export function getNavigationProgress(
     currentStreetName,
     distanceToManeuver,
     distanceText: formatRouteDistance(distanceToManeuver),
-    maneuverInfo: currentStep ? getManeuverInfo(currentStep) : null,
-    nextManeuverInfo: nextStep ? getManeuverInfo(nextStep) : null,
+    primaryManeuver,
+    secondaryManeuver,
+    showSecondary: !isNearManeuver && nextStep !== null,
+    isNearManeuver,
     currentStepIndex: activeIndex,
     totalSteps: steps.length,
   };

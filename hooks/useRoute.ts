@@ -3,14 +3,18 @@ import {
   getActiveMission,
   type ActiveMissionParsed,
 } from "@/database";
-import { getRoute } from "@/services/map.service";
+import {
+  calculateEtaTime,
+  calculatePolylineDistanceMeters,
+  formatDuration,
+  formatRouteDistance,
+  getRemainingRouteCoordinates,
+} from "@/helpers/route";
 import type { RouteResponse } from "@/types/map";
 import type { CameraRef } from "@maplibre/maplibre-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Toast from "react-native-toast-message";
-import { getRemainingRouteCoordinates } from "@/helpers/route";
 
-export const getCoordinatesBounds = (
+const getCoordinatesBounds = (
   coordinates: number[][],
 ): [number, number, number, number] | null => {
   if (!coordinates || coordinates.length === 0) return null;
@@ -48,7 +52,7 @@ export function useRoute({
   // Lưu lại index gần nhất đã duyệt qua để đảm bảo route chỉ tiến tới, không giật lùi khi GPS dao động
   const lastNearestIndexRef = useRef<number>(0);
 
-  // Khi activeRoute thay đổi (đổi ca hoặc nạp lộ trình mới), reset index về 0
+  // Reset index khi đổi ca hoặc nạp lộ trình mới
   useEffect(() => {
     lastNearestIndexRef.current = 0;
   }, [activeRoute]);
@@ -68,16 +72,10 @@ export function useRoute({
               savedMission.route.routes[0]?.geometry?.coordinates;
             const bounds = getCoordinatesBounds(coordinates);
             if (bounds && cameraRef?.current) {
-              // Delay nhỏ để map render xong
               setTimeout(() => {
                 cameraRef?.current?.setStop({
                   bounds,
-                  padding: {
-                    left: 40,
-                    right: 40,
-                    top: 80,
-                    bottom: 40,
-                  },
+                  padding: { left: 40, right: 40, top: 80, bottom: 40 },
                   duration: 1000,
                 });
               }, 500);
@@ -95,47 +93,27 @@ export function useRoute({
     };
   }, [cameraRef]);
 
+  // GeoJSON toàn bộ tuyến đường ban đầu
   const routeGeoJSON = useMemo(() => {
-    if (
-      !activeRoute ||
-      !activeRoute.routes ||
-      activeRoute.routes.length === 0
-    ) {
-      return null;
-    }
+    const coords = activeRoute?.routes?.[0]?.geometry?.coordinates;
+    if (!coords || coords.length === 0) return null;
     return {
       type: "Feature" as const,
       properties: {},
       geometry: {
         type: "LineString" as const,
-        coordinates: activeRoute.routes[0].geometry.coordinates,
+        coordinates: coords,
       },
     };
   }, [activeRoute]);
 
   // Tuyến đường còn lại (cắt từ vị trí hiện tại của đội cứu hộ đến đích)
   const remainingRouteGeoJSON = useMemo(() => {
-    if (
-      !activeRoute ||
-      !activeRoute.routes ||
-      activeRoute.routes.length === 0
-    ) {
-      return null;
-    }
-
-    const fullCoordinates = activeRoute.routes[0]?.geometry?.coordinates;
+    const fullCoordinates = activeRoute?.routes?.[0]?.geometry?.coordinates;
     if (!fullCoordinates || fullCoordinates.length === 0) return null;
 
-    // Nếu chưa có vị trí GPS/WS hợp lệ thì trả về toàn bộ tuyến đường ban đầu
-    if (
-      currentLat === undefined ||
-      currentLat === null ||
-      currentLng === undefined ||
-      currentLng === null ||
-      (currentLat === 0 && currentLng === 0)
-    ) {
-      return routeGeoJSON;
-    }
+    const hasValidGps = Boolean(currentLat && currentLng);
+    if (!hasValidGps) return routeGeoJSON;
 
     const { remainingCoordinates, nearestIndex } = getRemainingRouteCoordinates(
       fullCoordinates,
@@ -144,7 +122,6 @@ export function useRoute({
       lastNearestIndexRef.current,
     );
 
-    // Cập nhật index gần nhất đã tiến tới
     lastNearestIndexRef.current = nearestIndex;
 
     return {
@@ -157,49 +134,44 @@ export function useRoute({
     };
   }, [activeRoute, currentLat, currentLng, routeGeoJSON]);
 
-  const fetchRoute = useCallback(
-    async (startLat: number, startLng: number, requestId: string) => {
-      try {
-        const routeData = await getRoute(startLat, startLng, requestId);
-        if (routeData && routeData.routes && routeData.routes.length > 0) {
-          setActiveRoute(routeData);
+  // Tính cự ly còn lại (mét) theo tuyến đường thực tế polyline
+  const remainingDistance = useMemo(() => {
+    const coords = remainingRouteGeoJSON?.geometry?.coordinates;
+    if (coords && coords.length >= 2) {
+      return calculatePolylineDistanceMeters(coords);
+    }
+    return activeRoute?.routes?.[0]?.distance ?? 0;
+  }, [activeRoute, remainingRouteGeoJSON]);
 
-          const coordinates = routeData.routes[0].geometry.coordinates;
-          const bounds = getCoordinatesBounds(coordinates);
-          if (bounds && cameraRef?.current) {
-            cameraRef.current.setStop({
-              bounds,
-              padding: {
-                left: 40,
-                right: 40,
-                top: 80,
-                bottom: 40,
-              },
-              duration: 1000,
-            });
-          }
-          return routeData;
-        } else {
-          Toast.show({
-            type: "warning",
-            text1: "Cảnh báo",
-            text2: "Không tìm thấy thông tin đường đi từ vị trí của bạn.",
-          });
-          return null;
-        }
-      } catch (err: any) {
-        console.error("Lỗi khi tính toán tuyến đường:", err);
-        Toast.show({
-          type: "error",
-          text1: "Lỗi đường đi",
-          text2:
-            "Không thể tính toán tuyến đường: " +
-            (err.message || "Lỗi không xác định"),
-        });
-        return null;
-      }
-    },
-    [cameraRef],
+  // Tính thời gian di chuyển còn lại (giây) theo tỷ lệ cự ly còn lại / tổng cự ly ban đầu
+  const remainingDuration = useMemo(() => {
+    if (remainingDistance <= 15) return 0;
+
+    const initialDistance = activeRoute?.routes?.[0]?.distance ?? 0;
+    const initialDuration = activeRoute?.routes?.[0]?.duration ?? 0;
+
+    if (initialDistance > 0 && initialDuration > 0) {
+      return Math.round(
+        (remainingDistance / initialDistance) * initialDuration,
+      );
+    }
+
+    return Math.round(remainingDistance / 8.33);
+  }, [activeRoute, remainingDistance]);
+
+  const distanceText = useMemo(
+    () => formatRouteDistance(remainingDistance),
+    [remainingDistance],
+  );
+
+  const durationText = useMemo(
+    () => formatDuration(remainingDuration),
+    [remainingDuration],
+  );
+
+  const etaTimeStr = useMemo(
+    () => calculateEtaTime(remainingDuration),
+    [remainingDuration, currentLat, currentLng],
   );
 
   const clearRoute = useCallback(async () => {
@@ -218,10 +190,11 @@ export function useRoute({
     activeMission,
     routeGeoJSON,
     remainingRouteGeoJSON,
-    nearestRouteIndex: lastNearestIndexRef.current,
-    fetchRoute,
+    remainingDistance,
+    remainingDuration,
+    distanceText,
+    durationText,
+    etaTimeStr,
     clearRoute,
-    setActiveRoute,
-    setActiveMission,
   };
 }

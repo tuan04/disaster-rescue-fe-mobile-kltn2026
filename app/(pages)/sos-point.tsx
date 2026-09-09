@@ -2,7 +2,7 @@ import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { rescueStatusLabel } from "@/contants/mapPointLables";
-import { calculateDistanceKm, formatDistance } from "@/helpers/distance";
+import { calculateDistanceKm, formatDistance } from "@/helpers/route";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { EmergencyLevel, MapPointRes, RequestStatus, SosMapPointRes } from "@/types/map";
