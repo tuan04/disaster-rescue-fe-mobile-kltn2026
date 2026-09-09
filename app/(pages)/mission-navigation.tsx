@@ -1,19 +1,18 @@
+import MissionNavigationBottomSheet from "@/components/map/MissionNavigationBottomSheet";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL } from "@/contants/mapConfig";
 import {
+  calculateDistanceMeters,
   extractRouteSteps,
   getNavigationProgress,
 } from "@/helpers/navigation";
-import {
-  calculateEtaTime,
-  formatDuration,
-  formatRouteDistance,
-} from "@/helpers/route";
 import { useLocation } from "@/hooks/useLocation";
 import { useRescue } from "@/hooks/useRescue";
 import { useRoute } from "@/hooks/useRoute";
+import { getMapPointDetail } from "@/services/map.service";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import type BottomSheet from "@gorhom/bottom-sheet";
 import {
   Camera,
   type CameraRef,
@@ -22,22 +21,21 @@ import {
   Map,
   Marker,
 } from "@maplibre/maplibre-react-native";
+import { useQuery } from "@tanstack/react-query";
+import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Linking,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MissionNavigationScreen() {
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
   const cameraRef = useRef<CameraRef>(null);
 
   // Lấy vị trí, la bàn và tốc độ di chuyển hiện tại của đội cứu hộ
@@ -51,6 +49,10 @@ export default function MissionNavigationScreen() {
     activeMission,
     routeGeoJSON,
     remainingRouteGeoJSON,
+    remainingDistance,
+    distanceText,
+    durationText,
+    etaTimeStr,
     clearRoute,
   } = useRoute({
     cameraRef,
@@ -70,13 +72,25 @@ export default function MissionNavigationScreen() {
     return extractRouteSteps(activeRoute || activeMission?.route);
   }, [activeRoute, activeMission?.route]);
 
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+
   const navProgress = useMemo(() => {
-    return getNavigationProgress(routeSteps, currentLat, currentLng);
-  }, [routeSteps, currentLat, currentLng]);
+    return getNavigationProgress(
+      routeSteps,
+      currentLat,
+      currentLng,
+      currentStepIndex,
+    );
+  }, [routeSteps, currentLat, currentLng, currentStepIndex]);
+
+  useEffect(() => {
+    if (navProgress.currentStepIndex !== currentStepIndex) {
+      setCurrentStepIndex(navProgress.currentStepIndex);
+    }
+  }, [navProgress.currentStepIndex, currentStepIndex]);
 
   // Tự động bám theo vị trí đội cứu hộ ở góc nhìn 3D dẫn đường
   const [isFollowingUser, setIsFollowingUser] = useState<boolean>(true);
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Cờ nhận biết camera đang trong hiệu ứng trượt tới (flyTo) để không bị useEffect ghi đè
   const isFlyingRef = useRef<boolean>(false);
@@ -144,24 +158,53 @@ export default function MissionNavigationScreen() {
     }, 1050);
   }, [coords, insets.bottom, insets.top]);
 
-  // Gọi điện thoại cho nạn nhân
-  const handleCallReporter = useCallback(() => {
-    if (activeMission?.reporter_phone) {
-      Linking.openURL(`tel:${activeMission.reporter_phone}`).catch((err) => {
-        Alert.alert("Lỗi", "Không thể thực hiện cuộc gọi: " + err.message);
-      });
-    }
-  }, [activeMission?.reporter_phone]);
+  const bottomSheetRef = useRef<BottomSheet>(null);
 
   const targetLat = activeMission?.target_latitude;
   const targetLng = activeMission?.target_longitude;
   const displayName =
     activeMission?.address?.split(",")?.[0]?.trim() || "Điểm cứu hộ";
-  const routeDuration = activeRoute?.routes?.[0]?.duration;
-  const routeDistance = activeRoute?.routes?.[0]?.distance;
-  const distanceText = formatRouteDistance(routeDistance);
-  const durationText = formatDuration(routeDuration);
-  const etaTimeStr = calculateEtaTime(routeDuration);
+
+  // Truy vấn chi tiết yêu cầu cứu hộ từ backend
+  const { data: detailRes } = useQuery({
+    queryKey: ["mapPointDetail", activeMission?.request_id],
+    queryFn: () => getMapPointDetail(activeMission!.request_id),
+    enabled: !!activeMission?.request_id,
+  });
+
+  const sosDetail =
+    detailRes?.pointType === "SOS" ? detailRes.detail : null;
+  const displayPhone =
+    sosDetail?.reporterPhone || activeMission?.reporter_phone || "Chưa cập nhật";
+  const displayContent =
+    sosDetail?.content || "Yêu cầu cứu trợ khẩn cấp";
+  const displayEmergencyLevel = sosDetail?.emergencyLevel || "HIGH";
+  const displayAddress =
+    detailRes?.address || activeMission?.address || "Chưa xác định địa chỉ";
+
+  // Tính khoảng cách đến đích và điều kiện cho phép hoàn thành nhiệm vụ
+  const distanceToTarget = useMemo(() => {
+    if (!targetLat || !targetLng || !currentLat || !currentLng) return Infinity;
+    return calculateDistanceMeters(
+      currentLat,
+      currentLng,
+      targetLat,
+      targetLng,
+    );
+  }, [currentLat, currentLng, targetLat, targetLng]);
+
+  const canComplete = useMemo(() => {
+    return (
+      distanceToTarget <= 50 ||
+      remainingDistance <= 50 ||
+      navProgress.currentStep?.maneuver?.type === "arrive"
+    );
+  }, [distanceToTarget, remainingDistance, navProgress.currentStep?.maneuver?.type]);
+
+  // Gọi điện thoại cho nạn nhân
+  const handleCallReporter = useCallback(() => {
+    makePhoneCall(displayPhone);
+  }, [displayPhone]);
 
   return (
     <ScreenContainer isEdgeToEdge={true} className="flex-1">
@@ -268,71 +311,75 @@ export default function MissionNavigationScreen() {
         )}
       </Map>
 
-      {/* --- BẢNG DẪN ĐƯỜNG GOOGLE MAPS XANH LÁ Ở ĐỈNH MÀN HÌNH --- */}
+      {/* --- BẢNG DẪN ĐƯỜNG --- */}
       <View
         className="absolute left-3 right-3 z-20 shadow-2xl elevation-10"
         style={{ top: insets.top + 8 }}
       >
-        {/* Khung chính: Mũi tên - Tên đường đang đi & khoảng cách */}
-        <View className="bg-secondary rounded-3xl p-4 flex-row items-center justify-between shadow-2xl">
-          {/* Mũi tên rẽ / đi thẳng to rõ */}
+        {/* Khung chính: Mũi tên - Tên đường & số km/m đếm ngược nằm bên dưới */}
+        <View
+          className="bg-secondary rounded-3xl p-4 flex-row items-center justify-between shadow-2xl"
+          style={
+            navProgress.showSecondary && navProgress.secondaryManeuver
+              ? { borderBottomLeftRadius: 0 }
+              : undefined
+          }
+        >
           <View className="w-12 items-center justify-center mr-2">
             <MaterialCommunityIcons
-              name={navProgress.maneuverInfo?.iconName}
+              name={navProgress.primaryManeuver.iconName}
               size={35}
               color="#ffffff"
             />
           </View>
 
-          {/* Tên đường đang đi & khoảng cách đến ngã rẽ tiếp theo */}
           <View className="flex-1 pr-2">
             <Text
-              className="text-2xl font-black text-white leading-tight"
+              className="text-2xl font-semibold text-white leading-tight"
               numberOfLines={1}
             >
-              {navProgress.currentStreetName || displayName}
+              {navProgress.primaryManeuver.streetName || displayName}
             </Text>
             <Text
-              className="text-xs font-semibold text-white/80 mt-0.5"
+              className="text-sm font-bold text-white/90 mt-0.5"
               numberOfLines={1}
             >
-              {navProgress.distanceText ? `${navProgress.distanceText} • ` : ""}
-              {navProgress.nextStep
-                ? (navProgress.nextManeuverInfo?.instruction || "Đi thẳng")
-                : (navProgress.maneuverInfo?.instruction || "Đi theo lộ trình")}
+              {navProgress.distanceText || "0 m"}
+              {navProgress.primaryManeuver.actionText
+                ? ` • ${navProgress.primaryManeuver.actionText}`
+                : ""}
             </Text>
           </View>
         </View>
 
-        {/* Khung con "Sau đó" gắn liền mép dưới bên trái */}
-        {navProgress.nextManeuverInfo && (
-          <View className="self-start bg-secondary rounded-b-2xl px-4 py-2 flex-row items-center gap-2 -mt-1.5 shadow-lg ml-4 border-t border-white/20">
-            <Text className="text-white font-bold text-sm tracking-wide">
-              Sau đó
-            </Text>
+        {navProgress.showSecondary && navProgress.secondaryManeuver && (
+          <View className="self-start bg-secondary rounded-b-2xl px-4 py-2 flex-row items-center gap-2.5 shadow-lg border-t border-white/20">
             <MaterialCommunityIcons
-              name={navProgress.nextManeuverInfo.iconName}
-              size={20}
+              name={navProgress.secondaryManeuver.iconName}
+              size={25}
               color="#ffffff"
             />
-            {navProgress.nextStep?.name ? (
+            <View>
+              <Text className="text-white/80 font-semibold text-xs uppercase tracking-wider">
+                Sau đó
+              </Text>
               <Text
-                className="text-white/95 text-xs font-semibold max-w-[180px]"
+                className="text-white font-semibold text-sm max-w-[200px]"
                 numberOfLines={1}
               >
-                {navProgress.nextStep.name}
+                {navProgress.secondaryManeuver.streetName}
               </Text>
-            ) : null}
+            </View>
           </View>
         )}
       </View>
 
-      {/* --- ĐỒNG HỒ TỐC ĐỘ THỰC TẾ BÊN DƯỚI GÓC TRÁI --- */}
+      {/* --- ĐỒNG HỒ TỐC ĐỘ --- */}
       <View
-        className="absolute left-4 z-10"
-        style={{ bottom: insets.bottom + (isExpanded ? 245 : 95) }}
+        className="absolute left-4"
+        style={{ bottom: insets.bottom + 85, zIndex: 5, elevation: 5 }}
       >
-        <View className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 items-center justify-center shadow-xl border border-gray-100 dark:border-gray-700">
+        <View className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 items-center justify-center shadow-lg border border-gray-100 dark:border-gray-700">
           <Text className="text-base font-black text-slate-900 dark:text-white leading-tight">
             {speed ?? 0}
           </Text>
@@ -345,9 +392,11 @@ export default function MissionNavigationScreen() {
       {/* --- NÚT "VỀ GIỮA" --- */}
       <Animated.View
         pointerEvents={isFollowingUser ? "none" : "auto"}
-        className="absolute self-center z-20"
+        className="absolute self-center"
         style={{
-          bottom: insets.bottom + (isExpanded ? 245 : 95),
+          bottom: insets.bottom + 85,
+          zIndex: 5,
+          elevation: 5,
           opacity: recenterAnim,
           transform: [
             {
@@ -367,7 +416,7 @@ export default function MissionNavigationScreen() {
       >
         <Pressable
           onPress={handleFocusUserLocation}
-          className="flex-row items-center gap-2 bg-white dark:bg-slate-800 px-5 py-2.5 rounded-full shadow-2xl elevation-8 border border-gray-200/90 dark:border-gray-700 active:scale-95"
+          className="flex-row items-center gap-2 bg-white dark:bg-slate-800 px-5 py-2.5 rounded-full shadow-lg border border-gray-200/90 dark:border-gray-700 active:scale-95"
         >
           <Ionicons name="navigate" size={18} color="#2563eb" />
           <Text className="text-slate-800 dark:text-slate-100 text-xs font-bold tracking-wide">
@@ -376,110 +425,25 @@ export default function MissionNavigationScreen() {
         </Pressable>
       </Animated.View>
 
-      {/* --- BOTTOM SHEET DẪN ĐƯỜNG --- */}
-      <View
-        className="absolute left-0 right-0 bottom-0 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl border-t border-gray-200/80 dark:border-gray-800 z-30"
-        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-      >
-        {/* Thanh gạt nhỏ ở đỉnh */}
-        <Pressable
-          onPress={() => setIsExpanded((prev) => !prev)}
-          className="w-full items-center py-2 active:opacity-60"
-        >
-          <View className="w-10 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
-        </Pressable>
-
-        {/* Hàng chính: Nút X — Thời gian & Cự ly — Nút Tuỳ chọn/Mở rộng */}
-        <View className="flex-row items-center justify-between px-4 pb-2">
-          {/* Nút X Huỷ ca */}
-          <Pressable
-            onPress={handleCancelMission}
-            className="w-12 h-12 rounded-full border border-gray-200 dark:border-gray-700 items-center justify-center bg-white dark:bg-slate-800 active:scale-95 shadow-sm"
-          >
-            <Ionicons name="close" size={24} color={theme.colors.onSurface} />
-          </Pressable>
-
-          {/* Phần giữa: Thời gian to & Quãng đường / ETA */}
-          <Pressable
-            onPress={() => setIsExpanded((prev) => !prev)}
-            className="flex-1 items-center justify-center px-2 active:opacity-80"
-          >
-            <Text className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {durationText}
-            </Text>
-            <Text className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-              {distanceText} • {etaTimeStr}
-            </Text>
-          </Pressable>
-
-          {/* Nút Tuỳ chọn lộ trình / Mở rộng */}
-          <Pressable
-            onPress={() => setIsExpanded((prev) => !prev)}
-            className={`w-12 h-12 rounded-full border items-center justify-center active:scale-95 shadow-sm ${isExpanded
-              ? "bg-blue-600 border-blue-500"
-              : "bg-white dark:bg-slate-800 border-gray-200 dark:border-gray-700"
-              }`}
-          >
-            <Ionicons
-              name="git-branch-outline"
-              size={22}
-              color={isExpanded ? "#ffffff" : theme.colors.onSurface}
-            />
-          </Pressable>
-        </View>
-
-        {/* Phần chi tiết khi bấm mở rộng (Expanded) */}
-        {isExpanded && (
-          <View className="pt-2 border-t border-gray-100 dark:border-gray-800 px-4">
-            <View className="mb-2.5">
-              <Text className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Điểm đến cứu hộ
-              </Text>
-              <Text
-                className="text-sm font-bold text-slate-800 dark:text-white mt-0.5"
-                numberOfLines={2}
-              >
-                {activeMission?.address || "Điểm cứu hộ SOS"}
-              </Text>
-            </View>
-
-            {activeMission?.reporter_phone && (
-              <View className="flex-row items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/70 rounded-2xl mb-3">
-                <View className="flex-row items-center gap-2.5">
-                  <View className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 items-center justify-center">
-                    <Ionicons name="call" size={16} color="#2563eb" />
-                  </View>
-                  <View>
-                    <Text className="text-[10px] text-slate-400 font-medium">
-                      Người gọi cứu hộ
-                    </Text>
-                    <Text className="text-xs font-bold text-slate-900 dark:text-white">
-                      {activeMission.reporter_phone}
-                    </Text>
-                  </View>
-                </View>
-
-                <Pressable
-                  onPress={handleCallReporter}
-                  className="bg-emerald-600 active:bg-emerald-700 px-3.5 py-1.5 rounded-xl flex-row items-center gap-1 shadow-sm"
-                >
-                  <Ionicons name="call" size={13} color="#ffffff" />
-                  <Text className="text-white text-xs font-bold">Gọi ngay</Text>
-                </Pressable>
-              </View>
-            )}
-
-            <Pressable
-              onPress={handleCompleteMission}
-              className="bg-blue-600 active:bg-blue-700 py-3 rounded-2xl items-center justify-center shadow-md mb-1"
-            >
-              <Text className="text-sm font-bold text-white">
-                Hoàn thành nhiệm vụ
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
+      <MissionNavigationBottomSheet
+        ref={bottomSheetRef}
+        durationText={durationText}
+        distanceText={distanceText}
+        etaTimeStr={etaTimeStr}
+        displayAddress={displayAddress}
+        displayContent={displayContent}
+        displayEmergencyLevel={displayEmergencyLevel}
+        displayPhone={displayPhone}
+        distanceToTarget={
+          remainingDistance > 0 && remainingDistance < distanceToTarget
+            ? remainingDistance
+            : distanceToTarget
+        }
+        canComplete={canComplete}
+        onCancelMission={handleCancelMission}
+        onCompleteMission={handleCompleteMission}
+        onCallReporter={handleCallReporter}
+      />
     </ScreenContainer>
   );
 }
