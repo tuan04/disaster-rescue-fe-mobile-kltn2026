@@ -225,3 +225,26 @@ export function formatDistance(distanceKm?: number): string {
     return "";
   return formatRouteDistance(distanceKm * 1000);
 }
+
+/**
+ * Tính bounding box [minLng, minLat, maxLng, maxLat] của một danh sách tọa độ
+ */
+export function getCoordinatesBounds(
+  coordinates?: number[][] | null,
+): [number, number, number, number] | null {
+  if (!coordinates || coordinates.length === 0) return null;
+  let minLng = coordinates[0][0];
+  let maxLng = coordinates[0][0];
+  let minLat = coordinates[0][1];
+  let maxLat = coordinates[0][1];
+
+  for (let i = 1; i < coordinates.length; i++) {
+    const [lng, lat] = coordinates[i];
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
+
+  return [minLng, minLat, maxLng, maxLat];
+}
