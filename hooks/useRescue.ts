@@ -1,6 +1,13 @@
-import { clearActiveMission, saveActiveMission } from "@/database";
+import {
+  clearActiveMission,
+  getActiveMission,
+  saveActiveMission,
+} from "@/database";
 import { ACTIVE_MISSION_QUERY_KEY } from "@/hooks/useActiveMission";
-import { acceptRescueRequest } from "@/services/assignment.service";
+import {
+  acceptRescueRequest,
+  completeAssignment,
+} from "@/services/assignment.service";
 import { getRoute } from "@/services/map.service";
 import type { RootState } from "@/store";
 import type { MapPointDetailRes } from "@/types/map";
@@ -10,6 +17,7 @@ import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import { Alert } from "react-native";
 import Toast from "react-native-toast-message";
+import { useLocation } from "@/hooks/useLocation";
 import { useSelector } from "react-redux";
 
 export interface UseRescueProps {
@@ -19,18 +27,22 @@ export interface UseRescueProps {
   currentLat?: number;
   currentLng?: number;
   detailSheetRef?: React.RefObject<BottomSheetModal | null>;
-  clearRoute?: () => Promise<void>;
 }
 
-export function useRescue({
-  isRealLocation = false,
-  permissionDenied = false,
-  refreshLocation,
-  currentLat = 0,
-  currentLng = 0,
-  detailSheetRef,
-  clearRoute,
-}: UseRescueProps = {}) {
+export function useRescue(props: UseRescueProps = {}) {
+  const sharedLoc = useLocation();
+
+  const isRealLocation = props.isRealLocation ?? sharedLoc.isRealLocation;
+  const permissionDenied = props.permissionDenied ?? sharedLoc.permissionDenied;
+  const refreshLocation = props.refreshLocation ?? sharedLoc.refresh;
+  const currentLat =
+    props.currentLat ??
+    (sharedLoc.isRealLocation ? sharedLoc.coords.latitude : 0);
+  const currentLng =
+    props.currentLng ??
+    (sharedLoc.isRealLocation ? sharedLoc.coords.longitude : 0);
+  const detailSheetRef = props.detailSheetRef;
+
   const queryClient = useQueryClient();
   const router = useRouter();
   const user = useSelector((state: RootState) => state.auth?.user);
@@ -56,10 +68,12 @@ export function useRescue({
       detailSheetRef?.current?.dismiss();
 
       let routeData = null;
-      try {
-        routeData = await getRoute(currentLat, currentLng, requestId);
-      } catch (routeErr) {
-        console.warn("[useRescue] Lỗi tính lộ trình:", routeErr);
+      if (currentLat && currentLng) {
+        try {
+          routeData = await getRoute(currentLat, currentLng, requestId);
+        } catch (routeErr) {
+          console.warn("[useRescue] Lỗi tính lộ trình:", routeErr);
+        }
       }
 
       // Lưu trạng thái và tuyến đường vào SQLite để offline/reload không bị mất
@@ -153,11 +167,7 @@ export function useRescue({
             text: "Đồng ý hủy",
             style: "destructive",
             onPress: async () => {
-              if (clearRoute) {
-                await clearRoute();
-              } else {
-                await clearActiveMission();
-              }
+              await clearActiveMission();
               if (typeof onBeforeLeave === "function") {
                 await onBeforeLeave();
               }
@@ -175,12 +185,77 @@ export function useRescue({
         ],
       );
     },
-    [clearRoute, queryClient, router],
+    [queryClient, router],
   );
+
+  const completeRescueMutation = useMutation({
+    mutationFn: ({
+      assignmentId,
+    }: {
+      assignmentId: string;
+      onBeforeLeave?: () => Promise<void> | void;
+    }) => completeAssignment(assignmentId),
+    onSuccess: async (_, { onBeforeLeave }) => {
+      try {
+        await clearActiveMission();
+      } catch (err) {
+        console.warn("[useRescue] Lỗi dọn dẹp active mission:", err);
+      }
+
+      if (typeof onBeforeLeave === "function") {
+        try {
+          await onBeforeLeave();
+        } catch (e) {
+          console.warn("[useRescue] Lỗi onBeforeLeave:", e);
+        }
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ACTIVE_MISSION_QUERY_KEY,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["mapPoints"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["mapPointDetail"],
+      });
+
+      Toast.show({
+        type: "success",
+        text1: "Đã hoàn thành ca cứu hộ",
+      });
+
+      router.replace("/(app)/map");
+    },
+    onError: (error: any) => {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi hoàn thành",
+        text2:
+          error?.message ||
+          "Không thể hoàn thành ca cứu hộ. Vui lòng thử lại sau.",
+      });
+    },
+  });
 
   // Hoàn thành ca cứu hộ
   const handleCompleteMission = useCallback(
-    (onBeforeLeave?: (() => Promise<void> | void) | unknown) => {
+    (
+      assignmentIdOrFn?: string | ((...args: any[]) => any) | unknown,
+      maybeOnBeforeLeave?: (() => Promise<void> | void) | unknown,
+    ) => {
+      let customAssignmentId: string | undefined;
+      let onBeforeLeave: (() => Promise<void> | void) | undefined;
+
+      if (typeof assignmentIdOrFn === "string") {
+        customAssignmentId = assignmentIdOrFn;
+        if (typeof maybeOnBeforeLeave === "function") {
+          onBeforeLeave = maybeOnBeforeLeave as () => Promise<void> | void;
+        }
+      } else if (typeof assignmentIdOrFn === "function") {
+        onBeforeLeave = assignmentIdOrFn as () => Promise<void> | void;
+      }
+
       Alert.alert(
         "Hoàn thành ca cứu hộ",
         "Xác nhận đội cứu hộ đã tiếp cận và hoàn thành nhiệm vụ này?",
@@ -190,29 +265,31 @@ export function useRescue({
             text: "Xác nhận hoàn thành",
             style: "default",
             onPress: async () => {
-              if (clearRoute) {
-                await clearRoute();
-              } else {
-                await clearActiveMission();
+              let targetId = customAssignmentId;
+              if (!targetId) {
+                const localMission = await getActiveMission();
+                targetId = localMission?.id;
               }
-              if (typeof onBeforeLeave === "function") {
-                await onBeforeLeave();
+
+              if (!targetId) {
+                Toast.show({
+                  type: "error",
+                  text1: "Lỗi",
+                  text2: "Không tìm thấy thông tin ca cứu hộ để hoàn thành.",
+                });
+                return;
               }
-              queryClient.invalidateQueries({
-                queryKey: ACTIVE_MISSION_QUERY_KEY,
+
+              completeRescueMutation.mutate({
+                assignmentId: targetId,
+                onBeforeLeave,
               });
-              Toast.show({
-                type: "success",
-                text1: "Chúc mừng!",
-                text2: "Đã hoàn thành ca cứu hộ xuất sắc.",
-              });
-              router.replace("/(app)/map");
             },
           },
         ],
       );
     },
-    [clearRoute, queryClient, router],
+    [completeRescueMutation],
   );
 
   return {
@@ -220,6 +297,8 @@ export function useRescue({
     handleCancelMission,
     handleCompleteMission,
     acceptRescueMutation,
+    completeRescueMutation,
     isAccepting: acceptRescueMutation.isPending,
+    isCompleting: completeRescueMutation.isPending,
   };
 }

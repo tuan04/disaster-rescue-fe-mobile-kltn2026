@@ -26,6 +26,7 @@ export interface MissionNavigationBottomSheetProps {
   displayPhone: string;
   distanceToTarget: number;
   canComplete: boolean;
+  isCompleting?: boolean;
   onCancelMission: () => void;
   onCompleteMission: () => void;
   onCallReporter: () => void;
@@ -44,6 +45,7 @@ export const MissionNavigationBottomSheet = forwardRef<
     displayEmergencyLevel,
     displayPhone,
     canComplete,
+    isCompleting = false,
     onCancelMission,
     onCompleteMission,
     onCallReporter,
@@ -151,6 +153,7 @@ export const MissionNavigationBottomSheet = forwardRef<
               <Button
                 title="Gọi điện"
                 onPress={onCallReporter}
+                disabled={isCompleting}
                 variant="success"
                 icon={({ size, color }) => (
                   <Ionicons name="call-outline" size={size} color={color} />
@@ -161,7 +164,8 @@ export const MissionNavigationBottomSheet = forwardRef<
             <Button
               title={"Hoàn thành"}
               onPress={onCompleteMission}
-              disabled={!canComplete}
+              disabled={!canComplete || isCompleting}
+              loading={isCompleting}
               variant="primary"
               icon={({ size, color }) => (
                 <Ionicons

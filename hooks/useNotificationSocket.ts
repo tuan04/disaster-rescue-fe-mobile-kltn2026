@@ -151,8 +151,6 @@ export function useNotificationSocket() {
     };
   }, [dispatch, isAuthenticated, user?.id]);
 
-  console.log("currentAlert", currentAlert);
-
   // Trả về các giá trị cần thiết cho các component giao diện sử dụng
   return {
     notifications, // Danh sách thông báo

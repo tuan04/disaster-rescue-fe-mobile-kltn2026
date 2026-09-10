@@ -25,7 +25,6 @@ import { useQuery } from "@tanstack/react-query";
 import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   Pressable,
   StyleSheet,
@@ -63,9 +62,11 @@ export default function MissionNavigationScreen() {
   const currentRouteGeoJSON = remainingRouteGeoJSON || routeGeoJSON;
 
   // Nghiệp vụ ca cứu hộ (hủy ca, hoàn thành ca)
-  const { handleCancelMission, handleCompleteMission } = useRescue({
-    clearRoute,
-  });
+  const {
+    handleCancelMission,
+    handleCompleteMission,
+    isCompleting,
+  } = useRescue();
 
   // Trích xuất các bước rẽ và tính toán trạng thái dẫn đường từng bước
   const routeSteps = useMemo(() => {
@@ -440,8 +441,9 @@ export default function MissionNavigationScreen() {
             : distanceToTarget
         }
         canComplete={canComplete}
+        isCompleting={isCompleting}
         onCancelMission={handleCancelMission}
-        onCompleteMission={handleCompleteMission}
+        onCompleteMission={() => handleCompleteMission(activeMission?.id)}
         onCallReporter={handleCallReporter}
       />
     </ScreenContainer>

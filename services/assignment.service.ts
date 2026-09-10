@@ -25,3 +25,9 @@ export const getActiveMission = async (
 ): Promise<ApiResponse<AssignmentRes | null>> => {
   return await get<AssignmentRes | null>(`/assignments/teams/${teamId}/active`);
 };
+
+export const completeAssignment = async (
+  assignmentId: string,
+): Promise<void> => {
+  await post<void>(`/assignments/${assignmentId}/complete`);
+};
