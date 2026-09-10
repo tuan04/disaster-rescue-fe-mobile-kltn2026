@@ -4,6 +4,7 @@ import FloatingMissionPiP from "@/components/map/FloatingMissionPiP";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { DATABASE_NAME } from "@/database";
 import { clearTokens, getAccessToken } from "@/helpers/secureStore";
+import { useForegroundLocationWatcher } from "@/hooks/useForegroundLocationWatcher";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { getCurrentUser } from "@/services/auth.service";
@@ -56,6 +57,8 @@ function RootNavigator() {
     (state: RootState) => state.auth?.isAuthenticated,
   );
 
+  // Kích hoạt duy nhất 1 Foreground Location Watcher toàn cục
+  useForegroundLocationWatcher();
   // kích hoạt theo dõi vị trí khi user có role LEADER
   useTeamLocationTracking();
   // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
