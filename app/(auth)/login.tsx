@@ -38,6 +38,8 @@ export default function LoginScreen() {
         password: values.password,
       });
 
+      console.log("response", response);
+
       if (response.success === true) {
         await saveTokens(response.data.accessToken, response.data.refreshToken);
         dispatch(login(response.data.userInfoResponse));
@@ -60,9 +62,6 @@ export default function LoginScreen() {
         response.message || "Vui lòng thử lại.",
       );
     } catch (error) {
-      if (error instanceof ApiError) {
-
-      }
       Alert.alert(
         "Đăng nhập thất bại",
         error instanceof Error

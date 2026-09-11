@@ -1,5 +1,4 @@
 import { customToastConfig } from "@/components/common/CustomToast";
-import SosAlertModal from "@/components/common/SosAlertModal";
 import FloatingMissionPiP from "@/components/map/FloatingMissionPiP";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { DATABASE_NAME } from "@/database";
@@ -135,13 +134,12 @@ function RootNavigator() {
               <Stack.Screen name="(pages)" />
             </Stack>
           </View>
-          {/* Widget mini PiP ca cứu hộ nổi toàn ứng dụng */}
+
           <FloatingMissionPiP />
-          {/* Modal cảnh báo cứu hộ khẩn cấp thời gian thực */}
-          <SosAlertModal />
+
           <Toast config={customToastConfig} />
-        </BottomSheetModalProvider>
-      </PaperProvider>
-    </SafeAreaProvider>
+        </BottomSheetModalProvider >
+      </PaperProvider >
+    </SafeAreaProvider >
   );
 }

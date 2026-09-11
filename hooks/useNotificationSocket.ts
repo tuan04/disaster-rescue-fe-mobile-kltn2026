@@ -5,6 +5,7 @@ import {
   addNotification,
   setConnectionStatus,
 } from "@/store/notificationSlice";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -24,6 +25,7 @@ import { useDispatch, useSelector } from "react-redux";
  */
 export function useNotificationSocket() {
   const dispatch = useDispatch<AppDispatch>();
+  const queryClient = useQueryClient();
 
   // Lấy thông tin user và trạng thái đăng nhập từ Redux authSlice
   const user = useSelector((state: RootState) => state.auth?.user);
@@ -107,6 +109,9 @@ export function useNotificationSocket() {
 
       // 4. Đẩy payload thông báo mới nhận được vào Redux Store
       dispatch(addNotification(message));
+
+      // 5. Tự động làm mới danh sách thông báo từ server
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     };
 
     const setupConnection = async () => {

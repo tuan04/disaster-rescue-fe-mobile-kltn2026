@@ -1,4 +1,15 @@
-export type NotificationType = "SOS_ALERT" | "GENERAL" | "RESCUE_UPDATE";
+export type NotificationType = "SOS_ALERT" | "GENERAL" | "RESCUE_UPDATE" | string;
+
+export interface NotificationItem {
+  id: string; // UUID của user_notification
+  notificationId: string; // UUID của notification
+  referenceId?: string; // UUID của reference (ví dụ: rescueRequest ID)
+  type: string;
+  title: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 export interface NotificationSocketMessage {
   id?: string;
