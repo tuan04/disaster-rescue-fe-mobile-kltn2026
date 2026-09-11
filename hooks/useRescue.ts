@@ -6,6 +6,7 @@ import {
 import { ACTIVE_MISSION_QUERY_KEY } from "@/hooks/useActiveMission";
 import {
   acceptRescueRequest,
+  cancelAssignment,
   completeAssignment,
 } from "@/services/assignment.service";
 import { getRoute } from "@/services/map.service";
@@ -292,13 +293,69 @@ export function useRescue(props: UseRescueProps = {}) {
     [completeRescueMutation],
   );
 
+  const cancelRescueMutation = useMutation({
+    mutationFn: ({
+      assignmentId,
+      reason,
+    }: {
+      assignmentId: string;
+      reason: string;
+      onBeforeLeave?: () => Promise<void> | void;
+    }) => cancelAssignment(assignmentId, reason),
+    onSuccess: async (_, { onBeforeLeave }) => {
+      try {
+        await clearActiveMission();
+      } catch (err) {
+        console.warn("[useRescue] Lỗi dọn dẹp active mission:", err);
+      }
+
+      if (typeof onBeforeLeave === "function") {
+        try {
+          await onBeforeLeave();
+        } catch (e) {
+          console.warn("[useRescue] Lỗi onBeforeLeave:", e);
+        }
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: ACTIVE_MISSION_QUERY_KEY,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["mapPoints"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["mapPointDetail"],
+      });
+
+      Toast.show({
+        type: "info",
+        text1: "Đã hủy ca cứu hộ",
+        text2: "Ca cứu hộ đã được đưa về danh sách chờ.",
+      });
+
+      router.replace("/(app)/map");
+    },
+    onError: (error: any) => {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi hủy ca cứu hộ",
+        text2:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Không thể hủy ca cứu hộ lúc này.",
+      });
+    },
+  });
+
   return {
     handleRescue,
     handleCancelMission,
     handleCompleteMission,
     acceptRescueMutation,
     completeRescueMutation,
+    cancelRescueMutation,
     isAccepting: acceptRescueMutation.isPending,
     isCompleting: completeRescueMutation.isPending,
+    isCanceling: cancelRescueMutation.isPending,
   };
 }

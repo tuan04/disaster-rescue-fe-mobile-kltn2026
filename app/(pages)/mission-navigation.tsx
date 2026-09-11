@@ -1,3 +1,4 @@
+import CancelMissionModal from "@/components/map/CancelMissionModal";
 import MissionNavigationBottomSheet from "@/components/map/MissionNavigationBottomSheet";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
@@ -63,10 +64,35 @@ export default function MissionNavigationScreen() {
 
   // Nghiệp vụ ca cứu hộ (hủy ca, hoàn thành ca)
   const {
-    handleCancelMission,
     handleCompleteMission,
     isCompleting,
+    cancelRescueMutation,
+    isCanceling,
   } = useRescue();
+
+  const [isCancelModalVisible, setIsCancelModalVisible] = useState<boolean>(false);
+
+  const handleOpenCancelModal = useCallback(() => {
+    setIsCancelModalVisible(true);
+  }, []);
+
+  const handleCloseCancelModal = useCallback(() => {
+    setIsCancelModalVisible(false);
+  }, []);
+
+  const handleConfirmCancel = useCallback(
+    (reason: string) => {
+      if (!activeMission?.id) return;
+      cancelRescueMutation.mutate({
+        assignmentId: activeMission.id,
+        reason,
+        onBeforeLeave: async () => {
+          clearRoute();
+        },
+      });
+    },
+    [activeMission?.id, cancelRescueMutation, clearRoute],
+  );
 
   // Trích xuất các bước rẽ và tính toán trạng thái dẫn đường từng bước
   const routeSteps = useMemo(() => {
@@ -442,9 +468,17 @@ export default function MissionNavigationScreen() {
         }
         canComplete={canComplete}
         isCompleting={isCompleting}
-        onCancelMission={handleCancelMission}
+        isCanceling={isCanceling}
+        onCancelMission={handleOpenCancelModal}
         onCompleteMission={() => handleCompleteMission(activeMission?.id)}
         onCallReporter={handleCallReporter}
+      />
+
+      <CancelMissionModal
+        visible={isCancelModalVisible}
+        loading={isCanceling}
+        onDismiss={handleCloseCancelModal}
+        onConfirm={handleConfirmCancel}
       />
     </ScreenContainer>
   );

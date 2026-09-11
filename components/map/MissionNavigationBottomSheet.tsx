@@ -27,6 +27,7 @@ export interface MissionNavigationBottomSheetProps {
   distanceToTarget: number;
   canComplete: boolean;
   isCompleting?: boolean;
+  isCanceling?: boolean;
   onCancelMission: () => void;
   onCompleteMission: () => void;
   onCallReporter: () => void;
@@ -46,6 +47,7 @@ export const MissionNavigationBottomSheet = forwardRef<
     displayPhone,
     canComplete,
     isCompleting = false,
+    isCanceling = false,
     onCancelMission,
     onCompleteMission,
     onCallReporter,
@@ -120,7 +122,9 @@ export const MissionNavigationBottomSheet = forwardRef<
         <View className="flex-row items-center justify-between pb-1">
           <Pressable
             onPress={onCancelMission}
-            className="w-11 h-11 rounded-full items-center justify-center bg-danger active:opacity-80 shadow-md"
+            disabled={isCompleting || isCanceling}
+            className={`w-11 h-11 rounded-full items-center justify-center bg-danger shadow-md ${isCompleting || isCanceling ? "opacity-50" : "active:opacity-80"
+              }`}
           >
             <Ionicons name="close" size={24} color="#ffffff" />
           </Pressable>

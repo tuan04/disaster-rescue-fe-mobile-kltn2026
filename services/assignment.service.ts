@@ -31,3 +31,10 @@ export const completeAssignment = async (
 ): Promise<void> => {
   await post<void>(`/assignments/${assignmentId}/complete`);
 };
+
+export const cancelAssignment = async (
+  assignmentId: string,
+  reason: string,
+): Promise<void> => {
+  await post<void>(`/assignments/${assignmentId}/cancel`, { reason });
+};
