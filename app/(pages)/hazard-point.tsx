@@ -2,8 +2,8 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import HazardPointItem from "@/components/map/HazardPointItem";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { hazardTypeLabel } from "@/contants/mapPointLables";
+import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
-import { calculateDistanceKm } from "@/helper/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { HazardMapPointRes, HazardType, MapPointRes } from "@/types/map";
@@ -68,11 +68,11 @@ export default function HazardPointScreen() {
       .map((pt) => {
         const distanceKm = coords
           ? calculateDistanceKm(
-              coords.latitude,
-              coords.longitude,
-              pt.latitude,
-              pt.longitude,
-            )
+            coords.latitude,
+            coords.longitude,
+            pt.latitude,
+            pt.longitude,
+          )
           : undefined;
         return { ...pt, distanceKm };
       })
@@ -166,16 +166,14 @@ export default function HazardPointScreen() {
             return (
               <Pressable
                 onPress={() => setSelectedType(item.key)}
-                className={`mr-2 rounded-full px-3.5 py-1.5 border ${
-                  isSelected
-                    ? "bg-warning border-warning"
-                    : "bg-surface border-outline/20"
-                }`}
+                className={`mr-2 rounded-full px-3.5 py-1.5 border ${isSelected
+                  ? "bg-warning border-warning"
+                  : "bg-surface border-outline/20"
+                  }`}
               >
                 <Text
-                  className={`text-xs font-medium ${
-                    isSelected ? "text-white font-semibold" : "text-text-muted"
-                  }`}
+                  className={`text-xs font-medium ${isSelected ? "text-white font-semibold" : "text-text-muted"
+                    }`}
                 >
                   {item.label}
                 </Text>

@@ -125,10 +125,33 @@ export interface GeometryDto {
   coordinates: number[][];
 }
 
+export interface ManeuverDto {
+  type: string;
+  modifier?: string;
+  location: [number, number]; // [longitude, latitude]
+  bearing_before?: number;
+  bearing_after?: number;
+}
+
+export interface StepDto {
+  distance: number;
+  duration: number;
+  name: string;
+  maneuver: ManeuverDto;
+}
+
+export interface LegDto {
+  distance: number;
+  duration: number;
+  summary?: string;
+  steps: StepDto[];
+}
+
 export interface RouteDto {
   distance: number;
   duration: number;
   geometry: GeometryDto;
+  legs?: LegDto[];
 }
 
 export interface RouteResponse {

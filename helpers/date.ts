@@ -1,7 +1,9 @@
 /**
  * Format timestamp thành định dạng thời gian tương đối thân thiện (VD: "5 phút trước", "Hôm qua")
  */
-export function formatRelativeTime(dateInput: string | Date | undefined | null): string {
+export function formatRelativeTime(
+  dateInput: string | Date | undefined | null,
+): string {
   if (!dateInput) return "";
   const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
   if (isNaN(date.getTime())) return "";
@@ -51,7 +53,9 @@ export function formatRelativeTime(dateInput: string | Date | undefined | null):
 /**
  * Format timestamp thành định dạng cố định "HH:mm - DD/MM/YYYY"
  */
-export function formatDateTime(dateInput: string | Date | undefined | null): string {
+export function formatDateTime(
+  dateInput: string | Date | undefined | null,
+): string {
   if (!dateInput) return "";
   const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
   if (isNaN(date.getTime())) return "";
@@ -64,4 +68,3 @@ export function formatDateTime(dateInput: string | Date | undefined | null): str
 
   return `${hours}:${minutes} - ${day}/${month}/${year}`;
 }
-

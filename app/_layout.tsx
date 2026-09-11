@@ -1,18 +1,22 @@
 import { customToastConfig } from "@/components/common/CustomToast";
+import FloatingMissionPiP from "@/components/map/FloatingMissionPiP";
 import { DarkTheme, LightTheme } from "@/contants/theme";
-import { DATABASE_NAME, migrateDbIfNeeded } from "@/database";
-import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
-import { clearTokens, getAccessToken } from "@/helper/secureStore";
+import { DATABASE_NAME } from "@/database";
+import { clearTokens, getAccessToken } from "@/helpers/secureStore";
+import { useForegroundLocationWatcher } from "@/hooks/useForegroundLocationWatcher";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { getCurrentUser } from "@/services/auth.service";
+import { getMyProfile } from "@/services/user.service";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
-import { login, logout } from "@/store/authSlice";
+import { login, logout, setProfile } from "@/store/authSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
+
 import { StatusBar, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
@@ -30,7 +34,6 @@ export default function RootLayout() {
         <Provider store={store}>
           <SQLiteProvider
             databaseName={DATABASE_NAME}
-            onInit={migrateDbIfNeeded}
             useSuspense={false}
           >
             <RootNavigator />
@@ -53,6 +56,8 @@ function RootNavigator() {
     (state: RootState) => state.auth?.isAuthenticated,
   );
 
+  // Kích hoạt duy nhất 1 Foreground Location Watcher toàn cục
+  useForegroundLocationWatcher();
   // kích hoạt theo dõi vị trí khi user có role LEADER
   useTeamLocationTracking();
   // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
@@ -73,6 +78,16 @@ function RootNavigator() {
         const response = await getCurrentUser(token);
         if (response.success && response.data) {
           dispatch(login(response.data));
+
+          try {
+            const profileRes = await getMyProfile();
+            if (profileRes.success && profileRes.data) {
+              dispatch(setProfile(profileRes.data));
+            }
+          } catch (profileError) {
+            console.warn("Could not fetch full profile on bootstrap:", profileError);
+          }
+
           return;
         }
 
@@ -119,9 +134,12 @@ function RootNavigator() {
               <Stack.Screen name="(pages)" />
             </Stack>
           </View>
+
+          <FloatingMissionPiP />
+
           <Toast config={customToastConfig} />
-        </BottomSheetModalProvider>
-      </PaperProvider>
-    </SafeAreaProvider>
+        </BottomSheetModalProvider >
+      </PaperProvider >
+    </SafeAreaProvider >
   );
 }

@@ -35,8 +35,22 @@ export const INITIAL_SCHEMA_V1 = `
     updated_at INTEGER NOT NULL
   );
 
+  -- 4. Bảng lưu ca cứu hộ đang thực hiện (Active Rescue Mission)
+  CREATE TABLE IF NOT EXISTS active_rescue_mission (
+    id TEXT PRIMARY KEY,
+    request_id TEXT NOT NULL,
+    target_latitude REAL NOT NULL,
+    target_longitude REAL NOT NULL,
+    address TEXT,
+    reporter_phone TEXT,
+    route_json TEXT, -- Toàn bộ object JSON RouteResponse từ OSRM/Map service
+    started_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
   -- Indexes for fast query performance
   CREATE INDEX IF NOT EXISTS idx_map_points_type ON offline_map_points (point_type);
   CREATE INDEX IF NOT EXISTS idx_map_points_coords ON offline_map_points (latitude, longitude);
   CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON offline_sync_queue (status);
+  CREATE INDEX IF NOT EXISTS idx_active_mission_req ON active_rescue_mission (request_id);
 `;

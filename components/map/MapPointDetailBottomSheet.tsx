@@ -1,5 +1,6 @@
 import Button from "@/components/common/Button";
 import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
+import SheetDetailRow from "@/components/map/SheetDetailRow";
 import {
   hazardTypeLabel,
   pointTypeLabel,
@@ -17,11 +18,11 @@ import {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
+import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Pressable,
   Text,
   View,
@@ -38,33 +39,6 @@ export interface MapPointDetailBottomSheetProps {
   isAccepting?: boolean;
 }
 
-function DetailRow({
-  label,
-  value,
-}: {
-  label: string;
-  value?: React.ReactNode;
-}) {
-  if (value === undefined || value === null || value === "") return null;
-
-  return (
-    <View className="flex-row items-start justify-between py-2.5 border-b border-gray-100 dark:border-gray-800">
-      <Text className="text-md font-medium text-text">
-        {label}
-      </Text>
-      <View className="flex-1 items-end ml-4">
-        {typeof value === "string" || typeof value === "number" ? (
-          <Text className="text-md text-text text-right">
-            {value}
-          </Text>
-        ) : (
-          value
-        )}
-      </View>
-    </View>
-  );
-}
-
 export const MapPointDetailBottomSheet = React.forwardRef<
   BottomSheetModal,
   MapPointDetailBottomSheetProps
@@ -72,7 +46,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth?.user);
-  const isRescuer = user?.role === "RESCUER";
+  const isRescuer = user?.role === "LEADER";
 
   const snapPoints = useMemo(
     () => customSnapPoints || ["60%", "90%"],
@@ -111,10 +85,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
   };
 
   const handleCallPhone = (phone?: string) => {
-    if (!phone) return;
-    Linking.openURL(`tel:${phone}`).catch((err) =>
-      console.error("Không thể thực hiện cuộc gọi", err),
-    );
+    makePhoneCall(phone);
   };
 
   const getPhone = (data: MapPointDetailRes): string | undefined => {
@@ -129,36 +100,36 @@ export const MapPointDetailBottomSheet = React.forwardRef<
       case "SOS":
         return (
           <View className="mt-1">
-            <DetailRow label="Địa chỉ" value={data.address} />
-            <DetailRow
+            <SheetDetailRow label="Địa chỉ" value={data.address} />
+            <SheetDetailRow
               label="Mức độ khẩn cấp"
               value={<EmergencyLevelBadge level={data.detail.emergencyLevel} />}
             />
-            <DetailRow
+            <SheetDetailRow
               label="Trạng thái"
               value={rescueStatusLabel[data.detail.status] || data.detail.status}
             />
-            <DetailRow label="SĐT người báo" value={data.detail.reporterPhone} />
-            <DetailRow
+            <SheetDetailRow label="SĐT người báo" value={data.detail.reporterPhone} />
+            <SheetDetailRow
               label="Nguồn"
               value={data.detail.source}
             />
-            <DetailRow label="Nội dung cầu cứu" value={data.detail.content} />
+            <SheetDetailRow label="Nội dung cầu cứu" value={data.detail.content} />
           </View>
         );
 
       case "HAZARD":
         return (
           <View className="mt-1">
-            <DetailRow label="Địa chỉ" value={data.address} />
-            <DetailRow
+            <SheetDetailRow label="Địa chỉ" value={data.address} />
+            <SheetDetailRow
               label="Loại mối nguy"
               value={
                 hazardTypeLabel[data.detail.hazardType] ||
                 data.detail.hazardType
               }
             />
-            <DetailRow
+            <SheetDetailRow
               label="Trạng thái"
               value={
                 data.detail.status === "ACTIVE"
@@ -170,7 +141,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
                       : data.detail.status
               }
             />
-            <DetailRow label="Mô tả" value={data.detail.description} />
+            <SheetDetailRow label="Mô tả" value={data.detail.description} />
             {data.detail.imageUrls && data.detail.imageUrls.length > 0 && (
               <View className="mt-3">
                 <Text className="mb-2 text-sm font-semibold text-text">
@@ -194,25 +165,25 @@ export const MapPointDetailBottomSheet = React.forwardRef<
       case "SAFE_ZONE":
         return (
           <View className="mt-1">
-            <DetailRow label="Tên điểm an toàn" value={data.detail.name} />
-            <DetailRow label="Địa chỉ" value={data.address} />
-            <DetailRow
+            <SheetDetailRow label="Tên điểm an toàn" value={data.detail.name} />
+            <SheetDetailRow label="Địa chỉ" value={data.address} />
+            <SheetDetailRow
               label="Loại điểm"
               value={
                 safePointTypeLabel[data.detail.safePointType] ||
                 data.detail.safePointType
               }
             />
-            <DetailRow label="SĐT liên hệ" value={data.detail.contactPhone} />
+            <SheetDetailRow label="SĐT liên hệ" value={data.detail.contactPhone} />
           </View>
         );
 
       case "WARE_HOUSE":
         return (
           <View className="mt-1">
-            <DetailRow label="Tên kho hàng" value={data.detail.name} />
-            <DetailRow label="Địa chỉ" value={data.address} />
-            <DetailRow label="SĐT quản lý" value={data.detail.managerPhone} />
+            <SheetDetailRow label="Tên kho hàng" value={data.detail.name} />
+            <SheetDetailRow label="Địa chỉ" value={data.address} />
+            <SheetDetailRow label="SĐT quản lý" value={data.detail.managerPhone} />
           </View>
         );
       default:

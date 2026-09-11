@@ -1,6 +1,6 @@
 import type { AssignmentRes } from "../types/assignment";
 import type { ApiResponse } from "../types/response";
-import { post } from "./api";
+import { get, post } from "./api";
 
 export const acceptRescueRequest = async (
   requestId: string,
@@ -18,4 +18,23 @@ export const acceptRescueRequest = async (
     },
   );
   return response;
+};
+
+export const getActiveMission = async (
+  teamId: string,
+): Promise<ApiResponse<AssignmentRes | null>> => {
+  return await get<AssignmentRes | null>(`/assignments/teams/${teamId}/active`);
+};
+
+export const completeAssignment = async (
+  assignmentId: string,
+): Promise<void> => {
+  await post<void>(`/assignments/${assignmentId}/complete`);
+};
+
+export const cancelAssignment = async (
+  assignmentId: string,
+  reason: string,
+): Promise<void> => {
+  await post<void>(`/assignments/${assignmentId}/cancel`, { reason });
 };

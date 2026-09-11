@@ -1,9 +1,8 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import SosPointItem from "@/components/map/SosPointItem";
-import { rescueStatusLabel } from "@/contants/mapPointLables";
+import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
-import { calculateDistanceKm } from "@/helper/distance";
 import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { EmergencyLevel, MapPointRes, RequestStatus, SosMapPointRes } from "@/types/map";
@@ -59,11 +58,11 @@ export default function SosPointScreen() {
       .map((pt) => {
         const distanceKm = coords
           ? calculateDistanceKm(
-              coords.latitude,
-              coords.longitude,
-              pt.latitude,
-              pt.longitude,
-            )
+            coords.latitude,
+            coords.longitude,
+            pt.latitude,
+            pt.longitude,
+          )
           : undefined;
         return { ...pt, distanceKm };
       })
@@ -129,18 +128,16 @@ export default function SosPointScreen() {
             setStatusFilter("ALL");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            statusFilter === "ALL" && levelFilter === "ALL"
-              ? "bg-danger border-danger"
-              : "bg-surface border-outline/20"
-          }`}
+          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "ALL" && levelFilter === "ALL"
+            ? "bg-danger border-danger"
+            : "bg-surface border-outline/20"
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              statusFilter === "ALL" && levelFilter === "ALL"
-                ? "text-white"
-                : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${statusFilter === "ALL" && levelFilter === "ALL"
+              ? "text-white"
+              : "text-text-muted"
+              }`}
           >
             Tất cả
           </Text>
@@ -151,16 +148,14 @@ export default function SosPointScreen() {
             setStatusFilter("PENDING");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            statusFilter === "PENDING"
-              ? "bg-warning border-warning"
-              : "bg-surface border-outline/20"
-          }`}
+          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "PENDING"
+            ? "bg-warning border-warning"
+            : "bg-surface border-outline/20"
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              statusFilter === "PENDING" ? "text-white" : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${statusFilter === "PENDING" ? "text-white" : "text-text-muted"
+              }`}
           >
             Đang chờ
           </Text>
@@ -171,16 +166,14 @@ export default function SosPointScreen() {
             setLevelFilter("HIGH");
             setStatusFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            levelFilter === "HIGH"
-              ? "bg-danger border-danger"
-              : "bg-surface border-outline/20"
-          }`}
+          className={`rounded-full px-3.5 py-1.5 border ${levelFilter === "HIGH"
+            ? "bg-danger border-danger"
+            : "bg-surface border-outline/20"
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              levelFilter === "HIGH" ? "text-white" : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${levelFilter === "HIGH" ? "text-white" : "text-text-muted"
+              }`}
           >
             Khẩn cấp cao
           </Text>
@@ -191,16 +184,14 @@ export default function SosPointScreen() {
             setStatusFilter("ACCEPTED");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${
-            statusFilter === "ACCEPTED"
-              ? "bg-secondary border-secondary"
-              : "bg-surface border-outline/20"
-          }`}
+          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "ACCEPTED"
+            ? "bg-secondary border-secondary"
+            : "bg-surface border-outline/20"
+            }`}
         >
           <Text
-            className={`text-xs font-medium ${
-              statusFilter === "ACCEPTED" ? "text-white" : "text-text-muted"
-            }`}
+            className={`text-xs font-medium ${statusFilter === "ACCEPTED" ? "text-white" : "text-text-muted"
+              }`}
           >
             Đã tiếp nhận
           </Text>

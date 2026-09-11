@@ -1,4 +1,4 @@
-import { getAccessToken } from "@/helper/secureStore";
+import { getAccessToken } from "@/helpers/secureStore";
 import { websocketService } from "@/services/socket.service";
 import type { AppDispatch, RootState } from "@/store";
 import {
@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 /**
  * Custom Hook: `useNotificationSocket`
- * 
+ *
  * Mục đích chính:
  * 1. Cầu nối (Bridge) giữa WebSocket STOMP Service và Redux Store toàn cục.
  * 2. Quản lý vòng đời kết nối theo trạng thái đăng nhập của người dùng:
@@ -20,7 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
  *    - Tự động subscribe kênh thông báo riêng của User: `/topic/notifications/{userId}`.
  *    - Tự động ngắt kết nối và giải phóng tài nguyên khi người dùng Logout.
  * 3. Kích hoạt hiệu ứng rung vật lý (Haptics) của điện thoại khi có cảnh báo khẩn cấp đến.
- * 4. Cung cấp dữ liệu thông báo (`notifications`, `unreadCount`, `currentAlert`, `isConnected`) 
+ * 4. Cung cấp dữ liệu thông báo (`notifications`, `unreadCount`, `currentAlert`, `isConnected`)
  *    cho các UI Component (chuông thông báo, badge, banner khẩn cấp, v.v.).
  */
 export function useNotificationSocket() {
@@ -75,7 +75,9 @@ export function useNotificationSocket() {
       message: any,
       sourceTopic: string,
     ) => {
-      console.log("\n🚨 ========================================================");
+      console.log(
+        "\n🚨 ========================================================",
+      );
       console.log(`[STOMP WS ĐÃ NHẬN THÔNG BÁO TỪ KÊNH: ${sourceTopic}]`);
       console.log("--------------------------------------------------------");
       console.log("📌 ID Thông Báo:", message.id);
@@ -84,10 +86,16 @@ export function useNotificationSocket() {
       console.log("📌 Nội Dung:", message.content);
       console.log("📌 Loại:", message.type);
       console.log("📌 Mức Độ:", message.emergencyLevel);
-      console.log("📌 Tọa Độ:", `[Lat: ${message.latitude}, Long: ${message.longitude}]`);
+      console.log(
+        "📌 Tọa Độ:",
+        `[Lat: ${message.latitude}, Long: ${message.longitude}]`,
+      );
       console.log("📌 SĐT Người Báo:", message.reporterPhone || "Không có");
       console.log("📌 Thời Gian:", message.createdAt);
-      console.log("📦 Dữ liệu chi tiết (JSON):", JSON.stringify(message, null, 2));
+      console.log(
+        "📦 Dữ liệu chi tiết (JSON):",
+        JSON.stringify(message, null, 2),
+      );
       console.log("========================================================\n");
 
       // 3. Kích hoạt phản hồi rung cảnh báo trên điện thoại (Haptic Feedback)
@@ -117,7 +125,11 @@ export function useNotificationSocket() {
         // 2. Đăng ký lắng nghe kênh thông báo riêng của User: /topic/notifications/{userId}
         unsubscribeUserTopic = websocketService.subscribeToUserNotifications(
           user.id,
-          (message) => handleIncomingNotification(message, `/topic/notifications/${user.id}`),
+          (message) =>
+            handleIncomingNotification(
+              message,
+              `/topic/notifications/${user.id}`,
+            ),
         );
 
         // 3. Đăng ký lắng nghe kênh cảnh báo SOS khẩn cấp chung: /topic/sos-alerts
@@ -144,15 +156,11 @@ export function useNotificationSocket() {
     };
   }, [dispatch, isAuthenticated, user?.id]);
 
-  console.log("currentAlert", currentAlert);
-
-
   // Trả về các giá trị cần thiết cho các component giao diện sử dụng
   return {
     notifications, // Danh sách thông báo
-    unreadCount,   // Số thông báo chưa đọc
-    currentAlert,  // Cảnh báo khẩn cấp đang nổi bật (nếu có)
-    isConnected,   // Trạng thái kết nối WebSocket (true/false)
+    unreadCount, // Số thông báo chưa đọc
+    currentAlert, // Cảnh báo khẩn cấp đang nổi bật (nếu có)
+    isConnected, // Trạng thái kết nối WebSocket (true/false)
   };
 }
-
