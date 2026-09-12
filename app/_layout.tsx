@@ -49,7 +49,6 @@ function RootNavigator() {
   const currentTheme = colorScheme === "dark" ? DarkTheme : LightTheme;
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const pathname = usePathname();
   const segments = useSegments();
   const user = useSelector((state: RootState) => state.auth?.user);
   const isAuthenticated = useSelector(
@@ -106,11 +105,11 @@ function RootNavigator() {
     const firstSegment = segments[0];
     const inAuthScreen = firstSegment === "(auth)";
 
-    if (isAuthenticated && (pathname === "/" || inAuthScreen)) {
+    if (isAuthenticated && inAuthScreen) {
       router.replace("/(app)");
       return;
     }
-  }, [isAuthenticated, pathname, router, segments]);
+  }, [isAuthenticated, router, segments]);
 
   return (
     <SafeAreaProvider>

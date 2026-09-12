@@ -1,3 +1,4 @@
+import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NotificationItem from "@/components/notification/NotificationItem";
 import { useAppTheme } from "@/contants/theme";
@@ -243,18 +244,11 @@ export default function NotificationsScreen() {
   // Giao diện khi chưa đăng nhập
   if (!isAuthenticated) {
     return (
-      <ScreenContainer scrollable={false} className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between pb-3 pt-2">
-          <Pressable
-            onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-full bg-surface shadow-sm active:opacity-70"
-          >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.onSurface} />
-          </Pressable>
-          <Text className="text-lg font-bold text-text">Thông báo</Text>
-          <View className="w-10" />
-        </View>
-
+      <ScreenContainer
+        scrollable={false}
+        className="flex-1 bg-background"
+        header={<Header title="Thông báo" />}
+      >
         <View className="flex-1 items-center justify-center px-6">
           <View className="mb-4 h-20 w-20 items-center justify-center rounded-3xl bg-danger/10 border border-danger/20">
             <Ionicons name="lock-closed-outline" size={36} color={theme.colors.danger} />
@@ -279,50 +273,44 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <ScreenContainer scrollable={false} className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center justify-between pb-3 pt-2">
-        <View className="flex-row items-center flex-1">
-          <Pressable
-            onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-full bg-surface shadow-sm active:opacity-70"
-          >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.onSurface} />
-          </Pressable>
-          <View className="ml-3">
-            <Text className="text-lg font-bold text-text">Thông báo</Text>
-            <Text className="text-xs text-text-muted">
-              {unreadCount > 0
-                ? `${unreadCount} thông báo chưa đọc`
-                : "Tất cả đã được đọc"}
-            </Text>
-          </View>
-        </View>
+    <ScreenContainer
+      scrollable={false}
+      className="flex-1 bg-background"
+      header={
+        <Header
+          title="Thông báo"
+          subtitle={
+            unreadCount > 0
+              ? `${unreadCount} thông báo chưa đọc`
+              : "Tất cả đã được đọc"
+          }
+          right={
+            <View className="flex-row items-center space-x-1 gap-1.5">
+              {unreadCount > 0 && (
+                <Pressable
+                  onPress={confirmMarkAllRead}
+                  className="h-9 px-3 flex-row items-center justify-center rounded-full bg-white/20 border border-white/30 active:opacity-70"
+                >
+                  <Ionicons name="checkmark-done" size={16} color="#ffffff" />
+                  <Text className="ml-1 text-xs font-semibold text-white">
+                    Đọc hết
+                  </Text>
+                </Pressable>
+              )}
 
-        {/* Nút thao tác nhanh trên Header: Đọc tất cả & Xóa tất cả */}
-        <View className="flex-row items-center space-x-1 gap-1">
-          {unreadCount > 0 && (
-            <Pressable
-              onPress={confirmMarkAllRead}
-              className="h-9 px-3 flex-row items-center justify-center rounded-full bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 active:opacity-70"
-            >
-              <Ionicons name="checkmark-done" size={16} color="#0284c7" />
-              <Text className="ml-1 text-xs font-semibold text-sky-600 dark:text-sky-400">
-                Đọc hết
-              </Text>
-            </Pressable>
-          )}
-
-          {notifications.length > 0 && (
-            <Pressable
-              onPress={confirmDeleteAll}
-              className="h-9 w-9 items-center justify-center rounded-full bg-surface shadow-sm active:opacity-70"
-            >
-              <Ionicons name="trash-outline" size={18} color="#ef4444" />
-            </Pressable>
-          )}
-        </View>
-      </View>
+              {notifications.length > 0 && (
+                <Pressable
+                  onPress={confirmDeleteAll}
+                  className="h-9 w-9 items-center justify-center rounded-full bg-white/20 border border-white/30 active:opacity-70"
+                >
+                  <Ionicons name="trash-outline" size={18} color="#ffffff" />
+                </Pressable>
+              )}
+            </View>
+          }
+        />
+      }
+    >
 
       {/* Danh sách thông báo */}
       {isLoading ? (

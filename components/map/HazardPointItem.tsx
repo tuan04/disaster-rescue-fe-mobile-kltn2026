@@ -29,14 +29,13 @@ export default function HazardPointItem({
   return (
     <Pressable
       onPress={() => onPress(item.id)}
-      className={`mb-3.5 rounded-2xl bg-surface p-4 border ${isActive ? "border-warning/30 shadow-sm" : "border-outline/15 shadow-sm"
-        } active:opacity-85 ${className}`}
+      className={`mb-3.5 rounded-2xl bg-surface p-4 shadow-sm active:opacity-85 ${className}`}
     >
       {/* Header: Hazard Icon + Title + Status Badge */}
       <View className="flex-row items-start justify-between">
         <View className="flex-row items-center flex-1 mr-2">
           {/* Icon Badge */}
-          <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-warning/10 border border-warning/25">
+          <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-warning/10">
             {iconDetails?.iconUrl ? (
               <Image
                 source={iconDetails.iconUrl}
@@ -82,9 +81,9 @@ export default function HazardPointItem({
 
         {/* Status Badge */}
         <View
-          className={`rounded-full px-2.5 py-1 border ${isActive
-            ? "bg-danger/10 border-danger/30"
-            : "bg-success/10 border-success/30"
+          className={`rounded-full px-2.5 py-1 ${isActive
+            ? "bg-danger/10"
+            : "bg-success/10"
             }`}
         >
           <Text
@@ -97,7 +96,7 @@ export default function HazardPointItem({
       </View>
 
       {/* Safety Notice Strip */}
-      <View className="mt-3 flex-row items-center rounded-xl bg-warning/5 px-3 py-2 border border-warning/15">
+      <View className="mt-3 flex-row items-center rounded-xl bg-warning/10 px-3 py-2">
         <Ionicons
           name="information-circle-outline"
           size={14}
@@ -114,7 +113,7 @@ export default function HazardPointItem({
       </View>
 
       {/* Bottom Footer */}
-      <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
+      <View className="mt-3 flex-row items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3">
         <View className="flex-row items-center flex-1 mr-2">
           <View
             className={`h-2 w-2 rounded-full mr-1.5 ${isActive ? "bg-warning" : "bg-success"

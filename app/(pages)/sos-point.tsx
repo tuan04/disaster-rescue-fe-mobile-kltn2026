@@ -1,4 +1,6 @@
+import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
+import SearchBar from "@/components/common/SearchBar";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import SosPointItem from "@/components/map/SosPointItem";
 import { calculateDistanceKm } from "@/helpers/route";
@@ -31,6 +33,7 @@ export default function SosPointScreen() {
 
   const [statusFilter, setStatusFilter] = useState<RequestStatus | "ALL">("ALL");
   const [levelFilter, setLevelFilter] = useState<EmergencyLevel | "ALL">("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (params.pointId) {
@@ -71,6 +74,16 @@ export default function SosPointScreen() {
         if (statusFilter !== "ALL" && pt.status !== statusFilter) return false;
         // Emergency Level filter
         if (levelFilter !== "ALL" && pt.priority !== levelFilter) return false;
+        // Search query
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const subType = pt.subType?.toLowerCase() || "";
+          const priority = pt.priority?.toLowerCase() || "";
+          const status = pt.status?.toLowerCase() || "";
+          if (!subType.includes(q) && !priority.includes(q) && !status.includes(q)) {
+            return false;
+          }
+        }
         return true;
       })
       .sort((a, b) => {
@@ -82,7 +95,7 @@ export default function SosPointScreen() {
         }
         return 0;
       });
-  }, [mapPoints, coords, statusFilter, levelFilter]);
+  }, [mapPoints, coords, statusFilter, levelFilter, searchQuery]);
 
   const handleOpenDetail = (id: string) => {
     setSelectedPointId(id);
@@ -90,36 +103,34 @@ export default function SosPointScreen() {
   };
 
   return (
-    <ScreenContainer scrollable={false} className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center justify-between pb-3 pt-2">
-        <View className="flex-row items-center flex-1">
-          <Pressable
-            onPress={() => router.back()}
-            className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-surface border border-outline/20 active:opacity-70"
-          >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.onSurface} />
-          </Pressable>
-          <View className="flex-1">
-            <Text className="text-xl font-bold text-text">
-              Điểm cần cứu trợ
-            </Text>
-            <Text className="text-xs text-text-muted">
-              {sosPoints.length} điểm cứu hộ đang yêu cầu
-            </Text>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={() => router.push("/(app)/map")}
-          className="flex-row items-center rounded-xl bg-danger/10 px-3 py-2 border border-danger/30 active:opacity-70"
-        >
-          <Ionicons name="map-outline" size={18} color={theme.colors.danger} />
-          <Text className="ml-1.5 text-xs font-semibold text-danger">
-            Bản đồ
-          </Text>
-        </Pressable>
-      </View>
+    <ScreenContainer
+      scrollable={false}
+      className="flex-1 bg-background"
+      header={
+        <Header
+          title="Điểm cần cứu trợ"
+          subtitle={`${sosPoints.length} điểm cứu hộ đang yêu cầu`}
+          right={
+            <Pressable
+              onPress={() => router.push("/(app)/map")}
+              className="flex-row items-center rounded-xl bg-white/20 px-3 py-2 border border-white/30 active:opacity-70"
+            >
+              <Ionicons name="map-outline" size={18} color="#ffffff" />
+              <Text className="ml-1.5 text-xs font-semibold text-white">
+                Bản đồ
+              </Text>
+            </Pressable>
+          }
+        />
+      }
+    >
+      {/* Search Input */}
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Tìm kiếm ca cứu hộ, số điện thoại, mô tả..."
+        className="mb-3"
+      />
 
       {/* Filter Tabs */}
       <View className="mb-3 flex-row space-x-2 gap-2">
@@ -128,16 +139,18 @@ export default function SosPointScreen() {
             setStatusFilter("ALL");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "ALL" && levelFilter === "ALL"
-            ? "bg-danger border-danger"
-            : "bg-surface border-outline/20"
-            }`}
+          className={`rounded-full px-3.5 py-1.5 ${
+            statusFilter === "ALL" && levelFilter === "ALL"
+              ? "bg-danger"
+              : "bg-surface shadow-xs"
+          }`}
         >
           <Text
-            className={`text-xs font-medium ${statusFilter === "ALL" && levelFilter === "ALL"
-              ? "text-white"
-              : "text-text-muted"
-              }`}
+            className={`text-xs font-medium ${
+              statusFilter === "ALL" && levelFilter === "ALL"
+                ? "text-white font-semibold"
+                : "text-text-muted"
+            }`}
           >
             Tất cả
           </Text>
@@ -148,14 +161,16 @@ export default function SosPointScreen() {
             setStatusFilter("PENDING");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "PENDING"
-            ? "bg-warning border-warning"
-            : "bg-surface border-outline/20"
-            }`}
+          className={`rounded-full px-3.5 py-1.5 ${
+            statusFilter === "PENDING"
+              ? "bg-warning"
+              : "bg-surface shadow-xs"
+          }`}
         >
           <Text
-            className={`text-xs font-medium ${statusFilter === "PENDING" ? "text-white" : "text-text-muted"
-              }`}
+            className={`text-xs font-medium ${
+              statusFilter === "PENDING" ? "text-white font-semibold" : "text-text-muted"
+            }`}
           >
             Đang chờ
           </Text>
@@ -166,14 +181,16 @@ export default function SosPointScreen() {
             setLevelFilter("HIGH");
             setStatusFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${levelFilter === "HIGH"
-            ? "bg-danger border-danger"
-            : "bg-surface border-outline/20"
-            }`}
+          className={`rounded-full px-3.5 py-1.5 ${
+            levelFilter === "HIGH"
+              ? "bg-danger"
+              : "bg-surface shadow-xs"
+          }`}
         >
           <Text
-            className={`text-xs font-medium ${levelFilter === "HIGH" ? "text-white" : "text-text-muted"
-              }`}
+            className={`text-xs font-medium ${
+              levelFilter === "HIGH" ? "text-white font-semibold" : "text-text-muted"
+            }`}
           >
             Khẩn cấp cao
           </Text>
@@ -184,14 +201,16 @@ export default function SosPointScreen() {
             setStatusFilter("ACCEPTED");
             setLevelFilter("ALL");
           }}
-          className={`rounded-full px-3.5 py-1.5 border ${statusFilter === "ACCEPTED"
-            ? "bg-secondary border-secondary"
-            : "bg-surface border-outline/20"
-            }`}
+          className={`rounded-full px-3.5 py-1.5 ${
+            statusFilter === "ACCEPTED"
+              ? "bg-secondary"
+              : "bg-surface shadow-xs"
+          }`}
         >
           <Text
-            className={`text-xs font-medium ${statusFilter === "ACCEPTED" ? "text-white" : "text-text-muted"
-              }`}
+            className={`text-xs font-medium ${
+              statusFilter === "ACCEPTED" ? "text-white font-semibold" : "text-text-muted"
+            }`}
           >
             Đã tiếp nhận
           </Text>
@@ -224,7 +243,7 @@ export default function SosPointScreen() {
           }
           contentContainerStyle={{ paddingBottom: 24 }}
           ListEmptyComponent={
-            <View className="items-center justify-center rounded-2xl bg-surface p-8 border border-outline/20 mt-6">
+            <View className="items-center justify-center rounded-2xl bg-surface p-8 shadow-xs mt-6">
               <View className="h-16 w-16 items-center justify-center rounded-full bg-danger/10 mb-3">
                 <Ionicons
                   name="checkmark-done-circle-outline"
