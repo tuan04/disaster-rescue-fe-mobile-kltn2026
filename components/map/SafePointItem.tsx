@@ -1,7 +1,7 @@
 import { safePointTypeLabel } from "@/contants/mapPointLables";
 import { getSafePointIconDetails } from "@/contants/mapPointMeta";
 import { useAppTheme } from "@/contants/theme";
-import { formatDistance } from "@/helper/distance";
+import { formatDistance } from "@/helpers/route";
 import type { SafePointType, SafeZoneMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -96,16 +96,14 @@ export default function SafePointItem({
 
         {/* Operating Status Badge */}
         <View
-          className={`rounded-full px-2.5 py-1 border ${
-            isActive
-              ? "bg-success/10 border-success/30"
-              : "bg-surfaceVariant border-outline/20"
-          }`}
+          className={`rounded-full px-2.5 py-1 border ${isActive
+            ? "bg-success/10 border-success/30"
+            : "bg-surfaceVariant border-outline/20"
+            }`}
         >
           <Text
-            className={`text-[10px] font-bold ${
-              isActive ? "text-success" : "text-text-muted"
-            }`}
+            className={`text-[10px] font-bold ${isActive ? "text-success" : "text-text-muted"
+              }`}
           >
             {isActive ? "Đang tiếp nhận" : "Tạm ngưng"}
           </Text>
@@ -126,9 +124,8 @@ export default function SafePointItem({
       <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
         <View className="flex-row items-center flex-1 mr-2">
           <View
-            className={`h-2 w-2 rounded-full mr-1.5 ${
-              isActive ? "bg-success" : "bg-textMuted"
-            }`}
+            className={`h-2 w-2 rounded-full mr-1.5 ${isActive ? "bg-success" : "bg-textMuted"
+              }`}
           />
           <Text
             className="text-xs text-text-muted font-medium"

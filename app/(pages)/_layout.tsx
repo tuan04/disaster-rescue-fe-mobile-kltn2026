@@ -8,11 +8,8 @@ export default function PagesLayout() {
       <Stack.Screen name="hazard-point" />
       <Stack.Screen name="safe-point" />
       <Stack.Screen name="warehouse-point" />
-<<<<<<< HEAD
       <Stack.Screen name="mission-navigation" />
-=======
       <Stack.Screen name="notifications" />
->>>>>>> main
     </Stack>
   );
 }

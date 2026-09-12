@@ -1,7 +1,7 @@
 import { hazardTypeLabel } from "@/contants/mapPointLables";
 import { getHazardIconDetails } from "@/contants/mapPointMeta";
 import { useAppTheme } from "@/contants/theme";
-import { formatDistance } from "@/helper/distance";
+import { formatDistance } from "@/helpers/route";
 import type { HazardMapPointRes, HazardType } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -29,9 +29,8 @@ export default function HazardPointItem({
   return (
     <Pressable
       onPress={() => onPress(item.id)}
-      className={`mb-3.5 rounded-2xl bg-surface p-4 border ${
-        isActive ? "border-warning/30 shadow-sm" : "border-outline/15 shadow-sm"
-      } active:opacity-85 ${className}`}
+      className={`mb-3.5 rounded-2xl bg-surface p-4 border ${isActive ? "border-warning/30 shadow-sm" : "border-outline/15 shadow-sm"
+        } active:opacity-85 ${className}`}
     >
       {/* Header: Hazard Icon + Title + Status Badge */}
       <View className="flex-row items-start justify-between">
@@ -83,16 +82,14 @@ export default function HazardPointItem({
 
         {/* Status Badge */}
         <View
-          className={`rounded-full px-2.5 py-1 border ${
-            isActive
-              ? "bg-danger/10 border-danger/30"
-              : "bg-success/10 border-success/30"
-          }`}
+          className={`rounded-full px-2.5 py-1 border ${isActive
+            ? "bg-danger/10 border-danger/30"
+            : "bg-success/10 border-success/30"
+            }`}
         >
           <Text
-            className={`text-[10px] font-bold ${
-              isActive ? "text-danger" : "text-success"
-            }`}
+            className={`text-[10px] font-bold ${isActive ? "text-danger" : "text-success"
+              }`}
           >
             {isActive ? "Đang diễn ra" : "Đã an toàn"}
           </Text>
@@ -120,9 +117,8 @@ export default function HazardPointItem({
       <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
         <View className="flex-row items-center flex-1 mr-2">
           <View
-            className={`h-2 w-2 rounded-full mr-1.5 ${
-              isActive ? "bg-warning" : "bg-success"
-            }`}
+            className={`h-2 w-2 rounded-full mr-1.5 ${isActive ? "bg-warning" : "bg-success"
+              }`}
           />
           <Text
             className="text-xs text-text-muted font-medium"

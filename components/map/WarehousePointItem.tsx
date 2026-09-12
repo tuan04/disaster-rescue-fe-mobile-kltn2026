@@ -1,6 +1,6 @@
 import { getWarehouseIconDetails } from "@/contants/mapPointMeta";
 import { useAppTheme } from "@/contants/theme";
-import { formatDistance } from "@/helper/distance";
+import { formatDistance } from "@/helpers/route";
 import type { WarehouseMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -78,16 +78,14 @@ export default function WarehousePointItem({
 
         {/* Operational Status Badge */}
         <View
-          className={`rounded-full px-2.5 py-1 border ${
-            isActive
-              ? "bg-secondary/10 border-secondary/30"
-              : "bg-surfaceVariant border-outline/20"
-          }`}
+          className={`rounded-full px-2.5 py-1 border ${isActive
+            ? "bg-secondary/10 border-secondary/30"
+            : "bg-surfaceVariant border-outline/20"
+            }`}
         >
           <Text
-            className={`text-[10px] font-bold ${
-              isActive ? "text-secondary" : "text-text-muted"
-            }`}
+            className={`text-[10px] font-bold ${isActive ? "text-secondary" : "text-text-muted"
+              }`}
           >
             {isActive ? "Đang mở cửa" : "Tạm đóng"}
           </Text>
@@ -113,9 +111,8 @@ export default function WarehousePointItem({
       <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
         <View className="flex-row items-center flex-1 mr-2">
           <View
-            className={`h-2 w-2 rounded-full mr-1.5 ${
-              isActive ? "bg-secondary" : "bg-textMuted"
-            }`}
+            className={`h-2 w-2 rounded-full mr-1.5 ${isActive ? "bg-secondary" : "bg-textMuted"
+              }`}
           />
           <Text
             className="text-xs text-text-muted font-medium"

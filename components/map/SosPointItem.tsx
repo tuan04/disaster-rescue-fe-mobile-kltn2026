@@ -1,7 +1,7 @@
 import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
 import { rescueStatusLabel } from "@/contants/mapPointLables";
 import { useAppTheme } from "@/contants/theme";
-import { formatDistance } from "@/helper/distance";
+import { formatDistance } from "@/helpers/route";
 import type { EmergencyLevel, RequestStatus, SosMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -59,22 +59,20 @@ export default function SosPointItem({
   return (
     <Pressable
       onPress={() => onPress(item.id)}
-      className={`mb-3.5 rounded-2xl bg-surface p-4 border ${
-        isHighPriority
-          ? "border-danger/30 shadow-sm"
-          : "border-outline/15 shadow-sm"
-      } active:opacity-85 ${className}`}
+      className={`mb-3.5 rounded-2xl bg-surface p-4 border ${isHighPriority
+        ? "border-danger/30 shadow-sm"
+        : "border-outline/15 shadow-sm"
+        } active:opacity-85 ${className}`}
     >
       {/* Header: Emergency Icon + Title + Priority Badge */}
       <View className="flex-row items-start justify-between">
         <View className="flex-row items-center flex-1 mr-2">
           {/* Icon Badge */}
           <View
-            className={`mr-3 h-12 w-12 items-center justify-center rounded-2xl border ${
-              isHighPriority
-                ? "bg-danger/10 border-danger/25"
-                : "bg-danger/5 border-danger/15"
-            }`}
+            className={`mr-3 h-12 w-12 items-center justify-center rounded-2xl border ${isHighPriority
+              ? "bg-danger/10 border-danger/25"
+              : "bg-danger/5 border-danger/15"
+              }`}
           >
             <Ionicons
               name={isHighPriority ? "alert-circle" : "help-buoy"}
