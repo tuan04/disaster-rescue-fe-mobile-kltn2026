@@ -1,3 +1,5 @@
+import SearchBar from "@/components/common/SearchBar";
+import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { calculateDistanceKm } from "@/helpers/route";
@@ -17,7 +19,6 @@ import {
   Pressable,
   RefreshControl,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
@@ -92,53 +93,35 @@ export default function WarehousePointScreen() {
   };
 
   return (
-    <ScreenContainer scrollable={false} className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center justify-between pb-3 pt-2">
-        <View className="flex-row items-center flex-1">
-          <Pressable
-            onPress={() => router.back()}
-            className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-surface border border-outline/20 active:opacity-70"
-          >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.onSurface} />
-          </Pressable>
-          <View className="flex-1">
-            <Text className="text-xl font-bold text-text">
-              Kho & Điểm cứu trợ
-            </Text>
-            <Text className="text-xs text-text-muted">
-              {warehousePoints.length} điểm tập kết nhu yếu phẩm & vật tư
-            </Text>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={() => router.push("/(app)/map")}
-          className="flex-row items-center rounded-xl bg-secondary/10 px-3 py-2 border border-secondary/30 active:opacity-70"
-        >
-          <Ionicons name="map-outline" size={18} color={theme.colors.secondary} />
-          <Text className="ml-1.5 text-xs font-semibold text-secondary">
-            Bản đồ
-          </Text>
-        </Pressable>
-      </View>
+    <ScreenContainer
+      scrollable={false}
+      className="flex-1 bg-background"
+      header={
+        <Header
+          title="Kho & Điểm cứu trợ"
+          subtitle={`${warehousePoints.length} điểm tập kết nhu yếu phẩm & vật tư`}
+          right={
+            <Pressable
+              onPress={() => router.push("/(app)/map")}
+              className="flex-row items-center rounded-xl bg-white/20 px-3 py-2 border border-white/30 active:opacity-70"
+            >
+              <Ionicons name="map-outline" size={18} color="#ffffff" />
+              <Text className="ml-1.5 text-xs font-semibold text-white">
+                Bản đồ
+              </Text>
+            </Pressable>
+          }
+        />
+      }
+    >
 
       {/* Search Input */}
-      <View className="mb-3 flex-row items-center rounded-xl bg-surface px-3 py-2 border border-outline/20 shadow-sm">
-        <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
-        <TextInput
-          placeholder="Tìm kiếm kho cứu trợ, điểm tiếp tế..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          className="ml-2 flex-1 text-sm text-text"
-          placeholderTextColor={theme.colors.textMuted}
-        />
-        {searchQuery ? (
-          <Pressable onPress={() => setSearchQuery("")}>
-            <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
-          </Pressable>
-        ) : null}
-      </View>
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Tìm kiếm kho cứu trợ, điểm tiếp tế..."
+        className="mb-3"
+      />
 
       {/* List content */}
       {isLoading ? (
@@ -166,7 +149,7 @@ export default function WarehousePointScreen() {
           }
           contentContainerStyle={{ paddingBottom: 24 }}
           ListEmptyComponent={
-            <View className="items-center justify-center rounded-2xl bg-surface p-8 border border-outline/20 mt-6">
+            <View className="items-center justify-center rounded-2xl bg-surface p-8 shadow-xs mt-6">
               <View className="h-16 w-16 items-center justify-center rounded-full bg-secondary/10 mb-3">
                 <Ionicons name="cube-outline" size={36} color={theme.colors.secondary} />
               </View>

@@ -10,6 +10,7 @@ interface Props {
   style?: ViewStyle;
   isEdgeToEdge?: boolean;
   className?: string;
+  header?: React.ReactNode;
 }
 
 export default function ScreenContainer({
@@ -18,6 +19,7 @@ export default function ScreenContainer({
   style,
   isEdgeToEdge = false,
   className,
+  header,
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets(); // Lấy số đo tai thỏ
@@ -31,7 +33,7 @@ export default function ScreenContainer({
 
   // Nội dung bên trong: Chỉ chứa spacing lề chuẩn
   const paddingStyle = !isEdgeToEdge && {
-    paddingTop: Spacing.screenVertical,
+    paddingTop: header ? Spacing.sm : Spacing.screenVertical,
     paddingBottom: insets.bottom + Spacing.screenVertical,
     paddingHorizontal: Spacing.screenHorizontal,
   };
@@ -58,11 +60,13 @@ export default function ScreenContainer({
 
   return (
     <View style={containerStyle} className="flex-1">
+      {header}
       {scrollable ? (
         <ScrollView
           contentContainerStyle={scrollableContentStyle}
           className={className}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {renderChildren()}
         </ScrollView>

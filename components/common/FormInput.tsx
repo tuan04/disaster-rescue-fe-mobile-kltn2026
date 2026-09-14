@@ -47,6 +47,7 @@ function FormInput<TFieldValues extends FieldValues>({
             onChangeText={(text) =>
               onChange(formatValue ? formatValue(text) : text)
             }
+            dense={true}
             onBlur={onBlur}
             mode={mode}
             label={label}
