@@ -1,8 +1,26 @@
-export const INITIAL_SCHEMA_V1 = `
+export const INITIAL_SCHEMA = `
   -- Enable WAL mode for better concurrency performance
   PRAGMA journal_mode = 'wal';
 
-  -- 1. Bảng lưu cache các điểm cứu hộ / sự cố trên bản đồ (Offline Map Points Cache)
+  -- 1. Bảng lưu các yêu cầu cứu hộ của người dùng (Offline-First & Lịch sử)
+  CREATE TABLE IF NOT EXISTS my_sos_requests (
+    local_id TEXT PRIMARY KEY,
+    server_id TEXT,
+    reporter_phone TEXT NOT NULL,
+    content TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    address TEXT,
+    sync_status TEXT DEFAULT 'PENDING',    -- PENDING, SYNCING, SYNCED, FAILED
+    rescue_status TEXT DEFAULT 'WAITING',  -- WAITING, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED
+    retry_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at INTEGER NOT NULL,
+    synced_at INTEGER,
+    updated_at INTEGER NOT NULL
+  );
+
+  -- 2. Bảng lưu cache các điểm cứu hộ / sự cố trên bản đồ (Offline Map Points Cache)
   CREATE TABLE IF NOT EXISTS offline_map_points (
     id TEXT PRIMARY KEY,
     point_type TEXT NOT NULL,
@@ -12,19 +30,7 @@ export const INITIAL_SCHEMA_V1 = `
     description TEXT,
     emergency_level TEXT,
     status TEXT,
-    data_json TEXT, -- Toàn bộ object JSON chi tiết của điểm
-    updated_at INTEGER NOT NULL
-  );
-
-  -- 2. Bảng lưu hàng đợi đồng bộ khi Offline (Sync Queue / Outbox)
-  CREATE TABLE IF NOT EXISTS offline_sync_queue (
-    id TEXT PRIMARY KEY,
-    action_type TEXT NOT NULL, -- e.g. "CREATE_SOS", "ACCEPT_RESCUE", "UPDATE_STATUS"
-    payload_json TEXT NOT NULL, -- Dữ liệu request body dạng JSON
-    retry_count INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'PENDING', -- PENDING, PROCESSING, FAILED, COMPLETED
-    error_message TEXT,
-    created_at INTEGER NOT NULL,
+    data_json TEXT,
     updated_at INTEGER NOT NULL
   );
 
@@ -43,14 +49,18 @@ export const INITIAL_SCHEMA_V1 = `
     target_longitude REAL NOT NULL,
     address TEXT,
     reporter_phone TEXT,
-    route_json TEXT, -- Toàn bộ object JSON RouteResponse từ OSRM/Map service
+    route_json TEXT,
+    status TEXT DEFAULT 'IN_PROGRESS',
     started_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
 
   -- Indexes for fast query performance
+  CREATE INDEX IF NOT EXISTS idx_my_sos_sync_status ON my_sos_requests (sync_status);
+  CREATE INDEX IF NOT EXISTS idx_my_sos_created_at ON my_sos_requests (created_at);
   CREATE INDEX IF NOT EXISTS idx_map_points_type ON offline_map_points (point_type);
   CREATE INDEX IF NOT EXISTS idx_map_points_coords ON offline_map_points (latitude, longitude);
-  CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON offline_sync_queue (status);
   CREATE INDEX IF NOT EXISTS idx_active_mission_req ON active_rescue_mission (request_id);
 `;
+
+export const INITIAL_SCHEMA_V1 = INITIAL_SCHEMA;
