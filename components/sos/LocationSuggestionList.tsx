@@ -9,7 +9,7 @@ interface LocationSuggestionListProps {
   onSelectSuggestion: (suggestion: LocationIQSuggestion) => void;
 }
 
-export const LocationSuggestionList: React.FC<LocationSuggestionListProps> = ({
+export const LocationSuggestionList: React.FC<LocationSuggestionListProps> = React.memo(({
   suggestions,
   onSelectSuggestion,
 }) => {
@@ -40,11 +40,10 @@ export const LocationSuggestionList: React.FC<LocationSuggestionListProps> = ({
             <Pressable
               key={`${item.place_id || "sug"}-${index}`}
               onPress={() => onSelectSuggestion(item)}
-              className={`flex-row items-start p-3 active:bg-red-50 dark:active:bg-red-950/40 ${
-                index < suggestions.length - 1
-                  ? "border-b border-gray-100 dark:border-gray-700"
-                  : ""
-              }`}
+              className={`flex-row items-start p-3 active:bg-red-50 dark:active:bg-red-950/40 ${index < suggestions.length - 1
+                ? "border-b border-gray-100 dark:border-gray-700"
+                : ""
+                }`}
             >
               <Ionicons
                 name="location-sharp"
@@ -81,6 +80,6 @@ export const LocationSuggestionList: React.FC<LocationSuggestionListProps> = ({
       )}
     </View>
   );
-};
+});
 
 export default LocationSuggestionList;

@@ -5,8 +5,6 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import SearchBar from "@/components/common/SearchBar";
 import LocationSuggestionList from "@/components/sos/LocationSuggestionList";
 import ReliefSupplySelector from "@/components/sos/ReliefSupplySelector";
-import { useAppTheme } from "@/contants/theme";
-import { useLocation } from "@/hooks/useLocation";
 import {
   createSOSRequest,
   searchLocationIQAutocomplete,
@@ -17,7 +15,7 @@ import { sosRequestSchema } from "@/validations/sosValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -34,8 +32,7 @@ import { useSelector } from "react-redux";
 type LocationMode = "CURRENT_GPS" | "MANUAL_SEARCH";
 
 export default function SOSRequestScreen() {
-  const theme = useAppTheme();
-  const authUser = useSelector((state: RootState) => state.auth.user);
+  const userPhone = useSelector((state: RootState) => state.auth.user?.phone);
 
   const [locationMode, setLocationMode] = useState<LocationMode>("CURRENT_GPS");
   const [selectedSupplies, setSelectedSupplies] = useState<string[]>([]);
@@ -47,11 +44,17 @@ export default function SOSRequestScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedAddressName, setSelectedAddressName] = useState<string>("");
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const skipSearchRef = useRef(false);
 
-  // GPS Hook
-  const { coords: gpsCoords } = useLocation();
+  // Chỉ lấy coords từ Redux store kèm equalityFn để không bị re-render bởi heading/speed
+  const gpsCoords = useSelector(
+    (state: RootState) => state.location.coords,
+    (prev, next) =>
+      prev?.latitude === next?.latitude && prev?.longitude === next?.longitude,
+  );
 
-  // React Hook Form
+  // React Hook Form (chỉ validate khi submit/blur, không ép validate từng phím gõ)
   const {
     control,
     handleSubmit,
@@ -59,8 +62,10 @@ export default function SOSRequestScreen() {
     formState: { errors },
   } = useForm<SOSFormValues>({
     resolver: yupResolver(sosRequestSchema),
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
     defaultValues: {
-      reporterPhone: authUser?.phone || "",
+      reporterPhone: userPhone || "",
       content: "",
       latitude: gpsCoords?.latitude || 0,
       longitude: gpsCoords?.longitude || 0,
@@ -70,10 +75,10 @@ export default function SOSRequestScreen() {
 
   // Cập nhật SĐT nếu user đăng nhập
   useEffect(() => {
-    if (authUser?.phone) {
-      setValue("reporterPhone", authUser.phone, { shouldValidate: true });
+    if (userPhone) {
+      setValue("reporterPhone", userPhone);
     }
-  }, [authUser, setValue]);
+  }, [userPhone, setValue]);
 
   // Cập nhật tọa độ khi dùng chế độ GPS
   useEffect(() => {
@@ -82,64 +87,100 @@ export default function SOSRequestScreen() {
       gpsCoords?.latitude &&
       gpsCoords.latitude !== 0
     ) {
-      setValue("latitude", gpsCoords.latitude, { shouldValidate: true });
-      setValue("longitude", gpsCoords.longitude, { shouldValidate: true });
+      setValue("latitude", gpsCoords.latitude);
+      setValue("longitude", gpsCoords.longitude);
       setValue("locationAddress", "Vị trí GPS hiện tại của thiết bị");
     }
   }, [locationMode, gpsCoords?.latitude, gpsCoords?.longitude, setValue]);
 
-  // Debounce (400ms) gọi API LocationIQ Autocomplete khi gõ từ khóa
+  // Debounce (400ms) gọi API LocationIQ Autocomplete khi gõ từ khóa kèm AbortController
   useEffect(() => {
     if (locationMode !== "MANUAL_SEARCH") return;
+
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery || trimmedQuery.length < 2) {
       setSuggestions([]);
       setIsSearching(false);
       return;
     }
 
+    let isCurrent = true;
     setIsSearching(true);
+
     debounceTimerRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
-        const results = await searchLocationIQAutocomplete(searchQuery);
-        setSuggestions(results);
-      } catch (err) {
-        console.error("Lỗi tìm kiếm gợi ý địa chỉ:", err);
+        const results = await searchLocationIQAutocomplete(
+          trimmedQuery,
+          controller.signal,
+        );
+        if (isCurrent && !controller.signal.aborted) {
+          setSuggestions(results);
+        }
+      } catch (err: any) {
+        if (
+          isCurrent &&
+          !controller.signal.aborted &&
+          err?.name !== "CanceledError"
+        ) {
+          console.error("Lỗi tìm kiếm gợi ý địa chỉ:", err);
+        }
       } finally {
-        setIsSearching(false);
+        if (isCurrent && !controller.signal.aborted) {
+          setIsSearching(false);
+        }
       }
     }, 400);
 
     return () => {
+      isCurrent = false;
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [searchQuery, locationMode]);
 
-  const toggleSupply = (supply: string) => {
+  const toggleSupply = useCallback((supply: string) => {
     setSelectedSupplies((prev) =>
       prev.includes(supply)
         ? prev.filter((item) => item !== supply)
         : [...prev, supply],
     );
-  };
+  }, []);
+
+  const handleClearAllSupplies = useCallback(() => {
+    setSelectedSupplies([]);
+  }, []);
 
   // Xử lý khi chọn một địa chỉ gợi ý từ LocationIQ
-  const handleSelectSuggestion = (suggestion: LocationIQSuggestion) => {
+  const handleSelectSuggestion = useCallback((suggestion: LocationIQSuggestion) => {
     const lat = parseFloat(suggestion.lat);
     const lon = parseFloat(suggestion.lon);
 
     if (!isNaN(lat) && !isNaN(lon)) {
-      setValue("latitude", lat, { shouldValidate: true });
-      setValue("longitude", lon, { shouldValidate: true });
+      setValue("latitude", lat);
+      setValue("longitude", lon);
       setValue("locationAddress", suggestion.display_name);
       setSelectedAddressName(suggestion.display_name);
       setSuggestions([]);
+      skipSearchRef.current = true;
       setSearchQuery(suggestion.display_name);
     } else {
       Toast.show({
@@ -148,16 +189,13 @@ export default function SOSRequestScreen() {
         text2: "Không thể xác định tọa độ từ địa chỉ đã chọn.",
       });
     }
-  };
+  }, [setValue]);
 
   // Submit form gửi SOS
   const onSubmit = async (data: SOSFormValues) => {
-    if (
-      !data.latitude ||
-      !data.longitude ||
-      data.latitude === 0 ||
-      data.longitude === 0
-    ) {
+    if (isSubmitting) return;
+
+    if (!data.latitude || !data.longitude) {
       Toast.show({
         type: "warning",
         text1: "Chưa có vị trí",
@@ -168,21 +206,13 @@ export default function SOSRequestScreen() {
     }
 
     // Ghép đoạn văn nhu yếu phẩm nếu có chọn
+    const userDesc = (data.content || "").trim();
     const suppliesParagraph =
       selectedSupplies.length > 0
         ? `Nhu yếu phẩm cần hỗ trợ: ${selectedSupplies.join(", ")}.`
         : "";
 
-    const userDesc = (data.content || "").trim();
-    let finalContent = "";
-
-    if (userDesc && suppliesParagraph) {
-      finalContent = `${userDesc}\n\n${suppliesParagraph}`;
-    } else if (userDesc) {
-      finalContent = userDesc;
-    } else if (suppliesParagraph) {
-      finalContent = suppliesParagraph;
-    }
+    const finalContent = [userDesc, suppliesParagraph].filter(Boolean).join("\n\n");
 
     if (!finalContent) {
       Toast.show({
@@ -308,6 +338,9 @@ export default function SOSRequestScreen() {
                 onClear={() => {
                   setSearchQuery("");
                   setSuggestions([]);
+                  setSelectedAddressName("");
+                  setValue("latitude", 0);
+                  setValue("longitude", 0);
                 }}
                 placeholder="Nhập tên đường, phường/xã, quận/huyện..."
                 isLoading={isSearching}
@@ -318,23 +351,6 @@ export default function SOSRequestScreen() {
                 suggestions={suggestions}
                 onSelectSuggestion={handleSelectSuggestion}
               />
-
-              {/* Thông tin địa chỉ đã chọn */}
-              {selectedAddressName ? (
-                <View className="mt-2.5 flex-row items-center justify-between rounded-lg border border-green-200 bg-green-50 p-2.5 dark:border-green-900 dark:bg-green-950/30">
-                  <View className="mr-2 flex-1">
-                    <Text className="text-[11px] font-bold text-green-700 dark:text-green-300">
-                      Đã xác định tọa độ từ địa chỉ:
-                    </Text>
-                    <Text
-                      className="text-xs font-medium text-green-900 dark:text-green-200"
-                      numberOfLines={2}
-                    >
-                      {selectedAddressName}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
             </View>
           )}
 
@@ -346,28 +362,20 @@ export default function SOSRequestScreen() {
         </View>
 
         {/* 2. Số điện thoại người gửi */}
-        <View className="mb-2">
-          <FormInput
-            control={control}
-            name="reporterPhone"
-            label="Số điện thoại liên hệ *"
-            icon="phone"
-            keyboardType="phone-pad"
-            maxLength={10}
-            error={errors.reporterPhone?.message}
-          />
-          <Text className="mt-1 text-[11px] text-textMuted">
-            {authUser?.phone
-              ? ""
-              : "Vui lòng nhập SĐT để đội cứu trợ liên lạc."}
-          </Text>
-        </View>
-
+        <FormInput
+          control={control}
+          name="reporterPhone"
+          label="Số điện thoại liên hệ"
+          icon="phone"
+          keyboardType="phone-pad"
+          maxLength={10}
+          error={errors.reporterPhone?.message}
+        />
         {/* 3. Nhu yếu phẩm cần hỗ trợ (Checkbox chọn nhanh) */}
         <ReliefSupplySelector
           selectedSupplies={selectedSupplies}
           onToggleSupply={toggleSupply}
-          onClearAll={() => setSelectedSupplies([])}
+          onClearAll={handleClearAllSupplies}
         />
 
         {/* 4. Mô tả chi tiết tình trạng cần cứu hộ */}
@@ -431,7 +439,7 @@ export default function SOSRequestScreen() {
           />
           <Button
             title={
-              isSubmitting ? "Đang gửi cứu hộ..." : "GỬI CỨU HỘ KHẨN CẤP"
+              isSubmitting ? "Đang gửi ..." : "GỬI"
             }
             variant="danger"
             loading={isSubmitting}

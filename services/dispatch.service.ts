@@ -27,6 +27,7 @@ export const createSOSRequest = async (
  */
 export const searchLocationIQAutocomplete = async (
   query: string,
+  signal?: AbortSignal,
 ): Promise<LocationIQSuggestion[]> => {
   if (!query || query.trim().length < 2) {
     return [];
@@ -46,11 +47,15 @@ export const searchLocationIQAutocomplete = async (
         format: "json",
         limit: 10,
       },
+      signal,
       timeout: 8000,
     });
 
     return response.data || [];
   } catch (error) {
+    if (axios.isCancel(error) || (error as any)?.name === "CanceledError") {
+      return [];
+    }
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 404) {
         // LocationIQ trả về 404 khi không tìm thấy kết quả phù hợp
