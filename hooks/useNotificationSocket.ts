@@ -114,6 +114,8 @@ export function useNotificationSocket() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     };
 
+
+
     const setupConnection = async () => {
       try {
         // Lấy token JWT lưu trữ an toàn trong SecureStore
@@ -124,11 +126,11 @@ export function useNotificationSocket() {
 
         // 2. Đăng ký lắng nghe kênh thông báo riêng của User: /topic/notifications/{userId}
         unsubscribeUserTopic = websocketService.subscribeToUserNotifications(
-          user.id,
+          user.teamId || "",
           (message) =>
             handleIncomingNotification(
               message,
-              `/topic/notifications/${user.id}`,
+              `/topic/notifications/${user.teamId}`,
             ),
         );
 
