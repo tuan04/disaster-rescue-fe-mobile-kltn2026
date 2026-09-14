@@ -7,10 +7,12 @@ export type SOSRescueStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED";
+export type SOSRequestType = "SELF" | "OTHER";
 
 export interface MySOSRequestEntity {
   local_id: string;
   server_id: string | null;
+  request_type: SOSRequestType;
   reporter_phone: string;
   content: string;
   latitude: number;
@@ -26,6 +28,7 @@ export interface MySOSRequestEntity {
 }
 
 export interface CreateSOSInput {
+  requestType?: SOSRequestType;
   reporterPhone: string;
   content: string;
   latitude: number;
@@ -54,19 +57,21 @@ export async function createSOSRequest(
   const db = await getDatabaseAsync();
   const now = Date.now();
   const localId = `sos_${now}_${Math.random().toString(36).substring(2, 9)}`;
+  const requestType = input.requestType || "SELF";
   const syncStatus = input.syncStatus || "PENDING";
   const rescueStatus = input.rescueStatus || "WAITING";
 
   await db.runAsync(
     `INSERT INTO my_sos_requests (
-      local_id, server_id, reporter_phone, content,
+      local_id, server_id, request_type, reporter_phone, content,
       latitude, longitude, address, sync_status,
       rescue_status, retry_count, error_message,
       created_at, synced_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       localId,
       input.serverId || null,
+      requestType,
       input.reporterPhone.trim(),
       input.content.trim(),
       input.latitude,
@@ -85,6 +90,7 @@ export async function createSOSRequest(
   return {
     local_id: localId,
     server_id: input.serverId || null,
+    request_type: requestType,
     reporter_phone: input.reporterPhone.trim(),
     content: input.content.trim(),
     latitude: input.latitude,
@@ -231,17 +237,38 @@ export async function updateSOSContent(
 }
 
 /**
- * Lấy yêu cầu cứu hộ gần nhất đang còn hiệu lực (chưa hoàn thành hoặc chưa hủy)
- * Dùng để kiểm tra xem người dân đã có ca nào đang mở để cho phép Cập nhật thay vì tạo mới
+ * Lấy yêu cầu cứu hộ gần nhất đang còn hiệu lực (chưa hoàn thành hoặc chưa hủy) theo loại yêu cầu
+ * Mặc định lọc theo request_type = 'SELF' (ca của chính mình) để không bị nhầm với ca gửi hộ người khác
  */
-export async function getLatestActiveSOSRequest(): Promise<MySOSRequestEntity | null> {
+export async function getLatestActiveSOSRequest(
+  requestType: SOSRequestType = "SELF",
+): Promise<MySOSRequestEntity | null> {
   const db = await getDatabaseAsync();
   return await db.getFirstAsync<MySOSRequestEntity>(
     `SELECT * FROM my_sos_requests 
-     WHERE rescue_status IN ('WAITING', 'ASSIGNED', 'IN_PROGRESS')
+     WHERE request_type = ? 
+       AND rescue_status IN ('WAITING', 'ASSIGNED', 'IN_PROGRESS')
      ORDER BY created_at DESC 
      LIMIT 1`,
+    [requestType],
   );
+}
+
+/**
+ * Kiểm tra xem người dùng có ca cứu hộ cho bản thân ('SELF') đang chờ gửi hoặc đang chờ cứu hộ hay không
+ */
+export async function hasPendingSelfSOSRequest(): Promise<boolean> {
+  const db = await getDatabaseAsync();
+  const row = await db.getFirstAsync<{ found: number }>(
+    `SELECT 1 AS found FROM my_sos_requests 
+     WHERE request_type = 'SELF' 
+       AND (
+         sync_status IN ('PENDING', 'SYNCING') 
+         OR rescue_status IN ('WAITING', 'ASSIGNED', 'IN_PROGRESS')
+       )
+     LIMIT 1`,
+  );
+  return row !== null;
 }
 
 /**

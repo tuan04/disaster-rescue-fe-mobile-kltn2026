@@ -6,7 +6,13 @@ import SearchBar from "@/components/common/SearchBar";
 import LocationSuggestionList from "@/components/sos/LocationSuggestionList";
 import ReliefSupplySelector from "@/components/sos/ReliefSupplySelector";
 import {
-  createSOSRequest,
+  createSOSRequest as createLocalSOSRequest,
+  hasPendingSelfSOSRequest,
+  markSOSRequestFailed,
+  markSOSRequestSynced,
+} from "@/database/sos-request.repository";
+import {
+  createSOSRequest as createSOSRequestApi,
   searchLocationIQAutocomplete,
 } from "@/services/dispatch.service";
 import type { RootState } from "@/store";
@@ -14,11 +20,11 @@ import type { LocationIQSuggestion, SOSFormValues } from "@/types/sos";
 import { sosRequestSchema } from "@/validations/sosValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { checkIsOnline } from "@/services/network.service";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -37,22 +43,35 @@ export default function SOSRequestScreen() {
   const [locationMode, setLocationMode] = useState<LocationMode>("CURRENT_GPS");
   const [selectedSupplies, setSelectedSupplies] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasPendingSelf, setHasPendingSelf] = useState(false);
 
   // Search Address LocationIQ states
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<LocationIQSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedAddressName, setSelectedAddressName] = useState<string>("");
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const skipSearchRef = useRef(false);
 
-  // Chỉ lấy coords từ Redux store kèm equalityFn để không bị re-render bởi heading/speed
-  const gpsCoords = useSelector(
-    (state: RootState) => state.location.coords,
-    (prev, next) =>
-      prev?.latitude === next?.latitude && prev?.longitude === next?.longitude,
-  );
+  // Chỉ lấy coords từ Redux store
+  const gpsCoords = useSelector((state: RootState) => state.location.coords);
+
+  const handleBack = useCallback(() => {
+    router.back();
+  }, []);
+
+  // Kiểm tra xem đã có ca cứu hộ cho bản thân đang chờ xử lý hay chưa (chạy 1 lần khi mount)
+  useEffect(() => {
+    const checkPendingSelf = async () => {
+      try {
+        const hasPending = await hasPendingSelfSOSRequest();
+        setHasPendingSelf(hasPending);
+      } catch (err) {
+        console.error("Lỗi kiểm tra yêu cầu cứu hộ tự thân:", err);
+      }
+    };
+    checkPendingSelf();
+  }, []);
 
   // React Hook Form (chỉ validate khi submit/blur, không ép validate từng phím gõ)
   const {
@@ -178,7 +197,6 @@ export default function SOSRequestScreen() {
       setValue("latitude", lat);
       setValue("longitude", lon);
       setValue("locationAddress", suggestion.display_name);
-      setSelectedAddressName(suggestion.display_name);
       setSuggestions([]);
       skipSearchRef.current = true;
       setSearchQuery(suggestion.display_name);
@@ -192,68 +210,123 @@ export default function SOSRequestScreen() {
   }, [setValue]);
 
   // Submit form gửi SOS
-  const onSubmit = async (data: SOSFormValues) => {
-    if (isSubmitting) return;
+  const onSubmit = useCallback(
+    async (data: SOSFormValues) => {
+      if (isSubmitting) return;
 
-    if (!data.latitude || !data.longitude) {
-      Toast.show({
-        type: "warning",
-        text1: "Chưa có vị trí",
-        text2:
-          "Vui lòng xác định vị trí của bạn qua GPS hoặc tìm kiếm địa chỉ hỗ trợ.",
-      });
-      return;
-    }
-
-    // Ghép đoạn văn nhu yếu phẩm nếu có chọn
-    const userDesc = (data.content || "").trim();
-    const suppliesParagraph =
-      selectedSupplies.length > 0
-        ? `Nhu yếu phẩm cần hỗ trợ: ${selectedSupplies.join(", ")}.`
-        : "";
-
-    const finalContent = [userDesc, suppliesParagraph].filter(Boolean).join("\n\n");
-
-    if (!finalContent) {
-      Toast.show({
-        type: "warning",
-        text1: "Chưa có nội dung",
-        text2: "Vui lòng nhập mô tả tình trạng hoặc chọn nhu yếu phẩm cần hỗ trợ.",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const response = await createSOSRequest({
-        reporterPhone: data.reporterPhone.trim(),
-        content: finalContent,
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude),
-      });
-
-      if (response && (response.success || (response as any).id)) {
+      if (!data.latitude || !data.longitude) {
         Toast.show({
-          type: "success",
-          text1: "Gửi cứu hộ thành công!",
-          text2: "Yêu cầu khẩn cấp của bạn đã được chuyển tới Đội cứu hộ.",
+          type: "warning",
+          text1: "Chưa có vị trí",
+          text2:
+            "Vui lòng xác định vị trí của bạn qua GPS hoặc tìm kiếm địa chỉ hỗ trợ.",
+        });
+        return;
+      }
+
+      // Ghép đoạn văn nhu yếu phẩm nếu có chọn
+      const userDesc = (data.content || "").trim();
+      const suppliesParagraph =
+        selectedSupplies.length > 0
+          ? `Nhu yếu phẩm cần hỗ trợ: ${selectedSupplies.join(", ")}.`
+          : "";
+
+      const finalContent = [userDesc, suppliesParagraph].filter(Boolean).join("\n\n");
+
+      if (!finalContent) {
+        Toast.show({
+          type: "warning",
+          text1: "Chưa có nội dung",
+          text2: "Vui lòng nhập mô tả tình trạng hoặc chọn nhu yếu phẩm cần hỗ trợ.",
+        });
+        return;
+      }
+
+      setIsSubmitting(true);
+      let localRecordId: string | null = null;
+
+      try {
+        // 1. Luôn lưu vào SQLite trước (Offline-First)
+        const localRecord = await createLocalSOSRequest({
+          requestType: locationMode === "CURRENT_GPS" ? "SELF" : "OTHER",
+          reporterPhone: data.reporterPhone.trim(),
+          content: finalContent,
+          latitude: Number(data.latitude),
+          longitude: Number(data.longitude),
+          address: data.locationAddress || undefined,
+        });
+        localRecordId = localRecord.local_id;
+
+        // 2. Kiểm tra trạng thái mạng
+        const isOnline = await checkIsOnline();
+
+        // Nếu đang Offline: Thông báo đã lưu vào máy an toàn và quay về
+        if (!isOnline) {
+          if (locationMode === "CURRENT_GPS") {
+            setHasPendingSelf(true);
+          }
+          Toast.show({
+            type: "info",
+            text1: "Đã lưu ngoại tuyến",
+            text2:
+              "Yêu cầu cứu hộ đã được lưu an toàn trên máy và sẽ tự động gửi khi có kết nối mạng.",
+            visibilityTime: 6000,
+          });
+          handleBack();
+          return;
+        }
+
+        // 3. Nếu Online: Gửi API lên Server
+        const response = await createSOSRequestApi({
+          reporterPhone: data.reporterPhone.trim(),
+          content: finalContent,
+          latitude: Number(data.latitude),
+          longitude: Number(data.longitude),
+        });
+
+        if (response && (response.success || (response as any).id)) {
+          const serverId = String(
+            (response as any).id || (response as any).data?.id || "synced",
+          );
+          await markSOSRequestSynced(localRecord.local_id, serverId);
+
+          if (locationMode === "CURRENT_GPS") {
+            setHasPendingSelf(true);
+          }
+
+          Toast.show({
+            type: "success",
+            text1: "Gửi cứu hộ thành công!",
+            text2: "Yêu cầu khẩn cấp của bạn đã được chuyển tới Đội cứu hộ.",
+            visibilityTime: 6000,
+          });
+          handleBack();
+        }
+      } catch (error: any) {
+        console.error("SOS Request Error:", error);
+        if (localRecordId) {
+          await markSOSRequestFailed(
+            localRecordId,
+            error?.message || "Lỗi kết nối máy chủ",
+          );
+        }
+        if (locationMode === "CURRENT_GPS") {
+          setHasPendingSelf(true);
+        }
+        Toast.show({
+          type: "info",
+          text1: "Đã lưu vào bộ nhớ máy",
+          text2:
+            "Không thể kết nối máy chủ lúc này. Yêu cầu đã được lưu và sẽ tự động gửi lại.",
           visibilityTime: 6000,
         });
-        router.back();
+        handleBack();
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error: any) {
-      console.error("SOS Request Error:", error);
-      Toast.show({
-        type: "error",
-        text1: "Gửi cứu hộ thất bại",
-        text2:
-          error?.message ||
-          "Đã có lỗi xảy ra khi kết nối. Vui lòng thử lại ngay.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [isSubmitting, selectedSupplies, locationMode, handleBack],
+  );
 
   return (
     <KeyboardAvoidingView
@@ -267,7 +340,7 @@ export default function SOSRequestScreen() {
             className="mb-2"
             title="Gửi cứu hộ khẩn cấp"
             subtitle="Thông tin sẽ được gửi lập tức đến đội cứu hộ gần nhất"
-            onBackPress={() => router.back()}
+            onBackPress={handleBack}
           />
         }
         style={{
@@ -329,6 +402,16 @@ export default function SOSRequestScreen() {
             </Pressable>
           </View>
 
+          {/* Thông báo nếu đã có ca cứu hộ cho bản thân đang chờ xử lý */}
+          {locationMode === "CURRENT_GPS" && hasPendingSelf && (
+            <View className="mt-2.5 flex-row items-center rounded-lg border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-900/60 dark:bg-amber-950/30">
+              <Ionicons name="time" size={16} color="#d97706" />
+              <Text className="ml-2 flex-1 text-xs font-medium text-amber-800 dark:text-amber-200">
+                Bạn đã có một yêu cầu cứu hộ cho bản thân đang chờ xử lý.
+              </Text>
+            </View>
+          )}
+
           {/* Tab 2: Manual LocationIQ Search */}
           {locationMode === "MANUAL_SEARCH" && (
             <View className="mt-4">
@@ -338,7 +421,6 @@ export default function SOSRequestScreen() {
                 onClear={() => {
                   setSearchQuery("");
                   setSuggestions([]);
-                  setSelectedAddressName("");
                   setValue("latitude", 0);
                   setValue("longitude", 0);
                 }}
@@ -434,14 +516,26 @@ export default function SOSRequestScreen() {
             title="Đóng"
             variant="outline"
             disabled={isSubmitting}
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={{ flex: 1 }}
           />
           <Button
             title={
-              isSubmitting ? "Đang gửi ..." : "GỬI"
+              isSubmitting
+                ? "Đang gửi ..."
+                : locationMode === "CURRENT_GPS" && hasPendingSelf
+                  ? "Đã gửi cứu hộ"
+                  : "GỬI"
             }
-            variant="danger"
+            variant={
+              locationMode === "CURRENT_GPS" && hasPendingSelf
+                ? "outline"
+                : "danger"
+            }
+            disabled={
+              isSubmitting ||
+              (locationMode === "CURRENT_GPS" && hasPendingSelf)
+            }
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
             style={{ flex: 2 }}
