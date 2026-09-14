@@ -109,11 +109,11 @@ export function useTeamLocationTracking({
   // 1. Kiểm tra khi tọa độ thay đổi xem đã đủ điều kiện gửi (khoảng cách >= 5m hoặc thời gian >= 10s)
   useEffect(() => {
     if (!shouldTrack || !isRealLocation || !coords) {
-      setIsTracking(false);
+      setIsTracking((prev) => (prev ? false : prev));
       return;
     }
 
-    setIsTracking(true);
+    setIsTracking((prev) => (!prev ? true : prev));
 
     const now = Date.now();
     const lastCoords = lastSentCoordsRef.current;
@@ -139,12 +139,12 @@ export function useTeamLocationTracking({
     }
 
     if (shouldSend) {
-      sendLocationToServer(coords, speed, heading);
+      sendLocationToServer(coords, speed, latestDataRef.current.heading);
     }
   }, [
-    coords,
+    coords?.latitude,
+    coords?.longitude,
     speed,
-    heading,
     isRealLocation,
     shouldTrack,
     distanceInterval,

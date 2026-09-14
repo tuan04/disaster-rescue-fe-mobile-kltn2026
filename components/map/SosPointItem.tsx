@@ -32,7 +32,7 @@ export default function SosPointItem({
   const getStatusBadge = () => {
     if (isPending) {
       return {
-        bg: "bg-warning/10 border-warning/30",
+        bg: "bg-warning/15",
         text: "text-warning",
         dot: "bg-warning",
         label: "Đang chờ cứu viện",
@@ -40,14 +40,14 @@ export default function SosPointItem({
     }
     if (isAccepted) {
       return {
-        bg: "bg-secondary/10 border-secondary/30",
+        bg: "bg-secondary/15",
         text: "text-secondary",
         dot: "bg-secondary",
         label: "Đội đang tiếp cận",
       };
     }
     return {
-      bg: "bg-success/10 border-success/30",
+      bg: "bg-success/15",
       text: "text-success",
       dot: "bg-success",
       label: "Đã an toàn",
@@ -59,19 +59,16 @@ export default function SosPointItem({
   return (
     <Pressable
       onPress={() => onPress(item.id)}
-      className={`mb-3.5 rounded-2xl bg-surface p-4 border ${isHighPriority
-        ? "border-danger/30 shadow-sm"
-        : "border-outline/15 shadow-sm"
-        } active:opacity-85 ${className}`}
+      className={`mb-3.5 rounded-2xl bg-surface p-4 shadow-sm active:opacity-85 ${className}`}
     >
       {/* Header: Emergency Icon + Title + Priority Badge */}
       <View className="flex-row items-start justify-between">
         <View className="flex-row items-center flex-1 mr-2">
           {/* Icon Badge */}
           <View
-            className={`mr-3 h-12 w-12 items-center justify-center rounded-2xl border ${isHighPriority
-              ? "bg-danger/10 border-danger/25"
-              : "bg-danger/5 border-danger/15"
+            className={`mr-3 h-12 w-12 items-center justify-center rounded-2xl ${isHighPriority
+              ? "bg-danger/15"
+              : "bg-danger/10"
               }`}
           >
             <Ionicons
@@ -120,7 +117,7 @@ export default function SosPointItem({
       {/* Info Tag Row */}
       <View className="mt-3 flex-row items-center gap-2">
         <View
-          className={`flex-row items-center rounded-full px-2.5 py-1 border ${statusConfig.bg}`}
+          className={`flex-row items-center rounded-full px-2.5 py-1 ${statusConfig.bg}`}
         >
           <View className={`h-1.5 w-1.5 rounded-full mr-1.5 ${statusConfig.dot}`} />
           <Text className={`text-[11px] font-bold ${statusConfig.text}`}>
@@ -128,7 +125,7 @@ export default function SosPointItem({
           </Text>
         </View>
 
-        <View className="rounded-full bg-surfaceVariant px-2.5 py-1 border border-outline/10">
+        <View className="rounded-full bg-surfaceVariant px-2.5 py-1">
           <Text className="text-[11px] font-medium text-text-muted">
             SOS Khẩn cấp
           </Text>
@@ -136,7 +133,7 @@ export default function SosPointItem({
       </View>
 
       {/* Bottom Footer */}
-      <View className="mt-3 flex-row items-center justify-between border-t border-outline/10 pt-3">
+      <View className="mt-3 flex-row items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3">
         <View className="flex-row items-center flex-1 mr-2">
           <Ionicons
             name="time-outline"

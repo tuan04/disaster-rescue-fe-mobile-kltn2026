@@ -46,6 +46,9 @@ export function useActiveMission({
 }: UseActiveMissionOptions = {}) {
   const queryClient = useQueryClient();
   const { coords, isRealLocation } = useLocation();
+  const locationRef = useRef({ coords, isRealLocation });
+  locationRef.current = { coords, isRealLocation };
+
   const profile = useSelector((state: RootState) => state.auth?.profile);
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth?.isAuthenticated,
@@ -109,18 +112,18 @@ export function useActiveMission({
             // Lấy chi tiết điểm cứu hộ
             const detail = await getMapPointDetail(activeAssignment.requestId);
             if (detail) {
-              // Điểm xuất phát ưu tiên lấy từ currentLat/currentLng truyền vào, hoặc từ shared location
+              const curLoc = locationRef.current;
               const effectiveLat =
                 typeof currentLat === "number"
                   ? currentLat
-                  : isRealLocation
-                    ? coords?.latitude
+                  : curLoc.isRealLocation
+                    ? curLoc.coords?.latitude
                     : null;
               const effectiveLng =
                 typeof currentLng === "number"
                   ? currentLng
-                  : isRealLocation
-                    ? coords?.longitude
+                  : curLoc.isRealLocation
+                    ? curLoc.coords?.longitude
                     : null;
 
               // Nạp lộ trình mới nhất từ OSRM (CHỈ KHI có tọa độ thực tế của cứu hộ viên)
@@ -182,15 +185,7 @@ export function useActiveMission({
         setIsSyncing(false);
       }
     },
-    [
-      isAuthenticated,
-      teamId,
-      currentLat,
-      currentLng,
-      coords,
-      isRealLocation,
-      invalidateActiveMission,
-    ],
+    [isAuthenticated, teamId, currentLat, currentLng, invalidateActiveMission],
   );
 
   // 3. Tự động kích hoạt đồng bộ nền khi hook được mount và có teamId

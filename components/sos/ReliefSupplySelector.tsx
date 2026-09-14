@@ -24,14 +24,14 @@ interface ReliefSupplySelectorProps {
   onClearAll?: () => void;
 }
 
-export const ReliefSupplySelector: React.FC<ReliefSupplySelectorProps> = ({
+export const ReliefSupplySelector: React.FC<ReliefSupplySelectorProps> = React.memo(({
   selectedSupplies,
   onToggleSupply,
   onClearAll,
 }) => {
   return (
-    <View className="mt-2 mb-3">
-      <View className="mb-2 flex-row items-center justify-between">
+    <View className="mt-3 mb-2">
+      <View className="flex-row items-center justify-between">
         <Text className="text-sm font-bold text-text">
           Nhu yếu phẩm cần hỗ trợ{" "}
           {selectedSupplies.length > 0 && (
@@ -56,11 +56,10 @@ export const ReliefSupplySelector: React.FC<ReliefSupplySelectorProps> = ({
             <View key={item.id} className="w-1/2 p-1">
               <Pressable
                 onPress={() => onToggleSupply(item.label)}
-                className={`flex-row items-center rounded-xl border p-2.5 min-h-[46px] active:opacity-80 ${
-                  isSelected
-                    ? "border-red-500 bg-red-50 dark:border-red-600 dark:bg-red-950/40"
-                    : "border-gray-200 bg-gray-50/70 dark:border-gray-700 dark:bg-gray-800/60"
-                }`}
+                className={`flex-row items-center rounded-xl border p-2.5 min-h-[46px] active:opacity-80 ${isSelected
+                  ? "border-red-500 bg-red-50 dark:border-red-600 dark:bg-red-950/40"
+                  : "border-gray-200 bg-gray-50/70 dark:border-gray-700 dark:bg-gray-800/60"
+                  }`}
               >
                 <Ionicons
                   name={isSelected ? "checkbox" : "square-outline"}
@@ -68,11 +67,10 @@ export const ReliefSupplySelector: React.FC<ReliefSupplySelectorProps> = ({
                   color={isSelected ? "#dc2626" : "#94a3b8"}
                 />
                 <Text
-                  className={`ml-2 flex-1 text-xs leading-4 ${
-                    isSelected
-                      ? "font-bold text-red-700 dark:text-red-300"
-                      : "font-medium text-text"
-                  }`}
+                  className={`ml-2 flex-1 text-xs leading-4 ${isSelected
+                    ? "font-bold text-red-700 dark:text-red-300"
+                    : "font-medium text-text"
+                    }`}
                   numberOfLines={2}
                 >
                   {item.label}
@@ -84,6 +82,6 @@ export const ReliefSupplySelector: React.FC<ReliefSupplySelectorProps> = ({
       </View>
     </View>
   );
-};
+});
 
 export default ReliefSupplySelector;

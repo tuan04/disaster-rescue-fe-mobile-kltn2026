@@ -55,7 +55,10 @@ const locationSlice = createSlice({
     setHeading: (state, action: PayloadAction<number>) => {
       state.heading = action.payload;
     },
-    setPermissionState: (state, action: PayloadAction<UpdatePermissionPayload>) => {
+    setPermissionState: (
+      state,
+      action: PayloadAction<UpdatePermissionPayload>,
+    ) => {
       state.hasPermission = action.payload.hasPermission;
       state.permissionDenied = action.payload.permissionDenied;
       if (action.payload.permissionDenied) {

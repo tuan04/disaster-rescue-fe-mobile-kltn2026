@@ -5,3 +5,4 @@ export * from "./constants";
 export * from "./migrations";
 export * from "./schema";
 export * from "./rescue-mission.repository";
+export * from "./sos-request.repository";

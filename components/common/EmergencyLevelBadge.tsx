@@ -13,15 +13,15 @@ const emergencyLevelBadgeStyles: Record<
   { container: string; text: string }
 > = {
   LOW: {
-    container: "bg-success/10 border border-success/20",
+    container: "bg-success/15",
     text: "text-success",
   },
   MEDIUM: {
-    container: "bg-warning/10 border border-warning/20",
+    container: "bg-warning/15",
     text: "text-warning",
   },
   HIGH: {
-    container: "bg-danger/10 border border-danger/20",
+    container: "bg-danger/15",
     text: "text-danger",
   },
 };

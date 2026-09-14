@@ -1,24 +1,22 @@
+import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
-import SOSRequestModal from "@/components/sos/SOSRequestModal";
 import { useAppTheme } from "@/contants/theme";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
 import { getNotifications } from "@/services/notification.service";
 import type { RootState } from "@/store";
 import type { NotificationItem } from "@/types/notification";
 import { Ionicons } from "@expo/vector-icons";
-import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import React, { useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function AppIndex() {
   const theme = useAppTheme();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const sosModalRef = useRef<BottomSheetModal>(null);
 
   const { data: serverNotifications = [] } = useQuery<NotificationItem[]>({
     queryKey: ["notifications", "home"],
@@ -35,50 +33,58 @@ export default function AppIndex() {
   }, [serverNotifications]);
 
   const handleOpenSOS = () => {
-    sosModalRef.current?.present();
+    router.push("/(pages)/sos-request");
   };
 
   return (
-    <ScreenContainer scrollable className="bg-background">
-      <View className="mb-5 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-danger/10">
-            <Ionicons name="person" size={24} color={theme.colors.danger} />
-          </View>
-
-          {isAuthenticated && user ? (
-            <View>
-              <Text className="text-xs text-text-muted">Xin chào,</Text>
-              <Text className="text-base font-bold text-text">
-                {user.fullName || user.phone || "Người dùng"}
-              </Text>
+    <ScreenContainer
+      scrollable
+      className="bg-background"
+      header={
+        <Header
+          showBackButton={false}
+          left={
+            <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-white/20 border border-white/30">
+              <Ionicons name="person" size={22} color="#ffffff" />
             </View>
-          ) : (
-            <Pressable onPress={() => router.push("/(auth)/login")}>
-              <Text className="text-xs text-text-muted">Tài khoản</Text>
-              <Text className="text-base font-semibold text-danger underline">
-                Bạn muốn đăng nhập ?
-              </Text>
+          }
+          middle={
+            isAuthenticated && user ? (
+              <View>
+                <Text className="text-xs text-white/80 font-medium">Xin chào,</Text>
+                <Text className="text-base font-bold text-white" numberOfLines={1}>
+                  {user.fullName || user.phone || "Người dùng"}
+                </Text>
+              </View>
+            ) : (
+              <Pressable onPress={() => router.push("/(auth)/login")}>
+                <Text className="text-xs text-white/80 font-medium">Tài khoản</Text>
+                <Text className="text-base font-semibold text-white underline">
+                  Bạn muốn đăng nhập ?
+                </Text>
+              </Pressable>
+            )
+          }
+          right={
+            <Pressable
+              className="relative h-10 w-10 items-center justify-center rounded-full bg-white/20 border border-white/30 active:opacity-70"
+              onPress={() => router.push("/(pages)/notifications")}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#ffffff" />
+              {isAuthenticated && unreadNotificationCount > 0 && (
+                <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-white border border-danger px-1">
+                  <Text className="text-[10px] font-bold text-danger">
+                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                  </Text>
+                </View>
+              )}
             </Pressable>
-          )}
-        </View>
+          }
+        />
+      }
+    >
 
-        <Pressable
-          className="relative h-11 w-11 items-center justify-center rounded-full bg-surface shadow-sm active:opacity-70"
-          onPress={() => router.push("/(pages)/notifications")}
-        >
-          <Ionicons name="notifications-outline" size={24} color={theme.colors.onSurface} />
-          {isAuthenticated && unreadNotificationCount > 0 && (
-            <View className="absolute -right-1 -top-1 h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1">
-              <Text className="text-[10px] font-bold text-white">
-                {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-              </Text>
-            </View>
-          )}
-        </Pressable>
-      </View>
-
-      <View className="mb-5 rounded-2xl bg-surface p-3 shadow-sm">
+      <View className="mb-5 mt-2">
         <Text className="mb-3 text-base font-bold text-text">Các tiện ích</Text>
         <View className="flex-row flex-wrap">
           {UTILITIES.map((item) => (
@@ -110,8 +116,6 @@ export default function AppIndex() {
         </View>
       </View>
 
-      {/* Modal gửi yêu cầu cứu hộ khẩn cấp */}
-      <SOSRequestModal ref={sosModalRef} />
     </ScreenContainer>
   );
 }
