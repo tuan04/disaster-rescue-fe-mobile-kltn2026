@@ -1,12 +1,12 @@
 import { customToastConfig } from "@/components/common/CustomToast";
 import FloatingMissionPiP from "@/components/map/FloatingMissionPiP";
 import { DarkTheme, LightTheme } from "@/contants/theme";
-import { DATABASE_NAME } from "@/database";
 import { clearTokens, getAccessToken } from "@/helpers/secureStore";
 import { useForegroundLocationWatcher } from "@/hooks/useForegroundLocationWatcher";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { getCurrentUser } from "@/services/auth.service";
+import { initSOSAutoSync } from "@/services/sos-sync.service";
 import { getMyProfile } from "@/services/user.service";
 import type { AppDispatch, RootState } from "@/store";
 import { store } from "@/store";
@@ -14,7 +14,6 @@ import { login, logout, setProfile } from "@/store/authSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, usePathname, useRouter, useSegments } from "expo-router";
-import { SQLiteProvider } from "expo-sqlite";
 import { useEffect } from "react";
 
 import { StatusBar, useColorScheme, View } from "react-native";
@@ -32,12 +31,7 @@ export default function RootLayout() {
     <GestureHandlerRootView className="flex-1">
       <QueryClientProvider client={queryClient}>
         <Provider store={store}>
-          <SQLiteProvider
-            databaseName={DATABASE_NAME}
-            useSuspense={false}
-          >
-            <RootNavigator />
-          </SQLiteProvider>
+          <RootNavigator />
         </Provider>
       </QueryClientProvider>
     </GestureHandlerRootView>
@@ -61,6 +55,14 @@ function RootNavigator() {
   useTeamLocationTracking();
   // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
   useNotificationSocket();
+
+  // Tự động đồng bộ các yêu cầu SOS ngoại tuyến khi có kết nối mạng
+  useEffect(() => {
+    const cleanup = initSOSAutoSync();
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     const bootstrapAuth = async () => {

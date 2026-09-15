@@ -2,11 +2,11 @@ import { getDatabaseAsync } from "./connection";
 
 export type SOSSyncStatus = "PENDING" | "SYNCING" | "SYNCED" | "FAILED";
 export type SOSRescueStatus =
-  | "WAITING"
-  | "ASSIGNED"
-  | "IN_PROGRESS"
+  | "PENDING"
+  | "ACCEPTED"
   | "COMPLETED"
-  | "CANCELLED";
+  | "HIDDEN"
+  | "SAFE";
 export type SOSRequestType = "SELF" | "OTHER";
 
 export interface MySOSRequestEntity {
@@ -59,7 +59,7 @@ export async function createSOSRequest(
   const localId = `sos_${now}_${Math.random().toString(36).substring(2, 9)}`;
   const requestType = input.requestType || "SELF";
   const syncStatus = input.syncStatus || "PENDING";
-  const rescueStatus = input.rescueStatus || "WAITING";
+  const rescueStatus = input.rescueStatus || "PENDING";
 
   await db.runAsync(
     `INSERT INTO my_sos_requests (
@@ -247,7 +247,7 @@ export async function getLatestActiveSOSRequest(
   return await db.getFirstAsync<MySOSRequestEntity>(
     `SELECT * FROM my_sos_requests 
      WHERE request_type = ? 
-       AND rescue_status IN ('WAITING', 'ASSIGNED', 'IN_PROGRESS')
+       AND rescue_status IN ('PENDING', 'ACCEPTED')
      ORDER BY created_at DESC 
      LIMIT 1`,
     [requestType],
@@ -264,7 +264,7 @@ export async function hasPendingSelfSOSRequest(): Promise<boolean> {
      WHERE request_type = 'SELF' 
        AND (
          sync_status IN ('PENDING', 'SYNCING') 
-         OR rescue_status IN ('WAITING', 'ASSIGNED', 'IN_PROGRESS')
+         OR rescue_status IN ('PENDING', 'ACCEPTED')
        )
      LIMIT 1`,
   );

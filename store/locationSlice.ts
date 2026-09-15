@@ -69,10 +69,18 @@ const locationSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
+    setIsRealLocation: (state, action: PayloadAction<boolean>) => {
+      state.isRealLocation = action.payload;
+    },
   },
 });
 
-export const { setLocation, setHeading, setPermissionState, setLoading } =
-  locationSlice.actions;
+export const {
+  setLocation,
+  setHeading,
+  setPermissionState,
+  setLoading,
+  setIsRealLocation,
+} = locationSlice.actions;
 
 export default locationSlice.reducer;

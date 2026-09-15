@@ -13,7 +13,7 @@ export const INITIAL_SCHEMA = `
     longitude REAL NOT NULL,
     address TEXT,
     sync_status TEXT DEFAULT 'PENDING',    -- PENDING, SYNCING, SYNCED, FAILED
-    rescue_status TEXT DEFAULT 'WAITING',  -- WAITING, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED
+    rescue_status TEXT DEFAULT 'PENDING',  -- PENDING, ACCEPTED, COMPLETED, HIDDEN, SAFE
     retry_count INTEGER DEFAULT 0,
     error_message TEXT,
     created_at INTEGER NOT NULL,
