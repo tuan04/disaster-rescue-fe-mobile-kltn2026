@@ -56,22 +56,14 @@ export async function syncPendingSOSRequests(): Promise<number> {
           longitude: item.longitude,
         });
 
-        if (response && response.success) {
-          const serverId = String(response.data.id);
-          await markSOSRequestSynced(item.local_id, serverId);
-          syncedCount++;
-        } else {
-          await markSOSRequestFailed(
-            item.local_id,
-            "Máy chủ phản hồi không thành công",
-          );
-        }
+        const serverId = String(response.data.id);
+        await markSOSRequestSynced(item.local_id, serverId);
+        syncedCount++;
       } catch (err: any) {
         await markSOSRequestFailed(
           item.local_id,
           err?.message || "Lỗi mạng khi đồng bộ",
         );
-        // Ngắt mạng giữa chừng thì dừng vòng lặp ngay để tiết kiệm pin & tài nguyên
         break;
       }
     }
@@ -127,15 +119,10 @@ export async function submitSOSRequest(
       latitude: Number(input.latitude),
       longitude: Number(input.longitude),
     });
+    const serverId = String(response.data.id);
+    await markSOSRequestSynced(localRecord.local_id, serverId);
 
-    if (response && response.success) {
-      const serverId = String(response.data.id);
-      await markSOSRequestSynced(localRecord.local_id, serverId);
-
-      return { success: true, mode: "ONLINE", serverId, localRecord };
-    } else {
-      throw new Error("Phản hồi từ máy chủ không thành công");
-    }
+    return { success: true, mode: "ONLINE", serverId, localRecord };
   } catch (error: any) {
     console.error("SOS Submit Online Error:", error);
     await markSOSRequestFailed(

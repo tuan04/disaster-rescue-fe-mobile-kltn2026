@@ -1,6 +1,8 @@
 import CancelMissionModal from "@/components/map/CancelMissionModal";
 import MissionNavigationBottomSheet from "@/components/map/MissionNavigationBottomSheet";
+import RoutePolyline from "@/components/map/RoutePolyline";
 import ScreenContainer from "@/components/common/ScreenContainer";
+import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL } from "@/contants/mapConfig";
 import {
@@ -10,17 +12,14 @@ import {
 } from "@/helpers/navigation";
 import { useLocation } from "@/hooks/useLocation";
 import { useRescue } from "@/hooks/useRescue";
-import { useRoute } from "@/hooks/useRoute";
+import { useActiveMission } from "@/hooks/useActiveMission";
 import { getMapPointDetail } from "@/services/map.service";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import type BottomSheet from "@gorhom/bottom-sheet";
 import {
   Camera,
   type CameraRef,
-  GeoJSONSource,
-  Layer,
   Map,
-  Marker,
 } from "@maplibre/maplibre-react-native";
 import { useQuery } from "@tanstack/react-query";
 import { makePhoneCall } from "@/helpers/phone";
@@ -54,7 +53,7 @@ export default function MissionNavigationScreen() {
     durationText,
     etaTimeStr,
     clearRoute,
-  } = useRoute({
+  } = useActiveMission({
     cameraRef,
     currentLat,
     currentLng,
@@ -189,8 +188,6 @@ export default function MissionNavigationScreen() {
 
   const targetLat = activeMission?.target_latitude;
   const targetLng = activeMission?.target_longitude;
-  const displayName =
-    activeMission?.address?.split(",")?.[0]?.trim() || "Điểm cứu hộ";
 
   // Truy vấn chi tiết yêu cầu cứu hộ từ backend
   const { data: detailRes } = useQuery({
@@ -267,38 +264,7 @@ export default function MissionNavigationScreen() {
         />
 
         {/* 1. Lộ trình dẫn đường Polyline */}
-        {currentRouteGeoJSON && (
-          <GeoJSONSource
-            id="navRouteSource"
-            data={currentRouteGeoJSON}
-          >
-            <Layer
-              id="navRouteCasing"
-              type="line"
-              paint={{
-                "line-color": "#3b82f6",
-                "line-width": 10,
-                "line-opacity": 0.4,
-              }}
-              layout={{
-                "line-cap": "round",
-                "line-join": "round",
-              }}
-            />
-            <Layer
-              id="navRouteLine"
-              type="line"
-              paint={{
-                "line-color": "#1d4ed8",
-                "line-width": 8,
-              }}
-              layout={{
-                "line-cap": "round",
-                "line-join": "round",
-              }}
-            />
-          </GeoJSONSource>
-        )}
+        <RoutePolyline id="navRoute" data={currentRouteGeoJSON} />
 
         {/* 2. Vị trí Đội cứu hộ (với la bàn & vệt sáng hình quạt) */}
         <UserLocationMarker
@@ -312,29 +278,11 @@ export default function MissionNavigationScreen() {
 
         {/* 3. Điểm đích SOS của nạn nhân */}
         {targetLat && targetLng && (
-          <Marker
+          <TargetPointMarker
             id="nav-target-location"
-            lngLat={[targetLng, targetLat]}
-            anchor="bottom"
-          >
-            <View className="items-center">
-              {/* Capsule tên địa điểm / người cần cứu trợ */}
-              <View className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-2xl mb-1 shadow-lg border border-slate-200 dark:border-slate-700 elevation-6">
-                <Text
-                  className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400"
-                  numberOfLines={1}
-                >
-                  {displayName}
-                </Text>
-              </View>
-
-              {/* Pin đỏ Google Maps */}
-              <View className="items-center justify-center shadow-lg elevation-6">
-                <Ionicons name="location" size={38} color="#ef4444" />
-                <View className="absolute top-[9px] w-2.5 h-2.5 rounded-full bg-white" />
-              </View>
-            </View>
-          </Marker>
+            latitude={targetLat}
+            longitude={targetLng}
+          />
         )}
       </Map>
 
@@ -365,7 +313,7 @@ export default function MissionNavigationScreen() {
               className="text-2xl font-semibold text-white leading-tight"
               numberOfLines={1}
             >
-              {navProgress.primaryManeuver.streetName || displayName}
+              {navProgress.primaryManeuver.streetName}
             </Text>
             <Text
               className="text-sm font-bold text-white/90 mt-0.5"

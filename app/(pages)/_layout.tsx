@@ -11,6 +11,8 @@ export default function PagesLayout() {
       <Stack.Screen name="warehouse-point" />
       <Stack.Screen name="mission-navigation" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="my-sos-requests" />
+      <Stack.Screen name="rescue-team-tracking" />
     </Stack>
   );
 }

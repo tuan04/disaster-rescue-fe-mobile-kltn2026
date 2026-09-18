@@ -6,6 +6,7 @@ import SearchBar from "@/components/common/SearchBar";
 import LocationSuggestionList from "@/components/sos/LocationSuggestionList";
 import ReliefSupplySelector from "@/components/sos/ReliefSupplySelector";
 import { hasPendingSelfSOSRequest } from "@/database/sos-request.repository";
+import { ApiError } from "@/services/api";
 import { searchLocationIQAutocomplete } from "@/services/dispatch.service";
 import { submitSOSRequest } from "@/services/sos-sync.service";
 import type { RootState } from "@/store";
@@ -13,6 +14,7 @@ import type { LocationIQSuggestion, SOSFormValues } from "@/types/sos";
 import { sosRequestSchema } from "@/validations/sosValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -34,8 +36,8 @@ export default function SOSRequestScreen() {
 
   const [locationMode, setLocationMode] = useState<LocationMode>("CURRENT_GPS");
   const [selectedSupplies, setSelectedSupplies] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasPendingSelf, setHasPendingSelf] = useState(false);
+  const queryClient = useQueryClient();
 
   // Search Address LocationIQ states
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,6 +209,7 @@ export default function SOSRequestScreen() {
 
   // Xử lý khi validation thất bại (chưa có tọa độ)
   const onInvalid = useCallback((formErrors: any) => {
+    console.log(isRealLocation);
     if (formErrors.latitude || formErrors.longitude) {
       Toast.show({
         type: "warning",
@@ -216,77 +219,86 @@ export default function SOSRequestScreen() {
     }
   }, []);
 
-  // Submit form gửi SOS
-  const onSubmit = useCallback(
-    async (data: SOSFormValues) => {
-      if (isSubmitting) return;
-
-      // Ghép đoạn văn nhu yếu phẩm nếu có chọn
+  // Mutation quản lý gửi yêu cầu cứu hộ qua React Query
+  const submitMutation = useMutation({
+    mutationFn: async (data: SOSFormValues) => {
       const userDesc = (data.content || "").trim();
       const suppliesParagraph =
         selectedSupplies.length > 0
           ? `Nhu yếu phẩm cần hỗ trợ: ${selectedSupplies.join(", ")}.`
           : "";
 
-      const finalContent = [userDesc, suppliesParagraph].filter(Boolean).join("\n\n");
+      const finalContent = [userDesc, suppliesParagraph]
+        .filter(Boolean)
+        .join("\n\n");
 
-      setIsSubmitting(true);
-      try {
-        const result = await submitSOSRequest({
-          requestType: locationMode === "CURRENT_GPS" ? "SELF" : "OTHER",
-          reporterPhone: data.reporterPhone.trim(),
-          content: finalContent,
-          latitude: Number(data.latitude),
-          longitude: Number(data.longitude),
-          address: data.locationAddress || undefined,
+      return await submitSOSRequest({
+        requestType: locationMode === "CURRENT_GPS" ? "SELF" : "OTHER",
+        reporterPhone: data.reporterPhone.trim(),
+        content: finalContent,
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
+        address: data.locationAddress || undefined,
+      });
+    },
+    onSuccess: (result) => {
+      if (locationMode === "CURRENT_GPS") {
+        setHasPendingSelf(true);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["my-sos-requests"] });
+
+      if (result.mode === "ONLINE") {
+        Toast.show({
+          type: "success",
+          text1: "Gửi cứu hộ thành công!",
+          text2: "Yêu cầu khẩn cấp của bạn đã được chuyển tới Đội cứu hộ.",
+          visibilityTime: 6000,
         });
+      } else if (result.mode === "OFFLINE") {
+        Toast.show({
+          type: "info",
+          text1: "Đã lưu ngoại tuyến",
+          text2:
+            "Yêu cầu cứu hộ đã được lưu an toàn trên máy và sẽ tự động gửi khi có kết nối mạng.",
+          visibilityTime: 6000,
+        });
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "Đã lưu vào bộ nhớ máy",
+          text2:
+            "Không thể kết nối máy chủ lúc này. Yêu cầu đã được lưu và sẽ tự động gửi lại.",
+          visibilityTime: 6000,
+        });
+      }
 
-        if (result.success) {
-          if (locationMode === "CURRENT_GPS") {
-            setHasPendingSelf(true);
-          }
-
-          if (result.mode === "ONLINE") {
-            Toast.show({
-              type: "success",
-              text1: "Gửi cứu hộ thành công!",
-              text2: "Yêu cầu khẩn cấp của bạn đã được chuyển tới Đội cứu hộ.",
-              visibilityTime: 6000,
-            });
-          } else if (result.mode === "OFFLINE") {
-            Toast.show({
-              type: "info",
-              text1: "Đã lưu ngoại tuyến",
-              text2:
-                "Yêu cầu cứu hộ đã được lưu an toàn trên máy và sẽ tự động gửi khi có kết nối mạng.",
-              visibilityTime: 6000,
-            });
-          } else {
-            // OFFLINE_FALLBACK (Có mạng nhưng lỗi máy chủ)
-            Toast.show({
-              type: "info",
-              text1: "Đã lưu vào bộ nhớ máy",
-              text2:
-                "Không thể kết nối máy chủ lúc này. Yêu cầu đã được lưu và sẽ tự động gửi lại.",
-              visibilityTime: 6000,
-            });
-          }
-
-          handleBack();
-        } else {
-          Toast.show({
-            type: "error",
-            text1: "Lỗi tạo yêu cầu",
-            text2: result.error || "Không thể lưu yêu cầu cứu hộ.",
-          });
-        }
-      } catch (error) {
-        console.error("SOS Submit Error:", error);
-      } finally {
-        setIsSubmitting(false);
+      handleBack();
+    },
+    onError: (error: any) => {
+      console.error("SOS Submit Error:", error);
+      if (error instanceof ApiError) {
+        Toast.show({
+          type: "error",
+          text1: `Lỗi (${error.code})`,
+          text2: error.message,
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Lỗi gửi yêu cầu",
+          text2: error?.message || "Đã xảy ra lỗi khi gửi yêu cầu cứu hộ.",
+        });
       }
     },
-    [isSubmitting, selectedSupplies, locationMode, handleBack],
+  });
+
+  const onSubmit = useCallback(
+    (data: SOSFormValues) => {
+      if (submitMutation.isPending) return;
+      submitMutation.mutate(data);
+    },
+    [submitMutation],
   );
 
   return (
@@ -470,13 +482,13 @@ export default function SOSRequestScreen() {
           <Button
             title="Đóng"
             variant="outline"
-            disabled={isSubmitting}
+            disabled={submitMutation.isPending}
             onPress={handleBack}
             style={{ flex: 1 }}
           />
           <Button
             title={
-              isSubmitting
+              submitMutation.isPending
                 ? "Đang gửi ..."
                 : locationMode === "CURRENT_GPS" && hasPendingSelf
                   ? "Đã gửi cứu hộ"
@@ -488,10 +500,10 @@ export default function SOSRequestScreen() {
                 : "danger"
             }
             disabled={
-              isSubmitting ||
+              submitMutation.isPending ||
               (locationMode === "CURRENT_GPS" && hasPendingSelf)
             }
-            loading={isSubmitting}
+            loading={submitMutation.isPending}
             onPress={handleSubmit(onSubmit, onInvalid)}
             style={{ flex: 2 }}
           />

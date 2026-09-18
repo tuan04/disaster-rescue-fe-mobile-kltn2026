@@ -287,6 +287,21 @@ export async function updateSOSRescueStatus(
 }
 
 /**
+ * Cập nhật trạng thái cứu hộ thực tế từ Server theo server_id
+ */
+export async function updateSOSRescueStatusByServerId(
+  serverId: string,
+  rescueStatus: SOSRescueStatus,
+): Promise<void> {
+  const db = await getDatabaseAsync();
+  const now = Date.now();
+  await db.runAsync(
+    "UPDATE my_sos_requests SET rescue_status = ?, updated_at = ? WHERE server_id = ?",
+    [rescueStatus, now, serverId],
+  );
+}
+
+/**
  * Xóa một yêu cầu cứu hộ khỏi SQLite
  */
 export async function deleteSOSRequest(localId: string): Promise<void> {
