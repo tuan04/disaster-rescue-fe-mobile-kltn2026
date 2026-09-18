@@ -27,40 +27,64 @@ export function useForegroundLocationWatcher() {
   const headingSubRef = useRef<Location.LocationSubscription | null>(null);
   const isMountedRef = useRef<boolean>(true);
 
+  // Hàm tái sử dụng: Hủy lắng nghe vị trí
+  const stopPositionWatcher = useCallback(() => {
+    if (positionSubRef.current) {
+      positionSubRef.current.remove();
+      positionSubRef.current = null;
+    }
+  }, []);
+
+  // Hàm tái sử dụng: Hủy lắng nghe la bàn
+  const stopHeadingWatcher = useCallback(() => {
+    if (headingSubRef.current) {
+      headingSubRef.current.remove();
+      headingSubRef.current = null;
+    }
+  }, []);
+
+  // Hàm tái sử dụng: Chuẩn hóa tốc độ (km/h) và cập nhật tọa độ vào Redux
+  const updateLocation = useCallback(
+    (loc?: Location.LocationObject | null) => {
+      if (!isMountedRef.current || !loc?.coords) return;
+      const speed =
+        loc.coords.speed && loc.coords.speed > 0
+          ? Math.round(loc.coords.speed * 3.6)
+          : 0;
+
+      dispatch(
+        setLocation({
+          coords: {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+          },
+          speed,
+        }),
+      );
+    },
+    [dispatch],
+  );
+
   // Khởi động lắng nghe vị trí người dùng khi di chuyển
   const startPositionWatcher = useCallback(async () => {
     if (!isMountedRef.current) return;
     try {
-      if (positionSubRef.current) {
-        positionSubRef.current.remove();
-        positionSubRef.current = null;
-      }
+      stopPositionWatcher();
 
       const isServicesEnabled = await Location.hasServicesEnabledAsync();
       if (!isServicesEnabled) return;
 
+      const perm = await Location.getForegroundPermissionsAsync();
+      if (perm.status !== "granted") return;
+
       const posSub = await Location.watchPositionAsync(
         {
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.High,
           timeInterval: 2500,
           distanceInterval: 3,
         },
         (loc) => {
-          if (!isMountedRef.current || !loc?.coords) return;
-          const speed =
-            loc.coords.speed && loc.coords.speed > 0
-              ? Math.round(loc.coords.speed * 3.6)
-              : 0;
-
-          dispatch(
-            setLocation({
-              coords: {
-                latitude: loc.coords.latitude,
-                longitude: loc.coords.longitude,
-              },
-              speed,
-            }),
-          );
+          updateLocation(loc);
         },
       );
 
@@ -69,22 +93,16 @@ export function useForegroundLocationWatcher() {
       } else {
         posSub.remove();
       }
-    } catch (err) {
-      if (positionSubRef.current) {
-        positionSubRef.current.remove();
-        positionSubRef.current = null;
-      }
+    } catch {
+      stopPositionWatcher();
     }
-  }, [dispatch]);
+  }, [stopPositionWatcher, updateLocation]);
 
   // Khởi động cảm biến la bàn với bộ lọc rung tối thiểu 3 độ
   const startHeadingWatcher = useCallback(async () => {
     if (!isMountedRef.current) return;
     try {
-      if (headingSubRef.current) {
-        headingSubRef.current.remove();
-        headingSubRef.current = null;
-      }
+      stopHeadingWatcher();
 
       const headSub = await Location.watchHeadingAsync((h) => {
         if (!isMountedRef.current) return;
@@ -106,7 +124,7 @@ export function useForegroundLocationWatcher() {
     } catch {
       // Thiết bị không hỗ trợ cảm biến la bàn
     }
-  }, [dispatch]);
+  }, [dispatch, stopHeadingWatcher]);
 
   // Kiểm tra GPS, xin quyền và nạp vị trí nhanh
   const getGPSLocation = useCallback(
@@ -118,10 +136,7 @@ export function useForegroundLocationWatcher() {
       try {
         const isServicesEnabled = await Location.hasServicesEnabledAsync();
         if (!isServicesEnabled) {
-          if (positionSubRef.current) {
-            positionSubRef.current.remove();
-            positionSubRef.current = null;
-          }
+          stopPositionWatcher();
           dispatch(setIsRealLocation(false));
           return false;
         }
@@ -148,20 +163,7 @@ export function useForegroundLocationWatcher() {
         // Lấy nhanh vị trí lưu gần nhất từ OS cache để hiển thị tức thì
         const lastLoc = await Location.getLastKnownPositionAsync({});
         if (lastLoc?.coords) {
-          const speed =
-            lastLoc.coords.speed && lastLoc.coords.speed > 0
-              ? Math.round(lastLoc.coords.speed * 3.6)
-              : 0;
-
-          dispatch(
-            setLocation({
-              coords: {
-                latitude: lastLoc.coords.latitude,
-                longitude: lastLoc.coords.longitude,
-              },
-              speed,
-            }),
-          );
+          updateLocation(lastLoc);
           if (!isRefresh) {
             dispatch(setLoading(false));
           }
@@ -170,7 +172,7 @@ export function useForegroundLocationWatcher() {
         // Lấy vị trí GPS thực tế hiện tại
         const currentLoc = await Promise.race([
           Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
+            accuracy: Location.Accuracy.High,
           }),
           new Promise<null>((_, reject) =>
             setTimeout(() => reject(new Error("Timeout")), 8000),
@@ -178,20 +180,7 @@ export function useForegroundLocationWatcher() {
         ]).catch(() => null);
 
         if (currentLoc?.coords) {
-          const speed =
-            currentLoc.coords.speed && currentLoc.coords.speed > 0
-              ? Math.round(currentLoc.coords.speed * 3.6)
-              : 0;
-
-          dispatch(
-            setLocation({
-              coords: {
-                latitude: currentLoc.coords.latitude,
-                longitude: currentLoc.coords.longitude,
-              },
-              speed,
-            }),
-          );
+          updateLocation(currentLoc);
         }
 
         // Đảm bảo Watcher luôn chạy ngầm để đón sóng liên tục
@@ -208,7 +197,7 @@ export function useForegroundLocationWatcher() {
         }
       }
     },
-    [dispatch, startPositionWatcher],
+    [dispatch, startPositionWatcher, stopPositionWatcher, updateLocation],
   );
 
   useEffect(() => {
@@ -223,19 +212,29 @@ export function useForegroundLocationWatcher() {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       if (nextAppState !== "active" || !isMountedRef.current) return;
 
-      const isServicesEnabled = await Location.hasServicesEnabledAsync();
+      const [isServicesEnabled, perm] = await Promise.all([
+        Location.hasServicesEnabledAsync(),
+        Location.getForegroundPermissionsAsync(),
+      ]);
+
+      const isGranted = perm.status === "granted";
       const currentIsReal = store.getState().location.isRealLocation;
 
-      console.log(isServicesEnabled);
-      if (!isServicesEnabled) {
-        if (currentIsReal) {
-          if (positionSubRef.current) {
-            positionSubRef.current.remove();
-            positionSubRef.current = null;
-          }
-          dispatch(setIsRealLocation(false));
-        }
-      } else if (!currentIsReal) {
+      // Nếu bị tắt GPS hoặc bị tước quyền trong Cài đặt
+      if (!isServicesEnabled || !isGranted) {
+        stopPositionWatcher();
+        dispatch(
+          setPermissionState({
+            hasPermission: isGranted,
+            permissionDenied: !isGranted,
+          }),
+        );
+        dispatch(setIsRealLocation(false));
+        return;
+      }
+
+      // Nếu đủ điều kiện (GPS bật và đã cấp quyền) mà trước đó chưa có vị trí thật hoặc chưa chạy watcher
+      if (!currentIsReal || !positionSubRef.current) {
         await getGPSLocation(true);
       }
     };
@@ -247,7 +246,7 @@ export function useForegroundLocationWatcher() {
     return () => {
       subscription.remove();
     };
-  }, [dispatch, getGPSLocation]);
+  }, [dispatch, getGPSLocation, stopPositionWatcher]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -265,14 +264,13 @@ export function useForegroundLocationWatcher() {
 
     return () => {
       isMountedRef.current = false;
-      if (positionSubRef.current) {
-        positionSubRef.current.remove();
-        positionSubRef.current = null;
-      }
-      if (headingSubRef.current) {
-        headingSubRef.current.remove();
-        headingSubRef.current = null;
-      }
+      stopPositionWatcher();
+      stopHeadingWatcher();
     };
-  }, [getGPSLocation, startHeadingWatcher]);
+  }, [
+    getGPSLocation,
+    startHeadingWatcher,
+    stopHeadingWatcher,
+    stopPositionWatcher,
+  ]);
 }
