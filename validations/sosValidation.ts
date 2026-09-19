@@ -13,6 +13,7 @@ export const sosRequestSchema = yup.object({
     ),
   content: yup
     .string()
+    .trim()
     .required("Vui lòng nhập nội dung yêu cầu cứu hộ")
     .max(1000, "Mô tả tình trạng tối đa 1000 ký tự"),
   latitude: yup

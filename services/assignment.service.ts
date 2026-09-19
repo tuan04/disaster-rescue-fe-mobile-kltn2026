@@ -26,6 +26,14 @@ export const getActiveMission = async (
   return await get<AssignmentRes | null>(`/assignments/teams/${teamId}/active`);
 };
 
+export const getActiveAssignmentByRequestId = async (
+  requestId: string,
+): Promise<ApiResponse<AssignmentRes | null>> => {
+  return await get<AssignmentRes | null>(
+    `/assignments/rescue-requests/${requestId}/active`,
+  );
+};
+
 export const completeAssignment = async (
   assignmentId: string,
 ): Promise<void> => {

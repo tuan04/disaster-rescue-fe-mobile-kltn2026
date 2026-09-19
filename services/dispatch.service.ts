@@ -21,11 +21,7 @@ import {
 export const createSOSRequest = async (
   payload: SOSRequestPayload,
 ): Promise<ApiResponse<SOSResponse>> => {
-  const response = await post<ApiResponse<SOSResponse>>(
-    "/sos-requests",
-    payload,
-  );
-  return response.data;
+  return await post<SOSResponse>("/sos-requests", payload);
 };
 
 /**

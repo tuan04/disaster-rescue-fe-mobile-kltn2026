@@ -6,16 +6,14 @@ export const INITIAL_SCHEMA = `
   CREATE TABLE IF NOT EXISTS my_sos_requests (
     local_id TEXT PRIMARY KEY,
     server_id TEXT,
+    request_type TEXT DEFAULT 'SELF',      -- 'SELF' (Vị trí của tôi) hoặc 'OTHER' (Hỗ trợ người khác)
     reporter_phone TEXT NOT NULL,
     content TEXT NOT NULL,
     latitude REAL NOT NULL,
     longitude REAL NOT NULL,
     address TEXT,
     sync_status TEXT DEFAULT 'PENDING',    -- PENDING, SYNCING, SYNCED, FAILED
-    rescue_status TEXT DEFAULT 'WAITING',  -- WAITING, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED
-    retry_count INTEGER DEFAULT 0,
-    error_message TEXT,
-    created_at INTEGER NOT NULL,
+    rescue_status TEXT DEFAULT 'PENDING',  -- PENDING, ACCEPTED, COMPLETED, HIDDEN, SAFE
     synced_at INTEGER,
     updated_at INTEGER NOT NULL
   );
@@ -58,6 +56,8 @@ export const INITIAL_SCHEMA = `
   -- Indexes for fast query performance
   CREATE INDEX IF NOT EXISTS idx_my_sos_sync_status ON my_sos_requests (sync_status);
   CREATE INDEX IF NOT EXISTS idx_my_sos_created_at ON my_sos_requests (created_at);
+  CREATE INDEX IF NOT EXISTS idx_my_sos_req_type ON my_sos_requests (request_type);
+  CREATE INDEX IF NOT EXISTS idx_my_sos_pending_check ON my_sos_requests (request_type, sync_status, rescue_status);
   CREATE INDEX IF NOT EXISTS idx_map_points_type ON offline_map_points (point_type);
   CREATE INDEX IF NOT EXISTS idx_map_points_coords ON offline_map_points (latitude, longitude);
   CREATE INDEX IF NOT EXISTS idx_active_mission_req ON active_rescue_mission (request_id);

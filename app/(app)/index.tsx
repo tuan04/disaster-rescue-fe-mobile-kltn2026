@@ -1,3 +1,4 @@
+import Button from "@/components/common/Button";
 import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
@@ -98,7 +99,7 @@ export default function AppIndex() {
       </View>
 
       <Pressable
-        className="mb-6 flex-row items-center justify-center rounded-2xl bg-danger py-4 px-5 shadow-md active:opacity-85"
+        className="mb-3 flex-row items-center justify-center rounded-2xl bg-danger py-4 px-5 shadow-md active:opacity-85"
         onPress={handleOpenSOS}
       >
         <Ionicons name="megaphone-outline" size={24} color="#ffffff" />
@@ -106,6 +107,18 @@ export default function AppIndex() {
           Kêu gọi cứu hộ
         </Text>
       </Pressable>
+
+      <Button
+        title="Yêu cầu cứu hộ của tôi"
+        variant="secondary"
+        icon={({ size, color }) => (
+          <Ionicons name="list-circle-outline" size={24} color={color} />
+        )}
+        onPress={() => router.push("/(pages)/my-sos-requests")}
+        style={{ borderRadius: 16, marginBottom: 24 }}
+        contentStyle={{ minHeight: 54 }}
+        labelClassName="text-base font-bold text-white"
+      />
 
       <View>
         <Text className="mb-3 text-base font-bold text-text">Tin tức</Text>

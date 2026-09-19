@@ -2,12 +2,20 @@ import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 import { DATABASE_NAME } from "./constants";
 import { migrateDbIfNeeded } from "./migrations";
 
-let dbInstance: SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLiteDatabase> | null = null;
 
-export async function getDatabaseAsync(): Promise<SQLiteDatabase> {
-  if (!dbInstance) {
-    dbInstance = await openDatabaseAsync(DATABASE_NAME);
-    await migrateDbIfNeeded(dbInstance);
+export function getDatabaseAsync(): Promise<SQLiteDatabase> {
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      try {
+        const db = await openDatabaseAsync(DATABASE_NAME);
+        await migrateDbIfNeeded(db);
+        return db;
+      } catch (error) {
+        dbPromise = null;
+        throw error;
+      }
+    })();
   }
-  return dbInstance;
+  return dbPromise;
 }

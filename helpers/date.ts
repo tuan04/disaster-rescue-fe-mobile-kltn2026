@@ -2,11 +2,11 @@
  * Format timestamp thành định dạng thời gian tương đối thân thiện (VD: "5 phút trước", "Hôm qua")
  */
 export function formatRelativeTime(
-  dateInput: string | Date | undefined | null,
+  dateInput: number | string | Date | undefined | null,
 ): string {
-  if (!dateInput) return "";
-  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  if (isNaN(date.getTime())) return "";
+  if (!dateInput && dateInput !== 0) return "";
+  const date = typeof dateInput === "object" ? dateInput : new Date(dateInput);
+  if (!date || isNaN(date.getTime())) return "";
 
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -54,11 +54,11 @@ export function formatRelativeTime(
  * Format timestamp thành định dạng cố định "HH:mm - DD/MM/YYYY"
  */
 export function formatDateTime(
-  dateInput: string | Date | undefined | null,
+  dateInput: number | string | Date | undefined | null,
 ): string {
-  if (!dateInput) return "";
-  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  if (isNaN(date.getTime())) return "";
+  if (!dateInput && dateInput !== 0) return "";
+  const date = new Date(dateInput);
+  if (!date || isNaN(date.getTime())) return "";
 
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");

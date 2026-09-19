@@ -90,16 +90,27 @@ export function useTeamLocationTracking({
       try {
         await updateTeamLocation(payload);
         lastSentCoordsRef.current = targetCoords;
-        lastSentTimeRef.current = Date.now();
         setLastLocation(payload);
         onSuccessRef.current?.(payload);
       } catch (error) {
-        console.error(
-          "[TeamLocationTracking] Gửi vị trí thất bại, sẽ thử lại ở lần quét kế tiếp:",
-          error,
-        );
-        onErrorRef.current?.(error);
+        // Thử gửi lại 1 lần sau 500ms nếu gặp lỗi kết nối chập chờn trên đường đi
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await updateTeamLocation(payload);
+          lastSentCoordsRef.current = targetCoords;
+          setLastLocation(payload);
+          onSuccessRef.current?.(payload);
+          return;
+        } catch {
+          // Telemetry định kỳ: Nếu mất sóng tạm thời thì bỏ qua, nhịp quét GPS kế tiếp sẽ tự bù tọa độ mới nhất
+          if (__DEV__) {
+            console.log(
+              "[TeamLocationTracking] Nhịp gửi vị trí bị ngắt kết nối tạm thời, nhịp quét tiếp theo sẽ tự cập nhật.",
+            );
+          }
+        }
       } finally {
+        lastSentTimeRef.current = Date.now();
         isSendingRef.current = false;
       }
     },
@@ -118,6 +129,7 @@ export function useTeamLocationTracking({
     const now = Date.now();
     const lastCoords = lastSentCoordsRef.current;
     const timeElapsed = now - lastSentTimeRef.current;
+    const MIN_SEND_INTERVAL = 10000; // Giãn cách tối thiểu 5s giữa các lần gửi HTTP
 
     let shouldSend = false;
 
@@ -132,8 +144,11 @@ export function useTeamLocationTracking({
         coords.longitude,
       );
 
-      // Gửi nếu di chuyển >= distanceInterval (5m) hoặc đã trôi qua >= timeInterval (10s)
-      if (distanceMoved >= distanceInterval || timeElapsed >= timeInterval) {
+      // Chỉ gửi khi: (di chuyển >= distanceInterval HOẶC quá timeInterval) VÀ cách lần gửi trước ít nhất 5s
+      if (
+        (distanceMoved >= distanceInterval || timeElapsed >= timeInterval) &&
+        timeElapsed >= MIN_SEND_INTERVAL
+      ) {
         shouldSend = true;
       }
     }
