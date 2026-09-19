@@ -1,3 +1,4 @@
+import RoutePolyline from "@/components/map/RoutePolyline";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL } from "@/contants/mapConfig";
 import {
@@ -10,8 +11,6 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   Camera,
   type CameraRef,
-  GeoJSONSource,
-  Layer,
   Map,
   Marker,
 } from "@maplibre/maplibre-react-native";
@@ -228,35 +227,7 @@ export default function FloatingMissionPiP() {
             />
 
             {/* Tuyến đường dẫn đường */}
-            {routeGeoJSON && (
-              <GeoJSONSource id="pipRouteSource" data={routeGeoJSON}>
-                <Layer
-                  id="pipRouteCasing"
-                  type="line"
-                  paint={{
-                    "line-color": "#0284c7",
-                    "line-width": 6,
-                    "line-opacity": 0.4,
-                  }}
-                  layout={{
-                    "line-cap": "round",
-                    "line-join": "round",
-                  }}
-                />
-                <Layer
-                  id="pipRouteLine"
-                  type="line"
-                  paint={{
-                    "line-color": "#00f0ff",
-                    "line-width": 3.5,
-                  }}
-                  layout={{
-                    "line-cap": "round",
-                    "line-join": "round",
-                  }}
-                />
-              </GeoJSONSource>
-            )}
+            <RoutePolyline id="pipRoute" data={routeGeoJSON} />
 
             {/* Marker SOS điểm nạn nhân */}
             {targetLat && targetLng && (

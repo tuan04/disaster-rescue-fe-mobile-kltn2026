@@ -4,14 +4,7 @@ import {
   saveActiveMission,
   type ActiveMissionParsed,
 } from "@/database";
-import {
-  calculateEtaTime,
-  calculatePolylineDistanceMeters,
-  formatDuration,
-  formatRouteDistance,
-  getCoordinatesBounds,
-  getRemainingRouteCoordinates,
-} from "@/helpers/route";
+import { getCoordinatesBounds } from "@/helpers/route";
 import { getActiveMission as getBackendActiveMission } from "@/services/assignment.service";
 import { getMapPointDetail, getRoute } from "@/services/map.service";
 import type { RootState } from "@/store";
@@ -19,6 +12,7 @@ import type { RouteResponse } from "@/types/map";
 import type { CameraRef } from "@maplibre/maplibre-react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "@/hooks/useLocation";
+import { useRoute } from "@/hooks/useRoute";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
@@ -208,12 +202,6 @@ export function useActiveMission({
 
   const activeRoute = isRouteCleared ? null : (activeMission?.route ?? null);
 
-  const lastNearestIndexRef = useRef<number>(0);
-
-  useEffect(() => {
-    lastNearestIndexRef.current = 0;
-  }, [activeMission?.id]);
-
   // Tự động căn chỉnh camera bao quát toàn bộ lộ trình khi mới nạp
   useEffect(() => {
     if (
@@ -249,76 +237,26 @@ export function useActiveMission({
     };
   }, [activeRoute]);
 
-  // Tuyến đường còn lại (cắt từ vị trí hiện tại của đội cứu hộ đến đích)
-  const remainingRouteGeoJSON = useMemo(() => {
-    const fullCoordinates = activeRoute?.routes?.[0]?.geometry?.coordinates;
-    if (!fullCoordinates || fullCoordinates.length === 0) return null;
+  const navLat =
+    typeof currentLat === "number" ? currentLat : coords?.latitude;
+  const navLng =
+    typeof currentLng === "number" ? currentLng : coords?.longitude;
 
-    const navLat =
-      typeof currentLat === "number" ? currentLat : coords?.latitude;
-    const navLng =
-      typeof currentLng === "number" ? currentLng : coords?.longitude;
-    const hasValidGps = Boolean(navLat && navLng);
-    if (!hasValidGps) return routeGeoJSON;
-
-    const { remainingCoordinates, nearestIndex } = getRemainingRouteCoordinates(
-      fullCoordinates,
-      navLat!,
-      navLng!,
-      lastNearestIndexRef.current,
-    );
-
-    lastNearestIndexRef.current = nearestIndex;
-
-    return {
-      type: "Feature" as const,
-      properties: {},
-      geometry: {
-        type: "LineString" as const,
-        coordinates: remainingCoordinates,
-      },
-    };
-  }, [activeRoute, currentLat, currentLng, coords, routeGeoJSON]);
-
-  // Tính cự ly còn lại (mét) theo tuyến đường thực tế polyline
-  const remainingDistance = useMemo(() => {
-    const coords = remainingRouteGeoJSON?.geometry?.coordinates;
-    if (coords && coords.length >= 2) {
-      return calculatePolylineDistanceMeters(coords);
-    }
-    return activeRoute?.routes?.[0]?.distance ?? 0;
-  }, [activeRoute, remainingRouteGeoJSON]);
-
-  // Tính thời gian di chuyển còn lại (giây)
-  const remainingDuration = useMemo(() => {
-    if (remainingDistance <= 15) return 0;
-
-    const initialDistance = activeRoute?.routes?.[0]?.distance ?? 0;
-    const initialDuration = activeRoute?.routes?.[0]?.duration ?? 0;
-
-    if (initialDistance > 0 && initialDuration > 0) {
-      return Math.round(
-        (remainingDistance / initialDistance) * initialDuration,
-      );
-    }
-
-    return Math.round(remainingDistance / 8.33);
-  }, [activeRoute, remainingDistance]);
-
-  const distanceText = useMemo(
-    () => formatRouteDistance(remainingDistance),
-    [remainingDistance],
-  );
-
-  const durationText = useMemo(
-    () => formatDuration(remainingDuration),
-    [remainingDuration],
-  );
-
-  const etaTimeStr = useMemo(
-    () => calculateEtaTime(remainingDuration),
-    [remainingDuration],
-  );
+  // Tính toán lộ trình realtime, cắt đoạn đường đã đi qua và tính cự ly / ETA
+  const {
+    remainingRouteGeoJSON,
+    remainingDistance,
+    remainingDuration,
+    distanceText,
+    durationText,
+    etaTimeStr,
+  } = useRoute({
+    routeCoordinates: activeRoute?.routes?.[0]?.geometry?.coordinates,
+    initialDistance: activeRoute?.routes?.[0]?.distance,
+    initialDuration: activeRoute?.routes?.[0]?.duration,
+    currentLat: navLat,
+    currentLng: navLng,
+  });
 
   return {
     // Thông tin ca cứu hộ

@@ -69,19 +69,31 @@ export default function Button({
     },
   };
 
+  const isMuted = disabled && !loading;
+
   return (
     <PaperButton
       mode={modeByVariant[variant]}
       loading={loading}
       disabled={disabled || loading}
-      style={[styles.button, style]}
+      style={[styles.button, style, isMuted && styles.disabled]}
       contentStyle={[styles.content, contentStyle]}
       {...colorByVariant[variant]}
+      {...(isMuted && {
+        textColor: (theme.colors as any).textMuted || "#94a3af",
+      })}
       {...props}
     >
       <Text
         className={`text-md font-bold ${labelClassName || ""}`}
-        style={[{ color: colorByVariant[variant].textColor }, labelStyle]}
+        style={[
+          {
+            color: isMuted
+              ? (theme.colors as any).textMuted || "#94a3af"
+              : colorByVariant[variant].textColor,
+          },
+          labelStyle,
+        ]}
       >
         {title}
       </Text>
@@ -95,5 +107,8 @@ const styles = StyleSheet.create({
   },
   content: {
     minHeight: 45,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });
