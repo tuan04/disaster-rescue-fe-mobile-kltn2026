@@ -75,28 +75,6 @@ export function useNotificationSocket() {
       message: any,
       sourceTopic: string,
     ) => {
-      console.log(
-        "\n🚨 ========================================================",
-      );
-      console.log(`[STOMP WS ĐÃ NHẬN THÔNG BÁO TỪ KÊNH: ${sourceTopic}]`);
-      console.log("--------------------------------------------------------");
-      console.log("📌 ID Thông Báo:", message.id);
-      console.log("📌 Mã Yêu Cầu (ReferenceId):", message.referenceId);
-      console.log("📌 Tiêu Đề:", message.title);
-      console.log("📌 Nội Dung:", message.content);
-      console.log("📌 Loại:", message.type);
-      console.log("📌 Mức Độ:", message.emergencyLevel);
-      console.log(
-        "📌 Tọa Độ:",
-        `[Lat: ${message.latitude}, Long: ${message.longitude}]`,
-      );
-      console.log("📌 SĐT Người Báo:", message.reporterPhone || "Không có");
-      console.log("📌 Thời Gian:", message.createdAt);
-      console.log(
-        "📦 Dữ liệu chi tiết (JSON):",
-        JSON.stringify(message, null, 2),
-      );
-      console.log("========================================================\n");
 
       // 3. Kích hoạt phản hồi rung cảnh báo trên điện thoại (Haptic Feedback)
       try {

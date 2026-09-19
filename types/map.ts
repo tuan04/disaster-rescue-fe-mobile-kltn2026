@@ -70,6 +70,15 @@ export interface HazardDetailRes {
   status: HazardStatus;
 }
 
+export interface CreateHazardReportPayload {
+  hazardType: HazardType;
+  description?: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  images?: any[];
+}
+
 export interface SosDetailRes {
   id: string;
   reporterPhone: string;
