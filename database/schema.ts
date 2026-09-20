@@ -14,6 +14,9 @@ export const INITIAL_SCHEMA = `
     address TEXT,
     sync_status TEXT DEFAULT 'PENDING',    -- PENDING, SYNCING, SYNCED, FAILED
     rescue_status TEXT DEFAULT 'PENDING',  -- PENDING, ACCEPTED, COMPLETED, HIDDEN, SAFE
+    retry_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at INTEGER NOT NULL,
     synced_at INTEGER,
     updated_at INTEGER NOT NULL
   );

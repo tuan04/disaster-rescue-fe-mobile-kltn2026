@@ -247,6 +247,7 @@ export default function SOSRequestScreen() {
       }
 
       queryClient.invalidateQueries({ queryKey: ["my-sos-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["active-synced-sos"] });
 
       if (result.mode === "ONLINE") {
         Toast.show({

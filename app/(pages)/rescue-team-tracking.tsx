@@ -14,11 +14,10 @@ import {
   Map,
 } from "@maplibre/maplibre-react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  Animated,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -27,21 +26,28 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const vehicleIcon = require("@/assets/map-icons/sos_transportation.png");
+
 export default function RescueTeamTrackingScreen() {
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraRef>(null);
 
-  // Nhận params từ router: requestId, targetLat, targetLng, address
+  // Nhận params từ router: requestId, targetLat, targetLng
   const params = useLocalSearchParams<{
     requestId?: string;
     targetLat?: string;
     targetLng?: string;
-    address?: string;
   }>();
 
   const requestId = params.requestId;
-  const targetLat = params.targetLat ? parseFloat(params.targetLat) : null;
-  const targetLng = params.targetLng ? parseFloat(params.targetLng) : null;
+  const targetLat =
+    params.targetLat && Number.isFinite(parseFloat(params.targetLat))
+      ? parseFloat(params.targetLat)
+      : null;
+  const targetLng =
+    params.targetLng && Number.isFinite(parseFloat(params.targetLng))
+      ? parseFloat(params.targetLng)
+      : null;
 
   // Hook theo dõi thời gian thực
   const {
@@ -49,10 +55,8 @@ export default function RescueTeamTrackingScreen() {
     teamLocation,
     currentStatus,
     isLoading,
-    isSocketConnected,
     distanceText,
     durationText,
-    etaTimeStr,
     routeGeoJSON,
   } = useRescueTracking({
     requestId,
@@ -60,19 +64,35 @@ export default function RescueTeamTrackingScreen() {
     targetLng,
   });
 
-  const hasExitedOnCancelRef = useRef(false);
+  const isWaitingForTeam = currentStatus === "PENDING" || !assignment;
 
-  // Đóng màn hình ngay lập tức khi ca cứu hộ bị hủy
+  const hasExitedRef = useRef(false);
+
+  // Tự động đóng màn hình khi ca cứu hộ bị hủy hoặc đã hoàn thành
   useEffect(() => {
-    if (
-      (currentStatus === "CANCELED" || currentStatus === "CANCELLED") &&
-      !hasExitedOnCancelRef.current
-    ) {
-      hasExitedOnCancelRef.current = true;
+    if (hasExitedRef.current) return;
+
+    if (currentStatus === "CANCELED" || currentStatus === "CANCELLED") {
+      hasExitedRef.current = true;
       Alert.alert(
         "Ca cứu hộ đã bị hủy",
         "Ca cứu hộ này đã được hủy bởi đội cứu hộ hoặc điều phối viên.",
         [{ text: "Đóng" }],
+      );
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(app)");
+      }
+      return;
+    }
+
+    if (currentStatus === "COMPLETED" || currentStatus === "SAFE") {
+      hasExitedRef.current = true;
+      Alert.alert(
+        "Nhiệm vụ cứu hộ hoàn thành",
+        "Đội cứu hộ đã hoàn thành nhiệm vụ và xác nhận an toàn.",
+        [{ text: "Đồng ý" }],
       );
       if (router.canGoBack()) {
         router.back();
@@ -90,7 +110,7 @@ export default function RescueTeamTrackingScreen() {
     if (!cameraRef.current) return;
 
     const coordsList: number[][] = [];
-    if (typeof targetLng === "number" && typeof targetLat === "number") {
+    if (targetLng !== null && targetLat !== null) {
       coordsList.push([targetLng, targetLat]);
     }
     if (teamLocation?.longitude && teamLocation?.latitude) {
@@ -104,10 +124,12 @@ export default function RescueTeamTrackingScreen() {
         isFlyingRef.current = true;
         cameraRef.current.setStop({
           bounds,
+          pitch: 0,
+          bearing: 0,
           padding: {
             top: insets.top + 80,
             left: 50,
-            bottom: insets.bottom + 260,
+            bottom: isWaitingForTeam ? insets.bottom + 120 : insets.bottom + 260,
             right: 50,
           },
           duration: 800,
@@ -122,11 +144,18 @@ export default function RescueTeamTrackingScreen() {
     // Fallback nếu chỉ có 1 tọa độ
     const centerLng = teamLocation?.longitude || targetLng || 106.66;
     const centerLat = teamLocation?.latitude || targetLat || 10.76;
+    setIsFollowingTeam(false);
+    isFlyingRef.current = true;
     cameraRef.current.flyTo({
       center: [centerLng, centerLat],
       zoom: 15,
+      pitch: 0,
+      bearing: 0,
       duration: 800,
     });
+    setTimeout(() => {
+      isFlyingRef.current = false;
+    }, 850);
   }, [
     targetLat,
     targetLng,
@@ -134,6 +163,7 @@ export default function RescueTeamTrackingScreen() {
     teamLocation?.longitude,
     insets.top,
     insets.bottom,
+    isWaitingForTeam,
   ]);
 
   // Lần đầu tải dữ liệu xong tự động fit camera để nhìn thấy cả 2 điểm
@@ -172,22 +202,43 @@ export default function RescueTeamTrackingScreen() {
     });
   }, [teamLocation, isFollowingTeam, insets.top, insets.bottom]);
 
-  // Nút bấm chuyển sang bám theo xe
-  const handleFocusTeam = useCallback(() => {
-    if (!teamLocation || !cameraRef.current) return;
-    setIsFollowingTeam(true);
-    isFlyingRef.current = true;
-    cameraRef.current.flyTo({
-      center: [teamLocation.longitude, teamLocation.latitude],
-      zoom: 16,
-      pitch: 45,
-      bearing: teamLocation.heading || 0,
-      duration: 800,
-    });
-    setTimeout(() => {
-      isFlyingRef.current = false;
-    }, 850);
-  }, [teamLocation]);
+
+  // Ưu tiên góc bám theo xe cứu hộ, nếu chưa có xe thì căn chỉnh về điểm cứu hộ
+  const handleRecenter = useCallback(() => {
+    if (!cameraRef.current) return;
+
+    if (teamLocation?.longitude && teamLocation?.latitude) {
+      setIsFollowingTeam(true);
+      isFlyingRef.current = true;
+      cameraRef.current.flyTo({
+        center: [teamLocation.longitude, teamLocation.latitude],
+        zoom: 16,
+        pitch: 45,
+        bearing: teamLocation.heading || 0,
+        duration: 800,
+      });
+      setTimeout(() => {
+        isFlyingRef.current = false;
+      }, 850);
+      return;
+    }
+
+    // Nếu chưa có vị trí đội cứu hộ thì đưa camera về điểm cứu hộ của người dân
+    if (targetLng !== null && targetLat !== null) {
+      setIsFollowingTeam(false);
+      isFlyingRef.current = true;
+      cameraRef.current.flyTo({
+        center: [targetLng, targetLat],
+        zoom: 15,
+        pitch: 0,
+        bearing: 0,
+        duration: 800,
+      });
+      setTimeout(() => {
+        isFlyingRef.current = false;
+      }, 850);
+    }
+  }, [teamLocation, targetLat, targetLng]);
 
   const handleCallLeader = useCallback(() => {
     if (assignment?.leaderPhone) {
@@ -258,90 +309,92 @@ export default function RescueTeamTrackingScreen() {
         >
           <Ionicons name="arrow-back" size={20} color="#0f172a" />
         </Pressable>
-
-        {/* Trạng thái Live WebSocket */}
-        <View className="flex-row items-center rounded-full bg-white/95 dark:bg-slate-800/95 px-3 py-1.5 shadow-lg border border-slate-200 dark:border-slate-700">
-          <View
-            className={`w-2 h-2 rounded-full mr-1.5 ${isSocketConnected ? "bg-emerald-500" : "bg-amber-500"
-              }`}
-          />
-          <Text className="text-xs font-bold text-slate-800 dark:text-slate-100">
-            {isSocketConnected ? "Trực tiếp" : "Đang kết nối lại..."}
-          </Text>
-        </View>
       </View>
 
-      {/* Nút nổi: Bám theo xe cứu hộ khi người dùng lỡ kéo bản đồ đi nơi khác */}
-      {!isFollowingTeam && teamLocation && (
-        <View
-          className="absolute right-4 z-20"
-          style={{ bottom: insets.bottom + 200 }}
-        >
-          <Pressable
-            onPress={handleFocusTeam}
-            className="flex-row items-center bg-blue-600 px-3.5 py-2 rounded-full shadow-xl active:opacity-85"
-          >
-            <MaterialCommunityIcons name="crosshairs-gps" size={18} color="#ffffff" />
-            <Text className="ml-1.5 text-xs font-bold text-white">
-              Bám theo xe
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* 3. Khối thông tin đội cứu hộ đang đến */}
+      {/* Container chung ở đáy màn hình: Quản lý khoảng cách giữa nút định vị và bảng thông tin */}
       <View
-        className="absolute left-3 right-3 z-30 rounded-md bg-white dark:bg-slate-900 overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800"
+        pointerEvents="box-none"
+        className="absolute left-3 right-3 z-30"
         style={{ bottom: insets.bottom + 8 }}
       >
-        <View className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-slate-100 dark:border-slate-800">
-          <View className="flex-row items-start justify-between">
-            <Text className="text-sm font-bold text-slate-900 dark:text-slate-100 flex-1 pr-3 leading-snug">
-              Đội cứu hộ đang trên đường tới
-            </Text>
-            <View className="items-end shrink-0">
-              <Text className="text-sm font-extrabold text-blue-600 dark:text-blue-400">
-                {durationText}
-              </Text>
-              <Text className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                {distanceText || "--"}
+        {/* Nút định vị nổi: Ưu tiên bám theo xe, nếu chưa có xe thì bám theo điểm cứu hộ */}
+        {!isFollowingTeam && (
+          <View pointerEvents="box-none" className="items-end mb-2.5 mr-1">
+            <Pressable
+              onPress={handleRecenter}
+              className="h-11 w-11 items-center justify-center rounded-full bg-secondary shadow-xl active:opacity-85"
+            >
+              <MaterialCommunityIcons name="crosshairs-gps" size={22} color="#ffffff" />
+            </Pressable>
+          </View>
+        )}
+
+        {/* Khối thông tin: Đang tìm đội cứu hộ hoặc Đội cứu hộ đang đến */}
+        <View className="rounded-md bg-white dark:bg-slate-900 overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800">
+          {isWaitingForTeam ? (
+            <View className="flex-row items-center px-3 py-3">
+              <Image
+                source={vehicleIcon}
+                className="w-10 h-10 mr-3"
+                resizeMode="contain"
+              />
+              <Text className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                Đang tìm đội cứu hộ...
               </Text>
             </View>
-          </View>
-        </View>
+          ) : (
+            <>
+              <View className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-slate-100 dark:border-slate-800">
+                <View className="flex-row items-start justify-between">
+                  <Text className="text-sm font-bold text-slate-900 dark:text-slate-100 flex-1 pr-3 leading-snug">
+                    Đội cứu hộ đang trên đường tới
+                  </Text>
+                  <View className="items-end shrink-0">
+                    <Text className="text-sm font-extrabold text-blue-600 dark:text-blue-400">
+                      {durationText}
+                    </Text>
+                    <Text className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                      {distanceText || "--"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
 
-        {/* 2. Phần thông tin: Sử dụng SheetDetailRow */}
-        <View className="px-4 py-1">
-          <SheetDetailRow label="Đội" value={teamName} />
-          <SheetDetailRow
-            label="Đội trưởng"
-            value={(assignment as any)?.leaderName || "Chưa cập nhật"}
-          />
-          <SheetDetailRow
-            label="Số điện thoại"
-            value={leaderPhone || "Chưa cập nhật"}
-          />
-        </View>
+              {/* 2. Phần thông tin: Sử dụng SheetDetailRow */}
+              <View className="px-4 py-1">
+                <SheetDetailRow label="Đội" value={teamName} />
+                <SheetDetailRow
+                  label="Đội trưởng"
+                  value={assignment?.leaderName || "Chưa cập nhật"}
+                />
+                <SheetDetailRow
+                  label="Số điện thoại"
+                  value={leaderPhone || "Chưa cập nhật"}
+                />
+              </View>
 
-        {/* 3. Input text không bấm được và nút gọi màu xanh nhỏ bên phải */}
-        <View className="flex-row items-center px-4 pb-4 pt-2">
-          <TextInput
-            editable={false}
-            pointerEvents="none"
-            placeholder="Nhập tin nhắn..."
-            placeholderTextColor="#94a3b8"
-            className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3.5 py-2.5 rounded-md border border-slate-200 dark:border-slate-700 text-sm"
-          />
-          <Pressable
-            onPress={handleCallLeader}
-            disabled={!leaderPhone}
-            className={`ml-2.5 h-10 w-10 items-center justify-center rounded-md shadow-sm ${leaderPhone
-              ? "bg-emerald-500 active:bg-emerald-600"
-              : "bg-slate-300 dark:bg-slate-700 opacity-60"
-              }`}
-          >
-            <Ionicons name="call" size={18} color="#ffffff" />
-          </Pressable>
+              {/* 3. Input text không bấm được và nút gọi màu xanh nhỏ bên phải */}
+              <View className="flex-row items-center px-4 pb-4 pt-2">
+                <TextInput
+                  editable={false}
+                  pointerEvents="none"
+                  placeholder="Nhập tin nhắn..."
+                  placeholderTextColor="#94a3b8"
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3.5 py-2.5 rounded-md border border-slate-200 dark:border-slate-700 text-sm"
+                />
+                <Pressable
+                  onPress={handleCallLeader}
+                  disabled={!leaderPhone}
+                  className={`ml-2.5 h-10 w-10 items-center justify-center rounded-md shadow-sm ${leaderPhone
+                    ? "bg-emerald-500 active:bg-emerald-600"
+                    : "bg-slate-300 dark:bg-slate-700 opacity-60"
+                    }`}
+                >
+                  <Ionicons name="call" size={18} color="#ffffff" />
+                </Pressable>
+              </View>
+            </>
+          )}
         </View>
       </View>
     </ScreenContainer>

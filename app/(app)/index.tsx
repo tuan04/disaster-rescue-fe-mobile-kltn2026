@@ -6,12 +6,16 @@ import UtilityCard from "@/components/home/UtilityCard";
 import { useAppTheme } from "@/contants/theme";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
 import { getNotifications } from "@/services/notification.service";
+import {
+  getAllSOSRequests,
+  type MySOSRequestEntity,
+} from "@/database/sos-request.repository";
 import type { RootState } from "@/store";
 import type { NotificationItem } from "@/types/notification";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
-import React, { useMemo } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
@@ -32,6 +36,24 @@ export default function AppIndex() {
   const unreadNotificationCount = useMemo(() => {
     return serverNotifications.filter((n) => !n.isRead).length;
   }, [serverNotifications]);
+
+  // Lấy danh sách yêu cầu SOS trong máy để kiểm tra có ca nào đang PENDING (chờ cứu) không
+  const { data: mySOSRequests = [], refetch: refetchMySOS } = useQuery<
+    MySOSRequestEntity[]
+  >({
+    queryKey: ["my-sos-requests"],
+    queryFn: getAllSOSRequests,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchMySOS();
+    }, [refetchMySOS]),
+  );
+
+  const hasPendingSOS = useMemo(() => {
+    return mySOSRequests.some((req) => req.rescue_status === "PENDING");
+  }, [mySOSRequests]);
 
   const handleOpenSOS = () => {
     router.push("/(pages)/sos-request");
@@ -108,17 +130,30 @@ export default function AppIndex() {
         </Text>
       </Pressable>
 
-      <Button
-        title="Yêu cầu cứu hộ của tôi"
-        variant="secondary"
-        icon={({ size, color }) => (
-          <Ionicons name="list-circle-outline" size={24} color={color} />
+      {/* Nút Yêu cầu cứu hộ của tôi: Có dấu chấm than khi có ca chờ cứu */}
+      <View className="relative mb-6">
+        <Button
+          title="Yêu cầu cứu hộ của tôi"
+          variant="secondary"
+          icon={({ size, color }) => (
+            <Ionicons name="list-circle-outline" size={24} color={color} />
+          )}
+          onPress={() => router.push("/(pages)/my-sos-requests")}
+          style={{ borderRadius: 16 }}
+          contentStyle={{ minHeight: 54 }}
+          labelClassName="text-base font-bold text-white"
+        />
+
+        {/* Dấu chấm than bên trên góc phải */}
+        {hasPendingSOS && (
+          <View
+            pointerEvents="none"
+            className="absolute -top-1.5 -right-1.5 h-6 w-6 items-center justify-center rounded-full bg-amber-500 border-2 border-white dark:border-slate-900 shadow-md elevation-5"
+          >
+            <Ionicons name="alert" size={13} color="#ffffff" />
+          </View>
         )}
-        onPress={() => router.push("/(pages)/my-sos-requests")}
-        style={{ borderRadius: 16, marginBottom: 24 }}
-        contentStyle={{ minHeight: 54 }}
-        labelClassName="text-base font-bold text-white"
-      />
+      </View>
 
       <View>
         <Text className="mb-3 text-base font-bold text-text">Tin tức</Text>

@@ -1,5 +1,5 @@
 export const MAP_STYLE_URL =
-  "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
+  "https://tiles.openfreemap.org/styles/liberty";
 
 export const TIME_OPTIONS = [
   { hours: 2, label: "Trong 2 giờ qua" },

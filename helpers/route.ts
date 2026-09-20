@@ -248,3 +248,172 @@ export function getCoordinatesBounds(
 
   return [minLng, minLat, maxLng, maxLat];
 }
+
+/**
+ * Tính góc la bàn (bearing 0 - 360 độ) từ điểm A đến điểm B
+ */
+export function calculateBearing(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const y = Math.sin(deltaLambda) * Math.cos(phi2);
+  const x =
+    Math.cos(phi1) * Math.sin(phi2) -
+    Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+
+  const theta = Math.atan2(y, x);
+  return (Math.round((theta * 180) / Math.PI) + 360) % 360;
+}
+
+/**
+ * Chiếu vuông góc một điểm GPS (lat, lng) lên đoạn thẳng nối giữa point A và point B.
+ * Sử dụng phép chiếu phẳng cục bộ chuẩn xác cao.
+ */
+export function projectPointOnSegment(
+  pLat: number,
+  pLng: number,
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): { lat: number; lng: number; distanceMeters: number; t: number } {
+  const midLatRad = (((aLat + bLat) / 2) * Math.PI) / 180;
+  const metersPerDegLat = 111132;
+  const metersPerDegLng = 111320 * Math.cos(midLatRad);
+
+  // Chuyển sang tọa độ phẳng (mét) với gốc tọa độ tại A
+  const dxAB = (bLng - aLng) * metersPerDegLng;
+  const dyAB = (bLat - aLat) * metersPerDegLat;
+  const dxAP = (pLng - aLng) * metersPerDegLng;
+  const dyAP = (pLat - aLat) * metersPerDegLat;
+
+  const abLenSq = dxAB * dxAB + dyAB * dyAB;
+  if (abLenSq === 0) {
+    const dist = Math.sqrt(dxAP * dxAP + dyAP * dyAP);
+    return { lat: aLat, lng: aLng, distanceMeters: dist, t: 0 };
+  }
+
+  // Tham số chiếu t (giới hạn trong đoạn thẳng [0, 1])
+  let t = (dxAP * dxAB + dyAP * dyAB) / abLenSq;
+  t = Math.max(0, Math.min(1, t));
+
+  // Tọa độ hình chiếu
+  const projLng = aLng + t * (bLng - aLng);
+  const projLat = aLat + t * (bLat - aLat);
+
+  // Khoảng cách từ P đến hình chiếu (mét)
+  const dxProj = (pLng - projLng) * metersPerDegLng;
+  const dyProj = (pLat - projLat) * metersPerDegLat;
+  const distanceMeters = Math.sqrt(dxProj * dxProj + dyProj * dyProj);
+
+  return { lat: projLat, lng: projLng, distanceMeters, t };
+}
+
+export interface SnappedPointResult {
+  latitude: number;
+  longitude: number;
+  distanceMeters: number;
+  isSnapped: boolean;
+  segmentIndex: number;
+  bearing?: number;
+}
+
+/**
+ * Chiếu điểm GPS của xe lên tuyến đường polyline gần nhất (Snap to Road).
+ * Nếu khoảng cách vuông góc <= maxSnapDistanceMeters (mặc định 40m), điểm sẽ được hút vào lòng đường.
+ * Nếu xe rẽ nhánh khác ngoài lộ trình, giữ nguyên tọa độ thực tế.
+ */
+export function snapPointToRoute(
+  lat: number,
+  lng: number,
+  coordinates?: number[][] | null,
+  maxSnapDistanceMeters: number = 40,
+  minSegmentIndex: number = 0,
+): SnappedPointResult {
+  if (!coordinates || coordinates.length < 2) {
+    return {
+      latitude: lat,
+      longitude: lng,
+      distanceMeters: 0,
+      isSnapped: false,
+      segmentIndex: 0,
+    };
+  }
+
+  let minDistance = Infinity;
+  let bestLat = lat;
+  let bestLng = lng;
+  let bestSegmentIndex = 0;
+  let bestBearing: number | undefined;
+
+  const startIndex = Math.max(
+    0,
+    Math.min(minSegmentIndex, coordinates.length - 2),
+  );
+
+  for (let i = startIndex; i < coordinates.length - 1; i++) {
+    const aLng = coordinates[i][0];
+    const aLat = coordinates[i][1];
+    const bLng = coordinates[i + 1][0];
+    const bLat = coordinates[i + 1][1];
+
+    const proj = projectPointOnSegment(lat, lng, aLat, aLng, bLat, bLng);
+
+    if (proj.distanceMeters < minDistance) {
+      minDistance = proj.distanceMeters;
+      bestLat = proj.lat;
+      bestLng = proj.lng;
+      bestSegmentIndex = i;
+      bestBearing = calculateBearing(aLat, aLng, bLat, bLng);
+    }
+  }
+
+  if (minDistance <= maxSnapDistanceMeters) {
+    return {
+      latitude: bestLat,
+      longitude: bestLng,
+      distanceMeters: minDistance,
+      isSnapped: true,
+      segmentIndex: bestSegmentIndex,
+      bearing: bestBearing,
+    };
+  }
+
+  return {
+    latitude: lat,
+    longitude: lng,
+    distanceMeters: minDistance,
+    isSnapped: false,
+    segmentIndex: bestSegmentIndex,
+    bearing: bestBearing,
+  };
+}
+
+/**
+ * Nội suy góc xoay theo cung ngắn nhất (shortest angle path), tránh bị xoay 360 độ vòng quanh
+ */
+export function interpolateAngle(
+  startAngle: number,
+  targetAngle: number,
+  t: number,
+): number {
+  let diff = (targetAngle - startAngle) % 360;
+  if (diff < -180) diff += 360;
+  if (diff > 180) diff -= 360;
+  return Math.round((startAngle + diff * t + 360) % 360);
+}
+
+/**
+ * Hàm làm dịu chuyển động (Easing out quad) giúp xe dừng lại êm ái
+ */
+export function easeOutQuad(x: number): number {
+  return 1 - (1 - x) * (1 - x);
+}
+
+

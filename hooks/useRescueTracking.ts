@@ -1,9 +1,11 @@
-import { updateSOSRescueStatusByServerId } from "@/database/sos-request.repository";
 import {
   calculateDistanceMeters,
   calculateEtaTime,
+  easeOutQuad,
   formatDuration,
   formatRouteDistance,
+  interpolateAngle,
+  snapPointToRoute,
 } from "@/helpers/route";
 import { useRoute } from "@/hooks/useRoute";
 import { getActiveAssignmentByRequestId } from "@/services/assignment.service";
@@ -44,6 +46,23 @@ export function useRescueTracking({
     websocketService.isConnected(),
   );
 
+  // Ref lưu routeCoordinates để callback WebSocket luôn đọc được dữ liệu mới nhất mà không gây re-subscribe
+  const routeCoordinatesRef = useRef<number[][]>([]);
+  routeCoordinatesRef.current = routeCoordinates;
+
+  // Quản lý animation trượt mượt mà (smooth sliding)
+  const animFrameRef = useRef<number | null>(null);
+  const currentLocationRef = useRef<TeamLocationPayload | null>(null);
+
+  // Dọn dẹp animation frame khi unmount
+  useEffect(() => {
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, []);
+
   const {
     data: assignmentRes,
     isLoading,
@@ -64,21 +83,12 @@ export function useRescueTracking({
   const currentStatus =
     liveStatus || assignment?.status || (assignment ? "ACCEPTED" : "PENDING");
 
-  // Lưu trạng thái vào SQLite local
-  useEffect(() => {
-    if (requestId && currentStatus) {
-      updateSOSRescueStatusByServerId(requestId, currentStatus as any).catch(
-        () => {},
-      );
-    }
-  }, [requestId, currentStatus]);
-
   // Lắng nghe trạng thái kết nối STOMP
   useEffect(() => {
     return websocketService.onConnectionChange(setIsSocketConnected);
   }, []);
 
-  // Lắng nghe cập nhật trạng thái ca cứu hộ
+  // Lắng nghe cập nhật trạng thái ca cứu hộ thời gian thực
   useEffect(() => {
     if (!requestId) return;
 
@@ -90,31 +100,97 @@ export function useRescueTracking({
         }
         if (event?.status) {
           setLiveStatus(event.status);
-        } else if (event?.assignmentId && event?.teamId) {
-          setLiveStatus("ACCEPTED");
-          refetch();
         }
       },
     );
-  }, [requestId, refetch]);
+  }, [requestId]);
 
-  // Lắng nghe tọa độ xe cứu hộ
+  // Lắng nghe tọa độ xe cứu hộ: Áp dụng Snap to Road và hiệu ứng trượt mượt mà
   useEffect(() => {
     if (!teamId) return;
 
     return subscribe(
       `/topic/teams/${teamId}/location`,
       (payload: TeamLocationPayload) => {
-        if (payload?.latitude && payload?.longitude) {
-          setTeamLocation({
+        if (!payload?.latitude || !payload?.longitude) return;
+
+        // 1. Snap to Road: Chiếu vuông góc vị trí xe vào lòng đường
+        const currentRoute = routeCoordinatesRef.current;
+        const snapped = snapPointToRoute(
+          payload.latitude,
+          payload.longitude,
+          currentRoute,
+          45, // Ngưỡng bắt dính 45 mét vào lòng đường
+        );
+
+        const targetLat = snapped.latitude;
+        const targetLng = snapped.longitude;
+        const targetHeading =
+          snapped.isSnapped && snapped.bearing !== undefined
+            ? snapped.bearing
+            : payload.heading || 0;
+        const targetSpeed = payload.speed || 0;
+
+        // 2. Nếu là lần đầu nhận vị trí: Hiển thị ngay lập tức
+        if (!currentLocationRef.current) {
+          const initialLoc: TeamLocationPayload = {
             teamId: payload.teamId || teamId,
-            latitude: payload.latitude,
-            longitude: payload.longitude,
-            speed: payload.speed || 0,
-            heading: payload.heading || 0,
+            latitude: targetLat,
+            longitude: targetLng,
+            speed: targetSpeed,
+            heading: targetHeading,
             recordedAt: payload.recordedAt,
-          });
+          };
+          currentLocationRef.current = initialLoc;
+          setTeamLocation(initialLoc);
+          return;
         }
+
+        // 3. Nếu đã có vị trí trước đó: Hủy animation cũ và bắt đầu trượt mượt từ vị trí hiện tại
+        if (animFrameRef.current !== null) {
+          cancelAnimationFrame(animFrameRef.current);
+        }
+
+        const startLat = currentLocationRef.current.latitude;
+        const startLng = currentLocationRef.current.longitude;
+        const startHeading = currentLocationRef.current.heading;
+        const startTime = performance.now();
+        const duration = 1200; // Thời gian trượt 1.2 giây khớp với nhịp GPS
+
+        const animate = () => {
+          const now = performance.now();
+          const elapsed = now - startTime;
+          const progress = Math.min(1, elapsed / duration);
+          const eased = easeOutQuad(progress);
+
+          const currentLat = startLat + (targetLat - startLat) * eased;
+          const currentLng = startLng + (targetLng - startLng) * eased;
+          const currentHeading = interpolateAngle(
+            startHeading,
+            targetHeading,
+            eased,
+          );
+
+          const updated: TeamLocationPayload = {
+            teamId: payload.teamId || teamId,
+            latitude: currentLat,
+            longitude: currentLng,
+            speed: targetSpeed,
+            heading: currentHeading,
+            recordedAt: payload.recordedAt,
+          };
+
+          currentLocationRef.current = updated;
+          setTeamLocation(updated);
+
+          if (progress < 1) {
+            animFrameRef.current = requestAnimationFrame(animate);
+          } else {
+            animFrameRef.current = null;
+          }
+        };
+
+        animFrameRef.current = requestAnimationFrame(animate);
       },
     );
   }, [teamId]);
