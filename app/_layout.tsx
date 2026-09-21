@@ -78,17 +78,25 @@ function RootNavigator() {
 
         const response = await getCurrentUser(token);
         if (response.success && response.data) {
-          dispatch(login(response.data));
+          let userData = response.data;
 
           try {
             const profileRes = await getMyProfile();
             if (profileRes.success && profileRes.data) {
               dispatch(setProfile(profileRes.data));
+              // Đồng bộ teamId từ volunteerProfile vào user nếu user chưa có
+              if (!userData.teamId && profileRes.data.volunteerProfile?.teamId) {
+                userData = {
+                  ...userData,
+                  teamId: profileRes.data.volunteerProfile.teamId,
+                };
+              }
             }
           } catch (profileError) {
             console.warn("Could not fetch full profile on bootstrap:", profileError);
           }
 
+          dispatch(login(userData));
           return;
         }
 

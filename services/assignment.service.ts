@@ -1,4 +1,5 @@
 import type { AssignmentRes } from "../types/assignment";
+import type { MapPointDetailRes } from "../types/map";
 import type { ApiResponse } from "../types/response";
 import { get, post } from "./api";
 
@@ -46,3 +47,41 @@ export const cancelAssignment = async (
 ): Promise<void> => {
   await post<void>(`/assignments/${assignmentId}/cancel`, { reason });
 };
+
+export const getPendingAssignmentsByTeamId = async (
+  teamId: string,
+): Promise<MapPointDetailRes[]> => {
+  const response = await get<MapPointDetailRes[]>(
+    `/assignments/teams/${teamId}/pending`,
+  );
+  return response.data || [];
+};
+
+export const acceptAssignedRescue = async (
+  teamId: string,
+  requestId: string,
+  note?: string,
+): Promise<void> => {
+  await post<void>(
+    `/assignments/teams/${teamId}/rescue-requests/${requestId}/accept`,
+    null,
+    {
+      params: note ? { note } : undefined,
+    },
+  );
+};
+
+export const rejectAssignedRescue = async (
+  teamId: string,
+  requestId: string,
+  reason?: string,
+): Promise<void> => {
+  await post<void>(
+    `/assignments/teams/${teamId}/rescue-requests/${requestId}/reject`,
+    null,
+    {
+      params: reason ? { reason } : undefined,
+    },
+  );
+};
+

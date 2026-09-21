@@ -7,7 +7,6 @@ import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomShee
 import { hazardTypeLabel } from "@/contants/mapPointLables";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
-import { useLocation } from "@/hooks/useLocation";
 import { getAllMapPoints } from "@/services/map.service";
 import type { HazardMapPointRes, HazardType, MapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,9 +20,10 @@ import {
   Pressable,
   RefreshControl,
   Text,
-  TextInput,
-  View,
+  View
 } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 const HAZARD_TYPE_OPTIONS: Array<{ key: HazardType | "ALL"; label: string }> = [
   { key: "ALL", label: "Tất cả" },

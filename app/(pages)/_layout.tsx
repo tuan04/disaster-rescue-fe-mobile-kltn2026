@@ -13,6 +13,7 @@ export default function PagesLayout() {
       <Stack.Screen name="notifications" />
       <Stack.Screen name="my-sos-requests" />
       <Stack.Screen name="rescue-team-tracking" />
+      <Stack.Screen name="pending-assignments" />
     </Stack>
   );
 }
