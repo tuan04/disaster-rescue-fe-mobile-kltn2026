@@ -50,7 +50,7 @@ export function useNotificationSocket() {
           (message) =>
             handleIncomingNotification(
               message,
-              `/topic/notifications/${user.id}`,
+              `/topic/notifications/${user.teamId}`,
             ),
         ),
       );

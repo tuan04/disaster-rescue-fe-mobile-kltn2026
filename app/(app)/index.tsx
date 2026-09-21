@@ -4,12 +4,12 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
 import { useAppTheme } from "@/contants/theme";
-import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
-import { getNotifications } from "@/services/notification.service";
 import {
   getAllSOSRequests,
   type MySOSRequestEntity,
 } from "@/database/sos-request.repository";
+import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
+import { getNotifications } from "@/services/notification.service";
 import type { RootState } from "@/store";
 import type { NotificationItem } from "@/types/notification";
 import { Ionicons } from "@expo/vector-icons";

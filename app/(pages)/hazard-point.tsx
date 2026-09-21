@@ -1,6 +1,7 @@
 import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import SearchBar from "@/components/common/SearchBar";
+import CreateHazardBottomSheet from "@/components/map/CreateHazardBottomSheet";
 import HazardPointItem from "@/components/map/HazardPointItem";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { hazardTypeLabel } from "@/contants/mapPointLables";
@@ -34,9 +35,14 @@ const HAZARD_TYPE_OPTIONS: Array<{ key: HazardType | "ALL"; label: string }> = [
 
 export default function HazardPointScreen() {
   const theme = useAppTheme();
-  const { coords } = useLocation();
+    const coords = useSelector(
+      (state: RootState) => state.location.coords,
+      (prev, next) =>
+        prev?.latitude === next?.latitude && prev?.longitude === next?.longitude,
+    );
   const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
+  const addHazardSheetRef = useRef<BottomSheetModal>(null);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(
     params.pointId || null,
   );
@@ -115,15 +121,17 @@ export default function HazardPointScreen() {
           title="Điểm nguy hiểm"
           subtitle={`${hazardPoints.length} điểm cảnh báo nguy hiểm`}
           right={
-            <Pressable
-              onPress={() => router.push("/(app)/map")}
-              className="flex-row items-center rounded-xl bg-white/20 px-3 py-2 border border-white/30 active:opacity-70"
-            >
-              <Ionicons name="map-outline" size={18} color="#ffffff" />
-              <Text className="ml-1.5 text-xs font-semibold text-white">
-                Bản đồ
-              </Text>
-            </Pressable>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={() => router.push("/(app)/map")}
+                className="flex-row items-center rounded-xl bg-white/20 px-3 py-2 border border-white/30 active:opacity-70"
+              >
+                <Ionicons name="map-outline" size={18} color="#ffffff" />
+                <Text className="ml-1.5 text-xs font-semibold text-white">
+                  Bản đồ
+                </Text>
+              </Pressable>
+            </View>
           }
         />
       }
@@ -193,7 +201,7 @@ export default function HazardPointScreen() {
               tintColor={theme.colors.warning}
             />
           }
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 90 }}
           ListEmptyComponent={
             <View className="items-center justify-center rounded-2xl bg-surface p-8 shadow-xs mt-6">
               <View className="h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-3">
@@ -214,11 +222,37 @@ export default function HazardPointScreen() {
         />
       )}
 
+      {/* Floating Add Hazard Button */}
+      <Pressable
+        onPress={() => addHazardSheetRef.current?.present()}
+        style={{
+          position: "absolute",
+          bottom: 24,
+          right: 20,
+          backgroundColor: theme.colors.warning,
+          elevation: 6,
+        }}
+        className="flex-row items-center rounded-full px-4 py-3 shadow-lg active:opacity-85"
+      >
+        <Ionicons name="add" size={20} color="#ffffff" />
+        <Text className="ml-1.5 text-sm font-bold text-white">
+          Thêm cảnh báo
+        </Text>
+      </Pressable>
+
       {/* Map Point Detail Bottom Sheet */}
       <MapPointDetailBottomSheet
         ref={detailSheetRef}
         pointId={selectedPointId}
         onDismiss={() => setSelectedPointId(null)}
+      />
+
+      {/* Create Hazard Bottom Sheet */}
+      <CreateHazardBottomSheet
+        ref={addHazardSheetRef}
+        onSuccess={() => {
+          refetch();
+        }}
       />
     </ScreenContainer>
   );

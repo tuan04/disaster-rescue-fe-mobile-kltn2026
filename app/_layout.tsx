@@ -67,6 +67,14 @@ function RootNavigator() {
     };
   }, []);
 
+  // Tự động đồng bộ các yêu cầu SOS ngoại tuyến khi có kết nối mạng
+  useEffect(() => {
+    const cleanup = initSOSAutoSync();
+    return () => {
+      cleanup();
+    };
+  }, []);
+
   useEffect(() => {
     const bootstrapAuth = async () => {
       try {

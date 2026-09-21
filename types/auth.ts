@@ -37,6 +37,7 @@ export interface UserInfoResponse {
   role: UserRole;
   fullName: string;
   phone: string;
+  teamId?: string | null;
 }
 
 export interface LoginResponse {
