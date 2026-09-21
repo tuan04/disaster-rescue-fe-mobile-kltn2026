@@ -3,6 +3,7 @@ import FloatingMissionPiP from "@/components/map/FloatingMissionPiP";
 import { DarkTheme, LightTheme } from "@/contants/theme";
 import { clearTokens, getAccessToken } from "@/helpers/secureStore";
 import { useForegroundLocationWatcher } from "@/hooks/useForegroundLocationWatcher";
+import { useMySOSStatusWatcher } from "@/hooks/useMySOSStatusWatcher";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 import { useTeamLocationTracking } from "@/hooks/useTeamLocationTracking";
 import { getCurrentUser } from "@/services/auth.service";
@@ -13,7 +14,7 @@ import { store } from "@/store";
 import { login, logout, setProfile } from "@/store/authSlice";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, usePathname, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 
 import { StatusBar, useColorScheme, View } from "react-native";
@@ -55,6 +56,16 @@ function RootNavigator() {
   useTeamLocationTracking();
   // Kích hoạt WebSocket STOMP lắng nghe thông báo thời gian thực từ notification-service
   useNotificationSocket();
+  // Lắng nghe cập nhật trạng thái các ca cứu hộ của người dùng
+  useMySOSStatusWatcher();
+
+  // Tự động đồng bộ các yêu cầu SOS ngoại tuyến khi có kết nối mạng
+  useEffect(() => {
+    const cleanup = initSOSAutoSync();
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   // Tự động đồng bộ các yêu cầu SOS ngoại tuyến khi có kết nối mạng
   useEffect(() => {

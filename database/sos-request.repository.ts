@@ -318,3 +318,17 @@ export async function clearAllSOSRequests(): Promise<void> {
   const db = await getDatabaseAsync();
   await db.runAsync("DELETE FROM my_sos_requests");
 }
+
+/**
+ * Lấy danh sách tất cả các yêu cầu cứu hộ đã đồng bộ (có server_id) và đang active (chưa xong hoặc chưa hủy)
+ */
+export async function getActiveSyncedSOSRequests(): Promise<MySOSRequestEntity[]> {
+  const db = await getDatabaseAsync();
+  return await db.getAllAsync<MySOSRequestEntity>(
+    `SELECT * FROM my_sos_requests 
+     WHERE server_id IS NOT NULL 
+       AND rescue_status IN ('PENDING', 'ACCEPTED')
+     ORDER BY created_at DESC`,
+  );
+}
+

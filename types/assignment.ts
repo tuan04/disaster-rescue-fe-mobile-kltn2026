@@ -10,6 +10,7 @@ export interface AssignmentRes {
   requestId: string;
   campaignTeamId: string;
   assignedTeamName: string;
+  leaderName?: string;
   leaderPhone: string;
   status: AssignmentStatus;
   assignedAt?: string;

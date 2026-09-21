@@ -48,23 +48,23 @@ const RESCUE_CONFIG: Record<
   { label: string; bg: string; text: string }
 > = {
   PENDING: {
-    label: "Đang chờ cứu",
+    label: "Đang chờ đội cứu hộ",
     bg: "bg-amber-500",
     text: "text-white",
   },
   ACCEPTED: {
-    label: "Đang được cứu",
-    bg: "bg-blue-600",
+    label: "Đang được cứu hộ",
+    bg: "bg-secondary",
     text: "text-white",
   },
   SAFE: {
     label: "Đã an toàn",
-    bg: "bg-teal-600",
+    bg: "bg-success",
     text: "text-white",
   },
   COMPLETED: {
-    label: "Đã hoàn thành",
-    bg: "bg-emerald-600",
+    label: "Đã an toàn",
+    bg: "bg-success",
     text: "text-white",
   },
   HIDDEN: {
@@ -92,13 +92,6 @@ const SOSRequestCard = React.memo(({ item }: SOSItemProps) => {
     });
   }, []);
 
-  const handleDelete = useCallback(() => {
-    Toast.show({
-      type: "info",
-      text1: "Xóa yêu cầu",
-      text2: "Tính năng đang phát triển.",
-    });
-  }, []);
 
   return (
     <View className="border-gray-200 bg-surface p-4 dark:border-gray-700 border-t border-b">
@@ -173,9 +166,11 @@ const SOSRequestCard = React.memo(({ item }: SOSItemProps) => {
         </View>
       )}
 
-      {/* Nút bấm Theo dõi Đội cứu hộ */}
-      {Boolean(item.server_id) && (
-        <Pressable
+      {/* Nút bấm Theo dõi Đội cứu hộ (Ẩn khi ca đã hoàn thành / an toàn) */}
+      {Boolean(item.server_id) &&
+        item.rescue_status !== "COMPLETED" &&
+        item.rescue_status !== "SAFE" && (
+          <Pressable
           onPress={() => {
             router.push({
               pathname: "/(pages)/rescue-team-tracking",
@@ -188,7 +183,7 @@ const SOSRequestCard = React.memo(({ item }: SOSItemProps) => {
             });
           }}
           className={`mt-3 flex-row items-center justify-center rounded-xl py-2.5 px-4 active:opacity-85 shadow-md ${item.rescue_status === "ACCEPTED"
-              ? "bg-blue-600"
+              ? "bg-secondary"
               : "bg-slate-800 dark:bg-slate-700"
             }`}
         >
@@ -242,15 +237,6 @@ const SOSRequestCard = React.memo(({ item }: SOSItemProps) => {
               size={18}
               color={isEditable ? "#059669" : "#94a3b8"}
             />
-          </Pressable>
-
-          {/* Nút 3: Thùng rác (xóa) */}
-          <Pressable
-            onPress={handleDelete}
-            hitSlop={6}
-            className="h-8 w-8 items-center justify-center rounded-lg bg-gray-100 active:opacity-70 dark:bg-gray-800"
-          >
-            <Ionicons name="trash-outline" size={18} color="#dc2626" />
           </Pressable>
         </View>
       </View>
