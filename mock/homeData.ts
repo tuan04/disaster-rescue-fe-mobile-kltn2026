@@ -68,6 +68,14 @@ export const UTILITIES: UtilityItem[] = [
     bgColor: "bg-warning/10",
   },
   {
+    id: "rescue-mission",
+    label: "Nhiệm vụ cứu hộ",
+    icon: "clipboard-outline",
+    color: ColorTokens.light.primary,
+    bgColor: "bg-primary/10",
+    route: "/(pages)/pending-assignments",
+  },
+  {
     id: "emergency-call",
     label: "SĐT Khẩn cấp",
     icon: "call-outline",
