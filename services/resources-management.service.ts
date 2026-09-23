@@ -1,12 +1,6 @@
+import type { UpdateTeamLocationRequest } from "@/types/assignment";
 import type { ApiResponse } from "@/types/response";
 import { post } from "./api";
-
-export interface UpdateTeamLocationRequest {
-  latitude: number;
-  longitude: number;
-  speed?: number | null;
-  heading?: number | null;
-}
 
 /**
  * Gửi cập nhật vị trí thời gian thực của đội cứu hộ

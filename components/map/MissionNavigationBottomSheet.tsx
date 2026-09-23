@@ -13,7 +13,7 @@ import React, {
   useState,
 } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface MissionNavigationBottomSheetProps {
@@ -162,7 +162,7 @@ export const MissionNavigationBottomSheet = forwardRef<
                 icon={({ size, color }) => (
                   <Ionicons name="call-outline" size={size} color={color} />
                 )}
-                style={{ flex: 1 }}
+                className="flex-1"
               />
             )}
             <Button
@@ -178,7 +178,7 @@ export const MissionNavigationBottomSheet = forwardRef<
                   color={color}
                 />
               )}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
           </View>
         </View>

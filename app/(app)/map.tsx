@@ -21,8 +21,8 @@ import {
   Map,
 } from "@maplibre/maplibre-react-native";
 import React, { useCallback, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { ActivityIndicator, useTheme } from "react-native-paper";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { useTheme } from "@/contants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MapScreen() {

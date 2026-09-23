@@ -102,7 +102,7 @@ export default function ResetPasswordScreen() {
           title={isSubmitting ? "Đang cập nhật..." : "Đổi mật khẩu"}
           loading={isSubmitting}
           onPress={handleSubmit(onSubmit)}
-          style={{ marginTop: 32 }}
+          className="mt-8"
         />
       </View>
     </SafeAreaView>

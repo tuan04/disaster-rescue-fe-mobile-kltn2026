@@ -2,21 +2,22 @@ import {
   clearActiveMission,
   getActiveMission as getLocalActiveMission,
   saveActiveMission,
-  type ActiveMissionParsed,
 } from "@/database";
-import { getCoordinatesBounds } from "@/helpers/route";
+import { decodePolyline, getCoordinatesBounds } from "@/helpers/route";
+import {
+  assignmentQueryKeys,
+  useLocalActiveMissionQuery,
+} from "@/hooks/queries";
 import { getActiveMission as getBackendActiveMission } from "@/services/assignment.service";
 import { getMapPointDetail, getRoute } from "@/services/map.service";
 import type { RootState } from "@/store";
 import type { RouteResponse } from "@/types/map";
 import type { CameraRef } from "@maplibre/maplibre-react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "@/hooks/useLocation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocationStatus, useUserCoordinates } from "@/hooks/useLocation";
 import { useRoute } from "@/hooks/useRoute";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-
-export const ACTIVE_MISSION_QUERY_KEY = ["activeMission"] as const;
 
 // Quản lý trạng thái đồng bộ ở cấp module để tránh nhiều component gọi đồng thời
 let isGlobalSyncing = false;
@@ -39,7 +40,8 @@ export function useActiveMission({
   currentLng,
 }: UseActiveMissionOptions = {}) {
   const queryClient = useQueryClient();
-  const { coords, isRealLocation } = useLocation();
+  const coords = useUserCoordinates();
+  const { isRealLocation } = useLocationStatus();
   const locationRef = useRef({ coords, isRealLocation });
   locationRef.current = { coords, isRealLocation };
 
@@ -56,14 +58,12 @@ export function useActiveMission({
     data: activeMission,
     isLoading,
     refetch,
-  } = useQuery<ActiveMissionParsed | null>({
-    queryKey: ACTIVE_MISSION_QUERY_KEY,
-    queryFn: getLocalActiveMission,
-    staleTime: 1000 * 60, // 1 phút
-  });
+  } = useLocalActiveMissionQuery();
 
   const invalidateActiveMission = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ACTIVE_MISSION_QUERY_KEY });
+    queryClient.invalidateQueries({
+      queryKey: assignmentQueryKeys.localActive,
+    });
   }, [queryClient]);
 
   // 2. Logic đồng bộ dữ liệu với Backend máy chủ
@@ -202,16 +202,18 @@ export function useActiveMission({
 
   const activeRoute = isRouteCleared ? null : (activeMission?.route ?? null);
 
+  const routeCoordinates = useMemo(() => {
+    const points = activeRoute?.routes?.[0]?.overview_polyline?.points;
+    if (!points) return null;
+    return decodePolyline(points);
+  }, [activeRoute]);
+
   // Tự động căn chỉnh camera bao quát toàn bộ lộ trình khi mới nạp
   useEffect(() => {
-    if (
-      !cameraRef?.current ||
-      !activeRoute?.routes?.[0]?.geometry?.coordinates
-    ) {
+    if (!cameraRef?.current || !routeCoordinates || routeCoordinates.length === 0) {
       return;
     }
-    const coordinates = activeRoute.routes[0].geometry.coordinates;
-    const bounds = getCoordinatesBounds(coordinates);
+    const bounds = getCoordinatesBounds(routeCoordinates);
     if (bounds) {
       setTimeout(() => {
         cameraRef.current?.setStop({
@@ -221,21 +223,20 @@ export function useActiveMission({
         });
       }, 500);
     }
-  }, [activeMission?.id, cameraRef, activeRoute]);
+  }, [activeMission?.id, cameraRef, routeCoordinates]);
 
   // GeoJSON toàn bộ tuyến đường ban đầu
   const routeGeoJSON = useMemo(() => {
-    const coords = activeRoute?.routes?.[0]?.geometry?.coordinates;
-    if (!coords || coords.length === 0) return null;
+    if (!routeCoordinates || routeCoordinates.length === 0) return null;
     return {
       type: "Feature" as const,
       properties: {},
       geometry: {
         type: "LineString" as const,
-        coordinates: coords,
+        coordinates: routeCoordinates,
       },
     };
-  }, [activeRoute]);
+  }, [routeCoordinates]);
 
   const navLat =
     typeof currentLat === "number" ? currentLat : coords?.latitude;
@@ -251,9 +252,9 @@ export function useActiveMission({
     durationText,
     etaTimeStr,
   } = useRoute({
-    routeCoordinates: activeRoute?.routes?.[0]?.geometry?.coordinates,
-    initialDistance: activeRoute?.routes?.[0]?.distance,
-    initialDuration: activeRoute?.routes?.[0]?.duration,
+    routeCoordinates,
+    initialDistance: activeRoute?.routes?.[0]?.legs?.[0]?.distance?.value,
+    initialDuration: activeRoute?.routes?.[0]?.legs?.[0]?.duration?.value,
     currentLat: navLat,
     currentLng: navLng,
   });

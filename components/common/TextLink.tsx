@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Pressable,
-  Text,
-  type GestureResponderEvent,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from "react-native";
-import { useTheme } from "react-native-paper";
+import { Pressable, Text, type GestureResponderEvent } from "react-native";
 
 type TextLinkAlign = "left" | "center" | "right";
 
@@ -17,9 +9,15 @@ type TextLinkProps = {
   align?: TextLinkAlign;
   disabled?: boolean;
   onPress: (event: GestureResponderEvent) => void;
-  style?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
-  titleStyle?: StyleProp<TextStyle>;
+  className?: string;
+  textClassName?: string;
+  titleClassName?: string;
+};
+
+const alignSelfMap: Record<TextLinkAlign, string> = {
+  left: "self-start",
+  center: "self-center",
+  right: "self-end",
 };
 
 export default function TextLink({
@@ -28,39 +26,25 @@ export default function TextLink({
   align = "center",
   disabled = false,
   onPress,
-  style,
-  textStyle,
-  titleStyle,
+  className = "",
+  textClassName = "",
+  titleClassName = "",
 }: TextLinkProps) {
-  const theme = useTheme();
-
-  const alignSelfByTextAlign: Record<TextLinkAlign, ViewStyle["alignSelf"]> = {
-    left: "flex-start",
-    center: "center",
-    right: "flex-end",
-  };
-
   return (
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={[{ alignSelf: alignSelfByTextAlign[align] }, style]}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      className={`py-1 active:opacity-70 ${alignSelfMap[align]} ${className}`}
     >
       <Text
-        style={[
-          { color: theme.colors.onSurfaceVariant, textAlign: align },
-          textStyle,
-        ]}
+        className={`text-sm text-slate-500 dark:text-slate-400 text-${align} ${textClassName}`}
       >
         {text ? `${text} ` : null}
         <Text
-          style={[
-            {
-              color: disabled ? theme.colors.outline : theme.colors.secondary,
-              fontWeight: "700",
-            },
-            titleStyle,
-          ]}
+          className={`text-sm font-bold ${
+            disabled ? "text-slate-400 dark:text-slate-600" : "text-secondary"
+          } ${titleClassName}`}
         >
           {title}
         </Text>

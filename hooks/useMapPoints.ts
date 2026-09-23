@@ -5,17 +5,15 @@ import {
   rescueStatusLabel,
   safePointTypeLabel,
 } from "@/contants/mapPointLables";
-import { getAllMapPoints } from "@/services/map.service";
+import { useMapPointsQuery } from "@/hooks/queries";
 import type {
   EmergencyLevel,
   HazardType,
   MapPointFilterRequest,
-  MapPointRes,
   PointType,
   RequestStatus,
   SafePointType,
 } from "@/types/map";
-import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 
 const toggleArrayItem = <T>(arr: T[] | undefined, item: T): T[] | undefined => {
@@ -51,14 +49,7 @@ export function useMapPoints() {
     data: mapPoints = [],
     isLoading: isPointsLoading,
     refetch: refetchPoints,
-  } = useQuery<MapPointRes[]>({
-    queryKey: ["mapPoints", activeFilter],
-    queryFn: () => getAllMapPoints(activeFilter),
-    staleTime: 1000 * 60 * 5,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchInterval: 1000 * 60 * 5,
-  });
+  } = useMapPointsQuery(activeFilter);
 
   const handleTogglePointType = useCallback((type: PointType) => {
     setFilter((prev) => ({

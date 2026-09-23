@@ -1,10 +1,10 @@
 import {
-  getActiveSyncedSOSRequests,
   updateSOSRescueStatusByServerId,
   type SOSRescueStatus,
 } from "@/database/sos-request.repository";
+import { useActiveSyncedSOSQuery } from "@/hooks/queries";
 import { subscribe } from "@/services/socket";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef } from "react";
 import Toast from "react-native-toast-message";
@@ -16,11 +16,7 @@ export function useMySOSStatusWatcher() {
   const queryClient = useQueryClient();
 
   // 1. Quét các yêu cầu cứu hộ đã có server_id và đang active (chưa hoàn thành)
-  const { data: activeSOSList } = useQuery({
-    queryKey: ["active-synced-sos"],
-    queryFn: getActiveSyncedSOSRequests,
-    refetchInterval: 15000,
-  });
+  const { data: activeSOSList } = useActiveSyncedSOSQuery();
 
   // Lưu activeSOSList vào Ref để callback luôn lấy được thông tin mới nhất mà không gây re-subscribe
   const activeSOSListRef = useRef(activeSOSList);

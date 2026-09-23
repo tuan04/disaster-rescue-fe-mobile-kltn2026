@@ -8,14 +8,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Marker } from "@maplibre/maplibre-react-native";
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet, View } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 
 interface MapPointMarkerProps {
   point: MapPointRes;
   onPress?: (point: MapPointRes) => void;
 }
 
-export default function MapPointMarker({ point, onPress }: MapPointMarkerProps) {
+function MapPointMarker({ point, onPress }: MapPointMarkerProps) {
   const theme = useTheme() as any;
 
   // Pulse animation for active SOS points
@@ -155,4 +155,16 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
   },
+});
+
+export default React.memo(MapPointMarker, (prevProps, nextProps) => {
+  return (
+    prevProps.point.id === nextProps.point.id &&
+    prevProps.point.status === nextProps.point.status &&
+    prevProps.point.priority === nextProps.point.priority &&
+    prevProps.point.latitude === nextProps.point.latitude &&
+    prevProps.point.longitude === nextProps.point.longitude &&
+    prevProps.point.subType === nextProps.point.subType &&
+    prevProps.onPress === nextProps.onPress
+  );
 });

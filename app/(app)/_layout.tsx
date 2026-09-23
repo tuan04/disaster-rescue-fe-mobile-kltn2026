@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function CitizenLayout() {
@@ -12,7 +12,7 @@ export default function CitizenLayout() {
         tabBarInactiveTintColor: theme.colors.outline,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.elevation.level1,
+          borderTopColor: theme.colors.outline + "30",
           borderTopWidth: 1,
         },
       }}

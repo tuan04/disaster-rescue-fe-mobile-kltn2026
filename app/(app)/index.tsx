@@ -4,10 +4,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
 import { useAppTheme } from "@/contants/theme";
-import {
-  getAllSOSRequests,
-  type MySOSRequestEntity,
-} from "@/database/sos-request.repository";
+import { useMySOSRequestsQuery } from "@/hooks/queries";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
 import { getNotifications } from "@/services/notification.service";
 import type { RootState } from "@/store";
@@ -20,7 +17,6 @@ import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function AppIndex() {
-  const theme = useAppTheme();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   const { data: serverNotifications = [] } = useQuery<NotificationItem[]>({
@@ -38,12 +34,8 @@ export default function AppIndex() {
   }, [serverNotifications]);
 
   // Lấy danh sách yêu cầu SOS trong máy để kiểm tra có ca nào đang PENDING (chờ cứu) không
-  const { data: mySOSRequests = [], refetch: refetchMySOS } = useQuery<
-    MySOSRequestEntity[]
-  >({
-    queryKey: ["my-sos-requests"],
-    queryFn: getAllSOSRequests,
-  });
+  const { data: mySOSRequests = [], refetch: refetchMySOS } =
+    useMySOSRequestsQuery();
 
   useFocusEffect(
     useCallback(() => {
@@ -120,15 +112,15 @@ export default function AppIndex() {
         </View>
       </View>
 
-      <Pressable
-        className="mb-3 flex-row items-center justify-center rounded-2xl bg-danger py-4 px-5 shadow-md active:opacity-85"
+      <Button
+        title="Kêu gọi cứu hộ"
+        variant="danger"
+        icon={({ color }) => (
+          <Ionicons name="megaphone-outline" size={24} color={color} />
+        )}
         onPress={handleOpenSOS}
-      >
-        <Ionicons name="megaphone-outline" size={24} color="#ffffff" />
-        <Text className="ml-2 text-center text-lg font-bold text-white">
-          Kêu gọi cứu hộ
-        </Text>
-      </Pressable>
+        className="mb-3 shadow-md"
+      />
 
       {/* Nút Yêu cầu cứu hộ của tôi: Có dấu chấm than khi có ca chờ cứu */}
       <View className="relative mb-6">
@@ -139,9 +131,6 @@ export default function AppIndex() {
             <Ionicons name="list-circle-outline" size={24} color={color} />
           )}
           onPress={() => router.push("/(pages)/my-sos-requests")}
-          style={{ borderRadius: 16 }}
-          contentStyle={{ minHeight: 54 }}
-          labelClassName="text-base font-bold text-white"
         />
 
         {/* Dấu chấm than bên trên góc phải */}

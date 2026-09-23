@@ -7,7 +7,7 @@ import {
   rescueStatusLabel,
   safePointTypeLabel,
 } from "@/contants/mapPointLables";
-import { getMapPointDetail } from "@/services/map.service";
+import { useMapPointDetailQuery } from "@/hooks/queries";
 import type { RootState } from "@/store";
 import type { MapPointDetailRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +17,6 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -27,7 +26,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
@@ -58,11 +57,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
     isLoading,
     isError,
     refetch,
-  } = useQuery<MapPointDetailRes>({
-    queryKey: ["mapPointDetail", pointId],
-    queryFn: () => getMapPointDetail(pointId!),
-    enabled: !!pointId,
-  });
+  } = useMapPointDetailQuery(pointId);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -226,8 +221,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
             title="Thử lại"
             onPress={() => refetch()}
             variant="danger"
-            style={{ marginTop: 16 }}
-            contentStyle={{ minHeight: 40 }}
+            className="mt-4 min-h-[40px]"
           />
         </View>
       )}
@@ -281,7 +275,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
                         color={color}
                       />
                     )}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
                 )}
 
@@ -293,7 +287,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
                     icon={({ size, color }) => (
                       <Ionicons name="call-outline" size={size} color={color} />
                     )}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
                 )}
               </View>

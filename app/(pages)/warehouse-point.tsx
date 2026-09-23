@@ -5,12 +5,11 @@ import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomShee
 import { calculateDistanceKm } from "@/helpers/route";
 import WarehousePointItem from "@/components/map/WarehousePointItem";
 import { useAppTheme } from "@/contants/theme";
-import { useLocation } from "@/hooks/useLocation";
-import { getAllMapPoints } from "@/services/map.service";
-import type { MapPointRes, WarehouseMapPointRes } from "@/types/map";
+import { useMapPointsQuery } from "@/hooks/queries";
+import { useUserCoordinates } from "@/hooks/useLocation";
+import type { WarehouseMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -24,7 +23,7 @@ import {
 
 export default function WarehousePointScreen() {
   const theme = useAppTheme();
-  const { coords } = useLocation();
+  const coords = useUserCoordinates();
   const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(
@@ -48,11 +47,10 @@ export default function WarehousePointScreen() {
     isLoading,
     isRefetching,
     refetch,
-  } = useQuery<MapPointRes[]>({
-    queryKey: ["mapPoints", "WARE_HOUSE"],
-    queryFn: () => getAllMapPoints({ pointTypes: ["WARE_HOUSE"] }),
-    staleTime: 1000 * 60 * 3,
-  });
+  } = useMapPointsQuery(
+    { pointTypes: ["WARE_HOUSE"] },
+    { staleTime: 1000 * 60 * 3 },
+  );
 
   const warehousePoints = useMemo(() => {
     return (mapPoints as WarehouseMapPointRes[])

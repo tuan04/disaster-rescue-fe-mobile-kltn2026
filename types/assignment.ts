@@ -22,3 +22,19 @@ export interface AssignmentRes {
 export interface AcceptRescuePayload {
   notes?: string;
 }
+
+export interface TeamLocationPayload {
+  teamId: string;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  heading: number;
+  recordedAt?: string;
+}
+
+export interface UpdateTeamLocationRequest {
+  latitude: number;
+  longitude: number;
+  speed?: number | null;
+  heading?: number | null;
+}

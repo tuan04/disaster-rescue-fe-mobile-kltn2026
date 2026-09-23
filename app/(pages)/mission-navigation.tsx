@@ -6,14 +6,13 @@ import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL } from "@/contants/mapConfig";
 import {
-  calculateDistanceMeters,
   extractRouteSteps,
   getNavigationProgress,
 } from "@/helpers/navigation";
 import { useLocation } from "@/hooks/useLocation";
 import { useRescue } from "@/hooks/useRescue";
 import { useActiveMission } from "@/hooks/useActiveMission";
-import { getMapPointDetail } from "@/services/map.service";
+import { useMapPointDetailQuery } from "@/hooks/queries";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import type BottomSheet from "@gorhom/bottom-sheet";
 import {
@@ -21,7 +20,6 @@ import {
   type CameraRef,
   Map,
 } from "@maplibre/maplibre-react-native";
-import { useQuery } from "@tanstack/react-query";
 import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -32,6 +30,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { calculateDistanceMeters } from "@/helpers/route";
 
 export default function MissionNavigationScreen() {
   const insets = useSafeAreaInsets();
@@ -190,11 +189,9 @@ export default function MissionNavigationScreen() {
   const targetLng = activeMission?.target_longitude;
 
   // Truy vấn chi tiết yêu cầu cứu hộ từ backend
-  const { data: detailRes } = useQuery({
-    queryKey: ["mapPointDetail", activeMission?.request_id],
-    queryFn: () => getMapPointDetail(activeMission!.request_id),
-    enabled: !!activeMission?.request_id,
-  });
+  const { data: detailRes } = useMapPointDetailQuery(
+    activeMission?.request_id,
+  );
 
   const sosDetail =
     detailRes?.pointType === "SOS" ? detailRes.detail : null;
@@ -221,9 +218,15 @@ export default function MissionNavigationScreen() {
     return (
       distanceToTarget <= 50 ||
       remainingDistance <= 50 ||
-      navProgress.currentStep?.maneuver?.type === "arrive"
+      navProgress.currentStep?.maneuver === "arrive" ||
+      navProgress.primaryManeuver?.actionText === "Đến nơi"
     );
-  }, [distanceToTarget, remainingDistance, navProgress.currentStep?.maneuver?.type]);
+  }, [
+    distanceToTarget,
+    remainingDistance,
+    navProgress.currentStep?.maneuver,
+    navProgress.primaryManeuver?.actionText,
+  ]);
 
   // Gọi điện thoại cho nạn nhân
   const handleCallReporter = useCallback(() => {

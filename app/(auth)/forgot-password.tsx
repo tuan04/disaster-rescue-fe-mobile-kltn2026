@@ -80,14 +80,14 @@ export default function ForgotPasswordScreen() {
           title={isSubmitting ? "Đang gửi OTP..." : "Gửi mã OTP"}
           loading={isSubmitting}
           onPress={handleSubmit(onSubmit)}
-          style={{ marginTop: 32 }}
+          className="mt-8"
         />
 
         <TextLink
           text="Quay lại"
           title="Đăng nhập"
           onPress={() => router.replace("/(auth)/login")}
-          style={{ marginTop: 20 }}
+          className="mt-5"
         />
       </View>
     </SafeAreaView>

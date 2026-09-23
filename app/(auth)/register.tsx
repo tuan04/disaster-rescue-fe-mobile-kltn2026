@@ -193,13 +193,13 @@ export default function RegisterScreen() {
             title={isSubmitting ? "Đang đăng ký..." : "Đăng ký"}
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
-            style={{ marginTop: 32 }}
+            className="mt-8"
           />
           <TextLink
             text="Đã có tài khoản?"
             title="Đăng nhập"
             onPress={() => router.replace("/(auth)/login")}
-            style={{ marginTop: 20 }}
+            className="mt-5"
           />
         </View>
       </ScrollView>

@@ -3,7 +3,7 @@ import {
   getActiveMission,
   saveActiveMission,
 } from "@/database";
-import { ACTIVE_MISSION_QUERY_KEY } from "@/hooks/useActiveMission";
+import { assignmentQueryKeys } from "@/hooks/queries";
 import {
   acceptRescueRequest,
   cancelAssignment,
@@ -89,7 +89,9 @@ export function useRescue(props: UseRescueProps = {}) {
             detail.pointType === "SOS" ? detail.detail.reporterPhone : null,
           routeData,
         });
-        queryClient.invalidateQueries({ queryKey: ACTIVE_MISSION_QUERY_KEY });
+        queryClient.invalidateQueries({
+          queryKey: assignmentQueryKeys.localActive,
+        });
       } catch (e) {
         console.warn("[useRescue] Lỗi khi lưu SQLite active mission:", e);
       }
@@ -173,7 +175,7 @@ export function useRescue(props: UseRescueProps = {}) {
                 await onBeforeLeave();
               }
               queryClient.invalidateQueries({
-                queryKey: ACTIVE_MISSION_QUERY_KEY,
+                queryKey: assignmentQueryKeys.localActive,
               });
               Toast.show({
                 type: "info",
@@ -212,7 +214,7 @@ export function useRescue(props: UseRescueProps = {}) {
       }
 
       queryClient.invalidateQueries({
-        queryKey: ACTIVE_MISSION_QUERY_KEY,
+        queryKey: assignmentQueryKeys.localActive,
       });
       queryClient.invalidateQueries({
         queryKey: ["mapPoints"],
@@ -318,7 +320,7 @@ export function useRescue(props: UseRescueProps = {}) {
       }
 
       queryClient.invalidateQueries({
-        queryKey: ACTIVE_MISSION_QUERY_KEY,
+        queryKey: assignmentQueryKeys.localActive,
       });
       queryClient.invalidateQueries({
         queryKey: ["mapPoints"],

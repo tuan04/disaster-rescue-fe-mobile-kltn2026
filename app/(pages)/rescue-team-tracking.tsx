@@ -53,6 +53,7 @@ export default function RescueTeamTrackingScreen() {
   const {
     assignment,
     teamLocation,
+    targetLocation,
     currentStatus,
     isLoading,
     distanceText,
@@ -113,8 +114,9 @@ export default function RescueTeamTrackingScreen() {
     if (targetLng !== null && targetLat !== null) {
       coordsList.push([targetLng, targetLat]);
     }
-    if (teamLocation?.longitude && teamLocation?.latitude) {
-      coordsList.push([teamLocation.longitude, teamLocation.latitude]);
+    const loc = targetLocation || teamLocation;
+    if (loc?.longitude && loc?.latitude) {
+      coordsList.push([loc.longitude, loc.latitude]);
     }
 
     if (coordsList.length >= 2) {
@@ -142,8 +144,8 @@ export default function RescueTeamTrackingScreen() {
     }
 
     // Fallback nếu chỉ có 1 tọa độ
-    const centerLng = teamLocation?.longitude || targetLng || 106.66;
-    const centerLat = teamLocation?.latitude || targetLat || 10.76;
+    const centerLng = loc?.longitude || targetLng || 106.66;
+    const centerLat = loc?.latitude || targetLat || 10.76;
     setIsFollowingTeam(false);
     isFlyingRef.current = true;
     cameraRef.current.flyTo({
@@ -159,8 +161,8 @@ export default function RescueTeamTrackingScreen() {
   }, [
     targetLat,
     targetLng,
-    teamLocation?.latitude,
-    teamLocation?.longitude,
+    targetLocation,
+    teamLocation,
     insets.top,
     insets.bottom,
     isWaitingForTeam,
@@ -171,7 +173,7 @@ export default function RescueTeamTrackingScreen() {
   useEffect(() => {
     if (initialFitDoneRef.current) return;
     if (
-      (targetLat && targetLng && teamLocation?.latitude) ||
+      (targetLat && targetLng && (targetLocation?.latitude || teamLocation?.latitude)) ||
       (targetLat && targetLng && assignment)
     ) {
       initialFitDoneRef.current = true;
@@ -179,20 +181,21 @@ export default function RescueTeamTrackingScreen() {
         handleFitBoundsAll();
       }, 600);
     }
-  }, [targetLat, targetLng, teamLocation?.latitude, assignment, handleFitBoundsAll]);
+  }, [targetLat, targetLng, targetLocation?.latitude, teamLocation?.latitude, assignment, handleFitBoundsAll]);
 
-  // Tự động di chuyển camera bám theo xe cứu hộ nếu đang bật chế độ isFollowingTeam
+  // Tự động di chuyển camera bám theo xe cứu hộ: Sử dụng targetLocation để MapLibre trượt mượt natively trong 1000ms
   useEffect(() => {
-    if (!cameraRef.current || !teamLocation || !isFollowingTeam || isFlyingRef.current) {
+    const loc = targetLocation || teamLocation;
+    if (!cameraRef.current || !loc || !isFollowingTeam || isFlyingRef.current) {
       return;
     }
 
     cameraRef.current.setStop({
-      center: [teamLocation.longitude, teamLocation.latitude],
+      center: [loc.longitude, loc.latitude],
       zoom: 16,
       pitch: 45,
-      bearing: teamLocation.heading || 0,
-      duration: 350,
+      bearing: loc.heading || 0,
+      duration: 1000,
       padding: {
         top: insets.top + 70,
         bottom: insets.bottom + 260,
@@ -200,7 +203,16 @@ export default function RescueTeamTrackingScreen() {
         right: 20,
       },
     });
-  }, [teamLocation, isFollowingTeam, insets.top, insets.bottom]);
+  }, [
+    targetLocation?.latitude,
+    targetLocation?.longitude,
+    targetLocation?.heading,
+    isFollowingTeam,
+    insets.top,
+    insets.bottom,
+    targetLocation,
+    teamLocation,
+  ]);
 
 
   // Ưu tiên góc bám theo xe cứu hộ, nếu chưa có xe thì căn chỉnh về điểm cứu hộ
@@ -253,7 +265,6 @@ export default function RescueTeamTrackingScreen() {
 
   return (
     <ScreenContainer isEdgeToEdge={true} className="flex-1 bg-slate-100 dark:bg-slate-900">
-      {/* 1. Bản đồ tương tác MapLibre */}
       <Map
         style={StyleSheet.absoluteFillObject}
         mapStyle={MAP_STYLE_URL}
@@ -273,10 +284,8 @@ export default function RescueTeamTrackingScreen() {
           }}
         />
 
-        {/* Tuyến đường Polyline */}
         <RoutePolyline id="trackingRoute" data={routeGeoJSON} />
 
-        {/* Marker Điểm cứu hộ của người dân */}
         {targetLat !== null && targetLng !== null && (
           <TargetPointMarker
             id="citizen-sos-target-marker"
@@ -285,7 +294,6 @@ export default function RescueTeamTrackingScreen() {
           />
         )}
 
-        {/* Marker Đội cứu hộ (di chuyển thời gian thực) */}
         {teamLocation && (
           <RescueTeamMarker
             latitude={teamLocation.latitude}
@@ -297,12 +305,10 @@ export default function RescueTeamTrackingScreen() {
         )}
       </Map>
 
-      {/* 2. Thanh tiêu đề phía trên (Top Header Floating) */}
       <View
         className="absolute left-4 right-4 z-20 flex-row items-center justify-between"
         style={{ top: insets.top + 8 }}
       >
-        {/* Nút quay lại */}
         <Pressable
           onPress={() => router.back()}
           className="h-10 w-10 items-center justify-center rounded-full bg-white/95 dark:bg-slate-800/95 shadow-lg border border-slate-200 dark:border-slate-700 active:opacity-75"
@@ -311,13 +317,11 @@ export default function RescueTeamTrackingScreen() {
         </Pressable>
       </View>
 
-      {/* Container chung ở đáy màn hình: Quản lý khoảng cách giữa nút định vị và bảng thông tin */}
       <View
         pointerEvents="box-none"
         className="absolute left-3 right-3 z-30"
         style={{ bottom: insets.bottom + 8 }}
       >
-        {/* Nút định vị nổi: Ưu tiên bám theo xe, nếu chưa có xe thì bám theo điểm cứu hộ */}
         {!isFollowingTeam && (
           <View pointerEvents="box-none" className="items-end mb-2.5 mr-1">
             <Pressable
@@ -329,7 +333,6 @@ export default function RescueTeamTrackingScreen() {
           </View>
         )}
 
-        {/* Khối thông tin: Đang tìm đội cứu hộ hoặc Đội cứu hộ đang đến */}
         <View className="rounded-md bg-white dark:bg-slate-900 overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800">
           {isWaitingForTeam ? (
             <View className="flex-row items-center px-3 py-3">
@@ -360,7 +363,6 @@ export default function RescueTeamTrackingScreen() {
                 </View>
               </View>
 
-              {/* 2. Phần thông tin: Sử dụng SheetDetailRow */}
               <View className="px-4 py-1">
                 <SheetDetailRow label="Đội" value={teamName} />
                 <SheetDetailRow
@@ -373,7 +375,6 @@ export default function RescueTeamTrackingScreen() {
                 />
               </View>
 
-              {/* 3. Input text không bấm được và nút gọi màu xanh nhỏ bên phải */}
               <View className="flex-row items-center px-4 pb-4 pt-2">
                 <TextInput
                   editable={false}

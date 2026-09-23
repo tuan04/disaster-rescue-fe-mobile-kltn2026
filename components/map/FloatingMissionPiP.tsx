@@ -1,46 +1,43 @@
-import RoutePolyline from "@/components/map/RoutePolyline";
-import UserLocationMarker from "@/components/map/UserLocationMarker";
-import { MAP_STYLE_URL } from "@/contants/mapConfig";
+import { useAppTheme } from "@/contants/theme";
 import {
-  calculateEtaTime,
-  getRemainingRouteCoordinates,
-} from "@/helpers/route";
+  extractRouteSteps,
+  getManeuverInfo,
+} from "@/helpers/navigation";
+import { calculateEtaTime, formatRouteDistance } from "@/helpers/route";
 import { useActiveMission } from "@/hooks/useActiveMission";
-import { useLocation } from "@/hooks/useLocation";
-import { Ionicons } from "@expo/vector-icons";
-import {
-  Camera,
-  type CameraRef,
-  Map,
-  Marker,
-} from "@maplibre/maplibre-react-native";
+import { useUserCoordinates } from "@/hooks/useLocation";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   Animated,
   PanResponder,
   Pressable,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PIP_WIDTH = 145;
-const PIP_HEIGHT = 195;
+const PIP_WIDTH = 216;
+const PIP_HEIGHT = 60;
 
+/**
+ * FloatingMissionPiP (Navigation HUD Capsule)
+ * Widget nổi siêu nhẹ theo dõi ca cứu hộ đang active.
+ * Cho phép kéo thả tự do, tự snap vào mép màn hình, không render MapLibre ngầm giúp tiết kiệm tối đa RAM/GPU.
+ */
 export default function FloatingMissionPiP() {
+  const theme = useAppTheme();
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
-  const cameraRef = useRef<CameraRef>(null);
 
   const { hasActiveMission, activeMission } = useActiveMission();
-  const { coords, heading } = useLocation();
+  const coords = useUserCoordinates();
 
-  // Tính vị trí ban đầu nổi ở góc dưới bên phải
+  // Vị trí ban đầu nổi ở góc dưới bên phải
   const isTabBarVisible =
     pathname === "/" ||
     pathname === "/map" ||
@@ -79,13 +76,13 @@ export default function FloatingMissionPiP() {
         const newY = currentPos.current.y + gestureState.dy;
 
         // Giới hạn trong phạm vi an toàn của màn hình
-        const minX = 8;
-        const maxX = SCREEN_WIDTH - PIP_WIDTH - 8;
+        const minX = 10;
+        const maxX = SCREEN_WIDTH - PIP_WIDTH - 10;
         const minY = insets.top + 10;
         const maxY = SCREEN_HEIGHT - PIP_HEIGHT - insets.bottom - 16;
 
         const clampedY = Math.max(minY, Math.min(maxY, newY));
-        // Tự động hít (snap) về mép trái hoặc mép phải gần nhất (như Chat Heads / YouTube)
+        // Tự động hít (snap) về mép trái hoặc mép phải gần nhất
         const snapX = newX + PIP_WIDTH / 2 > SCREEN_WIDTH / 2 ? maxX : minX;
 
         Animated.spring(pan, {
@@ -105,78 +102,43 @@ export default function FloatingMissionPiP() {
     }),
   ).current;
 
-  // Cập nhật camera khi tọa độ thay đổi
-  useEffect(() => {
-    if (coords && cameraRef.current) {
-      cameraRef.current.flyTo({
-        center: [coords.longitude, coords.latitude],
-        zoom: 15,
-        duration: 0,
-      });
-    }
-  }, [coords.latitude, coords.longitude]);
+  // Tính thông tin điều hướng (hướng rẽ, khoảng cách, ETA)
+  const navSummary = useMemo(() => {
+    if (!activeMission?.route) return null;
 
-  const lastNearestIndexRef = useRef<number>(0);
+    const steps = extractRouteSteps(activeMission.route);
+    const firstStep = steps[0];
+    const maneuver = firstStep
+      ? getManeuverInfo(firstStep)
+      : { iconName: "navigation" as const, shortAction: "Đang dẫn đường" };
 
-  useEffect(() => {
-    lastNearestIndexRef.current = 0;
-  }, [activeMission?.route]);
+    const totalDistance =
+      activeMission.route.routes?.[0]?.legs?.[0]?.distance?.value;
+    const distanceText =
+      typeof totalDistance === "number"
+        ? formatRouteDistance(totalDistance)
+        : "";
 
-  // Chuẩn bị dữ liệu tuyến đường còn lại (GeoJSON)
-  const routeGeoJSON = useMemo(() => {
-    const geom = activeMission?.route?.routes?.[0]?.geometry;
-    if (!geom || !geom.coordinates || geom.coordinates.length === 0) return null;
-
-    if (!coords.latitude || !coords.longitude) {
-      return {
-        type: "Feature" as const,
-        properties: {},
-        geometry: {
-          type: "LineString" as const,
-          coordinates: geom.coordinates,
-        },
-      };
-    }
-
-    const { remainingCoordinates, nearestIndex } = getRemainingRouteCoordinates(
-      geom.coordinates,
-      coords.latitude,
-      coords.longitude,
-      lastNearestIndexRef.current,
-    );
-
-    lastNearestIndexRef.current = nearestIndex;
+    const durationSec =
+      activeMission.route.routes?.[0]?.legs?.[0]?.duration?.value;
+    const etaText = calculateEtaTime(durationSec);
 
     return {
-      type: "Feature" as const,
-      properties: {},
-      geometry: {
-        type: "LineString" as const,
-        coordinates: remainingCoordinates,
-      },
+      iconName: maneuver.iconName,
+      shortAction: maneuver.shortAction,
+      distanceText,
+      etaText,
     };
-  }, [activeMission?.route, coords.latitude, coords.longitude]);
-
-  // Tính giờ dự kiến đến nơi (ETA clock: hh:mm)
-  const etaTimeStr = useMemo(() => {
-    const durationSec = activeMission?.route?.routes?.[0]?.duration;
-    return calculateEtaTime(durationSec);
   }, [activeMission?.route]);
 
-  // Không hiển thị nếu không có ca cứu hộ hoặc đang ở chính màn hình dẫn đường
-  if (
-    !hasActiveMission ||
-    !activeMission ||
-    pathname?.includes("mission-navigation")
-  ) {
+  // Chỉ ẩn khi không có ca cứu hộ hoặc đang ở chính màn hình dẫn đường chuyên dụng
+  const isNavScreen = pathname?.includes("mission-navigation");
+
+  if (!hasActiveMission || !activeMission || isNavScreen) {
     return null;
   }
 
-  // Tọa độ điểm nạn nhân
-  const targetLat = activeMission.target_latitude;
-  const targetLng = activeMission.target_longitude;
-
-  // Tên hiển thị (địa chỉ hoặc tên nạn nhân)
+  // Tên hiển thị (địa chỉ hoặc tên điểm cứu hộ)
   const displayName =
     activeMission.address?.split(",")?.[0]?.trim() || "Điểm cứu hộ";
 
@@ -190,123 +152,52 @@ export default function FloatingMissionPiP() {
           zIndex: 999,
           width: PIP_WIDTH,
           height: PIP_HEIGHT,
-          borderRadius: 14,
-          overflow: "hidden",
-          backgroundColor: "#0b131e",
+          borderRadius: 20,
+          backgroundColor: theme.colors.surface,
           shadowColor: "#000000",
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.6,
-          shadowRadius: 10,
-          elevation: 10,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: theme.dark ? 0.4 : 0.15,
+          shadowRadius: 8,
+          elevation: 8,
           borderWidth: 1,
-          borderColor: "rgba(255, 255, 255, 0.15)",
+          borderColor: theme.colors.outline,
+          overflow: "hidden",
         },
       ]}
     >
-      <View style={{ flex: 1, position: "relative" }}>
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-          <Map
-            style={StyleSheet.absoluteFillObject}
-            mapStyle={MAP_STYLE_URL}
-            attribution={false}
-            logo={false}
-            compass={false}
-            dragPan={false}
-            touchZoom={false}
-            doubleTapZoom={false}
-            doubleTapHoldZoom={false}
-            touchRotate={false}
-            touchPitch={false}
-          >
-            <Camera
-              ref={cameraRef}
-              initialViewState={{
-                center: [coords.longitude, coords.latitude],
-                zoom: 15,
-              }}
-            />
-
-            {/* Tuyến đường dẫn đường */}
-            <RoutePolyline id="pipRoute" data={routeGeoJSON} />
-
-            {/* Marker SOS điểm nạn nhân */}
-            {targetLat && targetLng && (
-              <Marker id="pipTargetMarker" lngLat={[targetLng, targetLat]}>
-                <View
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
-                    backgroundColor: "#ef4444",
-                    borderWidth: 2,
-                    borderColor: "#ffffff",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: 3.5,
-                      backgroundColor: "#7f1d1d",
-                    }}
-                  />
-                </View>
-              </Marker>
-            )}
-
-            {/* Marker Vị trí đội cứu hộ */}
-            <UserLocationMarker
-              id="pipUserMarker"
-              latitude={coords.latitude}
-              longitude={coords.longitude}
-              heading={heading}
-              coneSize={60}
-              dotSize={16}
-            />
-          </Map>
-        </View>
-
-        {/* Lớp phủ bấm vào bản đồ để mở màn hình dẫn đường */}
-        <Pressable
-          onPress={() => router.push("/(pages)/mission-navigation")}
-          style={StyleSheet.absoluteFillObject}
-          className="active:opacity-90"
-        />
-      </View>
-
       <Pressable
         onPress={() => router.push("/(pages)/mission-navigation")}
-        className="bg-secondary active:opacity-90 px-2.5 py-1.5 flex-row items-center"
+        className="flex-1 flex-row items-center px-3 py-1.5 active:opacity-90"
       >
-        <Ionicons
-          name="arrow-up"
-          size={18}
-          color="#ffffff"
-          style={{ marginRight: 6 }}
-        />
-        <View style={{ flex: 1 }}>
+        {/* Khung icon điều hướng nổi bật bằng Tailwind */}
+        <View className="w-9 h-9 rounded-full bg-secondary/15 border border-secondary/40 items-center justify-center mr-2.5">
+          <MaterialCommunityIcons
+            name={navSummary?.iconName || "navigation"}
+            size={20}
+            color={theme.colors.secondary}
+          />
+        </View>
+
+        {/* Nội dung thông tin ca cứu hộ sử dụng Tailwind */}
+        <View className="flex-1 justify-center">
           <Text
-            style={{
-              color: "#ffffff",
-              fontSize: 13,
-              fontWeight: "700",
-            }}
             numberOfLines={1}
+            className="text-text text-[13px] font-bold"
           >
             {displayName}
           </Text>
-          <Text
-            style={{
-              color: "#a7f3d0",
-              fontSize: 11,
-              fontWeight: "500",
-              marginTop: 1,
-            }}
-          >
-            {etaTimeStr}
-          </Text>
+          <View className="flex-row items-center mt-0.5">
+            {navSummary?.etaText ? (
+              <Text className="text-secondary text-[11px] font-semibold">
+                {navSummary.etaText}
+              </Text>
+            ) : null}
+            {navSummary?.distanceText ? (
+              <Text className="text-text-muted text-[11px] font-medium ml-1.5">
+                • {navSummary.distanceText}
+              </Text>
+            ) : null}
+          </View>
         </View>
       </Pressable>
     </Animated.View>

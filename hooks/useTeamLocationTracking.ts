@@ -1,9 +1,7 @@
 import { calculateDistanceMeters } from "@/helpers/route";
 import { useLocation } from "@/hooks/useLocation";
-import {
-  updateTeamLocation,
-  type UpdateTeamLocationRequest,
-} from "@/services/resources-management.service";
+import { updateTeamLocation } from "@/services/resources-management.service";
+import type { UpdateTeamLocationRequest } from "@/types/assignment";
 import type { RootState } from "@/store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
