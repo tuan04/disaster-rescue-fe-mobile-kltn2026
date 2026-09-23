@@ -7,7 +7,7 @@ import { safePointTypeLabel } from "@/contants/mapPointLables";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
 import { useMapPointsQuery } from "@/hooks/queries";
-import { useLocation } from "@/hooks/useLocation";
+import { useUserCoordinates } from "@/hooks/useLocation";
 import type { SafePointType, SafeZoneMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -33,7 +33,7 @@ const SAFE_POINT_TYPE_OPTIONS: Array<{ key: SafePointType | "ALL"; label: string
 
 export default function SafePointScreen() {
   const theme = useAppTheme();
-  const { coords } = useLocation();
+  const coords = useUserCoordinates();
   const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(

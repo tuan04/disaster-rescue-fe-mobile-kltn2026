@@ -2,21 +2,22 @@ import {
   clearActiveMission,
   getActiveMission as getLocalActiveMission,
   saveActiveMission,
-  type ActiveMissionParsed,
 } from "@/database";
 import { decodePolyline, getCoordinatesBounds } from "@/helpers/route";
+import {
+  assignmentQueryKeys,
+  useLocalActiveMissionQuery,
+} from "@/hooks/queries";
 import { getActiveMission as getBackendActiveMission } from "@/services/assignment.service";
 import { getMapPointDetail, getRoute } from "@/services/map.service";
 import type { RootState } from "@/store";
 import type { RouteResponse } from "@/types/map";
 import type { CameraRef } from "@maplibre/maplibre-react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "@/hooks/useLocation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocationStatus, useUserCoordinates } from "@/hooks/useLocation";
 import { useRoute } from "@/hooks/useRoute";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-
-export const ACTIVE_MISSION_QUERY_KEY = ["activeMission"] as const;
 
 // Quản lý trạng thái đồng bộ ở cấp module để tránh nhiều component gọi đồng thời
 let isGlobalSyncing = false;
@@ -39,7 +40,8 @@ export function useActiveMission({
   currentLng,
 }: UseActiveMissionOptions = {}) {
   const queryClient = useQueryClient();
-  const { coords, isRealLocation } = useLocation();
+  const coords = useUserCoordinates();
+  const { isRealLocation } = useLocationStatus();
   const locationRef = useRef({ coords, isRealLocation });
   locationRef.current = { coords, isRealLocation };
 
@@ -56,14 +58,12 @@ export function useActiveMission({
     data: activeMission,
     isLoading,
     refetch,
-  } = useQuery<ActiveMissionParsed | null>({
-    queryKey: ACTIVE_MISSION_QUERY_KEY,
-    queryFn: getLocalActiveMission,
-    staleTime: 1000 * 60, // 1 phút
-  });
+  } = useLocalActiveMissionQuery();
 
   const invalidateActiveMission = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ACTIVE_MISSION_QUERY_KEY });
+    queryClient.invalidateQueries({
+      queryKey: assignmentQueryKeys.localActive,
+    });
   }, [queryClient]);
 
   // 2. Logic đồng bộ dữ liệu với Backend máy chủ

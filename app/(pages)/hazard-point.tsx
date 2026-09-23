@@ -8,7 +8,7 @@ import { hazardTypeLabel } from "@/contants/mapPointLables";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
 import { useMapPointsQuery } from "@/hooks/queries";
-import { useLocation } from "@/hooks/useLocation";
+import { useUserCoordinates } from "@/hooks/useLocation";
 import type { HazardMapPointRes, HazardType } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -34,7 +34,7 @@ const HAZARD_TYPE_OPTIONS: Array<{ key: HazardType | "ALL"; label: string }> = [
 
 export default function HazardPointScreen() {
   const theme = useAppTheme();
-  const { coords } = useLocation();
+  const coords = useUserCoordinates();
   const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
   const addHazardSheetRef = useRef<BottomSheetModal>(null);

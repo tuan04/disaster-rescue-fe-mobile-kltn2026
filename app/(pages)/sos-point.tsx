@@ -6,7 +6,7 @@ import SosPointItem from "@/components/map/SosPointItem";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
 import { useMapPointsQuery } from "@/hooks/queries";
-import { useLocation } from "@/hooks/useLocation";
+import { useUserCoordinates } from "@/hooks/useLocation";
 import type { EmergencyLevel, RequestStatus, SosMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -23,7 +23,7 @@ import {
 
 export default function SosPointScreen() {
   const theme = useAppTheme();
-  const { coords } = useLocation();
+  const coords = useUserCoordinates();
   const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(

@@ -8,22 +8,15 @@ import {
   interpolateAngle,
   snapPointToRoute,
 } from "@/helpers/route";
+import { useActiveAssignmentByRequest } from "@/hooks/queries/useAssignmentQueries";
 import { useRoute } from "@/hooks/useRoute";
-import { getActiveAssignmentByRequestId } from "@/services/assignment.service";
 import { getRoute } from "@/services/map.service";
 import { subscribe, websocketService } from "@/services/socket";
-import type { AssignmentRes, AssignmentStatus } from "@/types/assignment";
-import { useQuery } from "@tanstack/react-query";
+import type {
+  AssignmentStatus,
+  TeamLocationPayload,
+} from "@/types/assignment";
 import { useEffect, useMemo, useRef, useState } from "react";
-
-export interface TeamLocationPayload {
-  teamId: string;
-  latitude: number;
-  longitude: number;
-  speed: number;
-  heading: number;
-  recordedAt?: string;
-}
 
 export interface UseRescueTrackingOptions {
   requestId?: string;
@@ -37,6 +30,10 @@ export function useRescueTracking({
   targetLng,
 }: UseRescueTrackingOptions) {
   const [teamLocation, setTeamLocation] = useState<TeamLocationPayload | null>(
+    null,
+  );
+  // Tọa độ mục tiêu mới nhất từ máy chủ (chỉ cập nhật khi có gói tin WebSocket mới, không thay đổi theo từng frame animation)
+  const [targetLocation, setTargetLocation] = useState<TeamLocationPayload | null>(
     null,
   );
   const [liveStatus, setLiveStatus] = useState<AssignmentStatus | null>(null);
@@ -65,21 +62,11 @@ export function useRescueTracking({
   }, []);
 
   const {
-    data: assignmentRes,
+    data: assignment = null,
     isLoading,
     refetch,
-  } = useQuery({
-    queryKey: ["activeAssignmentByRequest", requestId],
-    queryFn: async () => {
-      if (!requestId) return null;
-      const res = await getActiveAssignmentByRequestId(requestId);
-      return res.data;
-    },
-    enabled: !!requestId,
-    refetchInterval: 30000,
-  });
+  } = useActiveAssignmentByRequest(requestId);
 
-  const assignment: AssignmentRes | null = assignmentRes || null;
   const teamId = assignment?.campaignTeamId;
   const currentStatus =
     liveStatus || assignment?.status || (assignment ? "ACCEPTED" : "PENDING");
@@ -106,7 +93,7 @@ export function useRescueTracking({
     );
   }, [requestId]);
 
-  // Lắng nghe tọa độ xe cứu hộ: Áp dụng Snap to Road và hiệu ứng trượt mượt mà
+  // Lắng nghe tọa độ xe cứu hộ: Áp dụng Snap to Road và hiệu ứng trượt mượt mà với frame throttle
   useEffect(() => {
     if (!teamId) return;
 
@@ -132,18 +119,22 @@ export function useRescueTracking({
             : payload.heading || 0;
         const targetSpeed = payload.speed || 0;
 
+        const targetPayload: TeamLocationPayload = {
+          teamId: payload.teamId || teamId,
+          latitude: targetLat,
+          longitude: targetLng,
+          speed: targetSpeed,
+          heading: targetHeading,
+          recordedAt: payload.recordedAt,
+        };
+
+        // Cập nhật tọa độ máy chủ (chỉ cập nhật 1 lần mỗi khi có tin WebSocket)
+        setTargetLocation(targetPayload);
+
         // 2. Nếu là lần đầu nhận vị trí: Hiển thị ngay lập tức
         if (!currentLocationRef.current) {
-          const initialLoc: TeamLocationPayload = {
-            teamId: payload.teamId || teamId,
-            latitude: targetLat,
-            longitude: targetLng,
-            speed: targetSpeed,
-            heading: targetHeading,
-            recordedAt: payload.recordedAt,
-          };
-          currentLocationRef.current = initialLoc;
-          setTeamLocation(initialLoc);
+          currentLocationRef.current = targetPayload;
+          setTeamLocation(targetPayload);
           return;
         }
 
@@ -157,32 +148,38 @@ export function useRescueTracking({
         const startHeading = currentLocationRef.current.heading;
         const startTime = performance.now();
         const duration = 1200; // Thời gian trượt 1.2 giây khớp với nhịp GPS
+        const THROTTLE_MS = 60; // Giới hạn tần suất cập nhật UI ~16 FPS để tránh quá tải JS thread
+        let lastUpdateTime = 0;
 
-        const animate = () => {
-          const now = performance.now();
-          const elapsed = now - startTime;
+        const animate = (currentTime: number) => {
+          const elapsed = currentTime - startTime;
           const progress = Math.min(1, elapsed / duration);
-          const eased = easeOutQuad(progress);
 
-          const currentLat = startLat + (targetLat - startLat) * eased;
-          const currentLng = startLng + (targetLng - startLng) * eased;
-          const currentHeading = interpolateAngle(
-            startHeading,
-            targetHeading,
-            eased,
-          );
+          // Chỉ cập nhật state khi qua ngưỡng throttle hoặc khi kết thúc animation
+          if (progress >= 1 || currentTime - lastUpdateTime >= THROTTLE_MS) {
+            lastUpdateTime = currentTime;
+            const eased = easeOutQuad(progress);
 
-          const updated: TeamLocationPayload = {
-            teamId: payload.teamId || teamId,
-            latitude: currentLat,
-            longitude: currentLng,
-            speed: targetSpeed,
-            heading: currentHeading,
-            recordedAt: payload.recordedAt,
-          };
+            const currentLat = startLat + (targetLat - startLat) * eased;
+            const currentLng = startLng + (targetLng - startLng) * eased;
+            const currentHeading = interpolateAngle(
+              startHeading,
+              targetHeading,
+              eased,
+            );
 
-          currentLocationRef.current = updated;
-          setTeamLocation(updated);
+            const updated: TeamLocationPayload = {
+              teamId: payload.teamId || teamId,
+              latitude: currentLat,
+              longitude: currentLng,
+              speed: targetSpeed,
+              heading: currentHeading,
+              recordedAt: payload.recordedAt,
+            };
+
+            currentLocationRef.current = updated;
+            setTeamLocation(updated);
+          }
 
           if (progress < 1) {
             animFrameRef.current = requestAnimationFrame(animate);
@@ -196,15 +193,15 @@ export function useRescueTracking({
     );
   }, [teamId]);
 
-  // Lấy lộ trình đường đi khi xe di chuyển > 30m
+  // Lấy lộ trình đường đi khi xe di chuyển > 30m (CHỈ kiểm tra theo targetLocation từ server, không chạy theo từng frame animation)
   const lastFetchedLocationRef = useRef<{ lat: number; lng: number } | null>(
     null,
   );
 
   useEffect(() => {
-    if (!teamLocation || !requestId) return;
+    if (!targetLocation || !requestId) return;
 
-    const { latitude, longitude } = teamLocation;
+    const { latitude, longitude } = targetLocation;
     const lastLoc = lastFetchedLocationRef.current;
 
     if (lastLoc) {
@@ -244,12 +241,13 @@ export function useRescueTracking({
     return () => {
       isCancelled = true;
     };
-  }, [teamLocation?.latitude, teamLocation?.longitude, requestId]);
+  }, [targetLocation?.latitude, targetLocation?.longitude, targetLocation, requestId]);
 
   // Áp dụng useRoute để cắt ngắn tuyến đường và tính toán cự ly/thời gian realtime theo xe cứu hộ
+  // Sử dụng targetLocation để tránh tính toán lại polyline mỗi frame
+  const effectiveLocation = targetLocation || teamLocation;
   const {
     remainingRouteGeoJSON,
-    remainingDistance,
     distanceText: liveDistanceText,
     durationText: liveDurationText,
     etaTimeStr: liveEtaTimeStr,
@@ -257,8 +255,8 @@ export function useRescueTracking({
     routeCoordinates,
     initialDistance: routeDistance,
     initialDuration: routeDuration,
-    currentLat: teamLocation?.latitude,
-    currentLng: teamLocation?.longitude,
+    currentLat: effectiveLocation?.latitude,
+    currentLng: effectiveLocation?.longitude,
   });
 
   // Tính toán khoảng cách & thời gian dự kiến (fallback chim bay nếu OSRM chưa phản hồi)
@@ -272,19 +270,19 @@ export function useRescueTracking({
     }
 
     if (
-      teamLocation &&
+      effectiveLocation &&
       typeof targetLat === "number" &&
       typeof targetLng === "number"
     ) {
       const distMeters = calculateDistanceMeters(
-        teamLocation.latitude,
-        teamLocation.longitude,
+        effectiveLocation.latitude,
+        effectiveLocation.longitude,
         targetLat,
         targetLng,
       );
       const effectiveSpeed =
-        teamLocation.speed && teamLocation.speed > 5
-          ? (teamLocation.speed * 1000) / 3600
+        effectiveLocation.speed && effectiveLocation.speed > 5
+          ? (effectiveLocation.speed * 1000) / 3600
           : 8.33;
       const estimatedSec = Math.round(distMeters / effectiveSpeed);
 
@@ -305,9 +303,7 @@ export function useRescueTracking({
     liveDistanceText,
     liveDurationText,
     liveEtaTimeStr,
-    teamLocation?.speed,
-    teamLocation?.latitude,
-    teamLocation?.longitude,
+    effectiveLocation,
     targetLat,
     targetLng,
   ]);
@@ -322,7 +318,7 @@ export function useRescueTracking({
     }
 
     if (
-      teamLocation &&
+      effectiveLocation &&
       typeof targetLat === "number" &&
       typeof targetLng === "number"
     ) {
@@ -335,7 +331,7 @@ export function useRescueTracking({
             geometry: {
               type: "LineString" as const,
               coordinates: [
-                [teamLocation.longitude, teamLocation.latitude],
+                [effectiveLocation.longitude, effectiveLocation.latitude],
                 [targetLng, targetLat],
               ],
             },
@@ -347,8 +343,7 @@ export function useRescueTracking({
     return null;
   }, [
     remainingRouteGeoJSON,
-    teamLocation?.latitude,
-    teamLocation?.longitude,
+    effectiveLocation,
     targetLat,
     targetLng,
   ]);
@@ -356,6 +351,7 @@ export function useRescueTracking({
   return {
     assignment,
     teamLocation,
+    targetLocation,
     currentStatus,
     isLoading,
     isSocketConnected,

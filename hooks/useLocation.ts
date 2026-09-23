@@ -6,16 +6,19 @@ import { useSelector } from "react-redux";
 
 export { DEFAULT_COORDS };
 
-/**
- * Pure consumer hook: Chỉ đọc dữ liệu vị trí dùng chung (Shared Location) từ Redux store.
- * TUYỆT ĐỐI KHÔNG tự tạo watcher hay gọi GPS APIs trực tiếp.
- */
-export function useLocation() {
-  const coords = useSelector(
+export function useUserCoordinates() {
+  return useSelector(
     (state: RootState) => state.location.coords,
     (prev, next) =>
       prev?.latitude === next?.latitude && prev?.longitude === next?.longitude,
   );
+}
+
+export function useCompassHeading() {
+  return useSelector((state: RootState) => state.location.heading);
+}
+
+export function useLocationStatus() {
   const permissionDenied = useSelector(
     (state: RootState) => state.location.permissionDenied,
   );
@@ -26,7 +29,20 @@ export function useLocation() {
   const hasPermission = useSelector(
     (state: RootState) => state.location.hasPermission,
   );
-  const heading = useSelector((state: RootState) => state.location.heading);
+
+  return {
+    permissionDenied,
+    loading,
+    isRealLocation,
+    hasPermission,
+  };
+}
+
+export function useLocation() {
+  const coords = useUserCoordinates();
+  const { permissionDenied, loading, isRealLocation, hasPermission } =
+    useLocationStatus();
+  const heading = useCompassHeading();
   const speed = useSelector((state: RootState) => state.location.speed);
 
   const refresh = useCallback(async (): Promise<boolean> => {

@@ -1,4 +1,8 @@
 import {
+  getActiveMission as getLocalActiveMission,
+  type ActiveMissionParsed,
+} from "@/database";
+import {
   acceptRescueRequest,
   cancelAssignment,
   completeAssignment,
@@ -14,6 +18,7 @@ export const assignmentQueryKeys = {
     ["activeAssignmentByRequest", requestId] as const,
   activeByTeam: (teamId?: string | null) =>
     ["activeMissionByTeam", teamId] as const,
+  localActive: ["activeMission"] as const,
 };
 
 export interface UseActiveAssignmentOptions {
@@ -52,6 +57,18 @@ export function useActiveMissionByTeam(
       return res.data ?? null;
     },
     enabled: Boolean(teamId) && (options?.enabled ?? true),
+  });
+}
+
+/**
+ * Hook truy vấn ca cứu hộ đang hoạt động được lưu trong SQLite (Offline-First)
+ */
+export function useLocalActiveMissionQuery(options?: { enabled?: boolean }) {
+  return useQuery<ActiveMissionParsed | null>({
+    queryKey: assignmentQueryKeys.localActive,
+    queryFn: getLocalActiveMission,
+    staleTime: 1000 * 60,
+    enabled: options?.enabled ?? true,
   });
 }
 
