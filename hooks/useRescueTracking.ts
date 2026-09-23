@@ -8,7 +8,7 @@ import {
   interpolateAngle,
   snapPointToRoute,
 } from "@/helpers/route";
-import { useActiveAssignmentByRequest } from "@/hooks/queries/useAssignmentQueries";
+import { useActiveAssignmentByRequest } from "@/hooks/queries";
 import { useRoute } from "@/hooks/useRoute";
 import { getRoute } from "@/services/map.service";
 import { subscribe, websocketService } from "@/services/socket";
