@@ -20,9 +20,10 @@ import {
   Pressable,
   RefreshControl,
   Text,
-  TextInput,
-  View,
+  View
 } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 const HAZARD_TYPE_OPTIONS: Array<{ key: HazardType | "ALL"; label: string }> = [
   { key: "ALL", label: "Tất cả" },
