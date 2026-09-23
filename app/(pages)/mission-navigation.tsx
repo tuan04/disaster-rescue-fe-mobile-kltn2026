@@ -221,9 +221,15 @@ export default function MissionNavigationScreen() {
     return (
       distanceToTarget <= 50 ||
       remainingDistance <= 50 ||
-      navProgress.currentStep?.maneuver?.type === "arrive"
+      navProgress.currentStep?.maneuver === "arrive" ||
+      navProgress.primaryManeuver?.actionText === "Đến nơi"
     );
-  }, [distanceToTarget, remainingDistance, navProgress.currentStep?.maneuver?.type]);
+  }, [
+    distanceToTarget,
+    remainingDistance,
+    navProgress.currentStep?.maneuver,
+    navProgress.primaryManeuver?.actionText,
+  ]);
 
   // Gọi điện thoại cho nạn nhân
   const handleCallReporter = useCallback(() => {

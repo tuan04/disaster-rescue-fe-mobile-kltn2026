@@ -4,7 +4,7 @@ import {
   saveActiveMission,
   type ActiveMissionParsed,
 } from "@/database";
-import { getCoordinatesBounds } from "@/helpers/route";
+import { decodePolyline, getCoordinatesBounds } from "@/helpers/route";
 import { getActiveMission as getBackendActiveMission } from "@/services/assignment.service";
 import { getMapPointDetail, getRoute } from "@/services/map.service";
 import type { RootState } from "@/store";
@@ -202,16 +202,18 @@ export function useActiveMission({
 
   const activeRoute = isRouteCleared ? null : (activeMission?.route ?? null);
 
+  const routeCoordinates = useMemo(() => {
+    const points = activeRoute?.routes?.[0]?.overview_polyline?.points;
+    if (!points) return null;
+    return decodePolyline(points);
+  }, [activeRoute]);
+
   // Tự động căn chỉnh camera bao quát toàn bộ lộ trình khi mới nạp
   useEffect(() => {
-    if (
-      !cameraRef?.current ||
-      !activeRoute?.routes?.[0]?.geometry?.coordinates
-    ) {
+    if (!cameraRef?.current || !routeCoordinates || routeCoordinates.length === 0) {
       return;
     }
-    const coordinates = activeRoute.routes[0].geometry.coordinates;
-    const bounds = getCoordinatesBounds(coordinates);
+    const bounds = getCoordinatesBounds(routeCoordinates);
     if (bounds) {
       setTimeout(() => {
         cameraRef.current?.setStop({
@@ -221,21 +223,20 @@ export function useActiveMission({
         });
       }, 500);
     }
-  }, [activeMission?.id, cameraRef, activeRoute]);
+  }, [activeMission?.id, cameraRef, routeCoordinates]);
 
   // GeoJSON toàn bộ tuyến đường ban đầu
   const routeGeoJSON = useMemo(() => {
-    const coords = activeRoute?.routes?.[0]?.geometry?.coordinates;
-    if (!coords || coords.length === 0) return null;
+    if (!routeCoordinates || routeCoordinates.length === 0) return null;
     return {
       type: "Feature" as const,
       properties: {},
       geometry: {
         type: "LineString" as const,
-        coordinates: coords,
+        coordinates: routeCoordinates,
       },
     };
-  }, [activeRoute]);
+  }, [routeCoordinates]);
 
   const navLat =
     typeof currentLat === "number" ? currentLat : coords?.latitude;
@@ -251,9 +252,9 @@ export function useActiveMission({
     durationText,
     etaTimeStr,
   } = useRoute({
-    routeCoordinates: activeRoute?.routes?.[0]?.geometry?.coordinates,
-    initialDistance: activeRoute?.routes?.[0]?.distance,
-    initialDuration: activeRoute?.routes?.[0]?.duration,
+    routeCoordinates,
+    initialDistance: activeRoute?.routes?.[0]?.legs?.[0]?.distance?.value,
+    initialDuration: activeRoute?.routes?.[0]?.legs?.[0]?.duration?.value,
     currentLat: navLat,
     currentLng: navLng,
   });

@@ -3,6 +3,7 @@ import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL } from "@/contants/mapConfig";
 import {
   calculateEtaTime,
+  decodePolyline,
   getRemainingRouteCoordinates,
 } from "@/helpers/route";
 import { useActiveMission } from "@/hooks/useActiveMission";
@@ -124,8 +125,10 @@ export default function FloatingMissionPiP() {
 
   // Chuẩn bị dữ liệu tuyến đường còn lại (GeoJSON)
   const routeGeoJSON = useMemo(() => {
-    const geom = activeMission?.route?.routes?.[0]?.geometry;
-    if (!geom || !geom.coordinates || geom.coordinates.length === 0) return null;
+    const points = activeMission?.route?.routes?.[0]?.overview_polyline?.points;
+    if (!points) return null;
+    const coordinates = decodePolyline(points);
+    if (!coordinates || coordinates.length === 0) return null;
 
     if (!coords.latitude || !coords.longitude) {
       return {
@@ -133,13 +136,13 @@ export default function FloatingMissionPiP() {
         properties: {},
         geometry: {
           type: "LineString" as const,
-          coordinates: geom.coordinates,
+          coordinates,
         },
       };
     }
 
     const { remainingCoordinates, nearestIndex } = getRemainingRouteCoordinates(
-      geom.coordinates,
+      coordinates,
       coords.latitude,
       coords.longitude,
       lastNearestIndexRef.current,
@@ -159,7 +162,7 @@ export default function FloatingMissionPiP() {
 
   // Tính giờ dự kiến đến nơi (ETA clock: hh:mm)
   const etaTimeStr = useMemo(() => {
-    const durationSec = activeMission?.route?.routes?.[0]?.duration;
+    const durationSec = activeMission?.route?.routes?.[0]?.legs?.[0]?.duration?.value;
     return calculateEtaTime(durationSec);
   }, [activeMission?.route]);
 

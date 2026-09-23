@@ -61,14 +61,14 @@ export const getRoute = async (
   startLat: number,
   startLng: number,
   requestId: string,
-  profile: string = "driving",
+  vehicle: string = "car",
 ): Promise<RouteResponse> => {
   const response = await get<RouteResponse>("/routes", {
     params: {
       startLat,
       startLng,
       requestId,
-      profile,
+      vehicle,
     },
   });
   return response.data;

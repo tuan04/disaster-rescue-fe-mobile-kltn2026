@@ -129,41 +129,43 @@ export type MapPointDetailRes =
       detail: WarehouseDetailRes;
     });
 
-export interface GeometryDto {
-  type: string;
-  coordinates: number[][];
+export interface ValueText {
+  value: number;
+  text: string;
 }
 
-export interface ManeuverDto {
-  type: string;
-  modifier?: string;
-  location: [number, number]; // [longitude, latitude]
-  bearing_before?: number;
-  bearing_after?: number;
+export interface LatLngLocation {
+  lat: number;
+  lng: number;
 }
 
 export interface StepDto {
-  distance: number;
-  duration: number;
-  name: string;
-  maneuver: ManeuverDto;
+  distance: ValueText;
+  duration: ValueText;
+  start_location: LatLngLocation;
+  end_location: LatLngLocation;
+  html_instructions: string;
+  maneuver?: string;
+  polyline: { points: string };
+  travel_mode?: string;
 }
 
 export interface LegDto {
-  distance: number;
-  duration: number;
-  summary?: string;
+  distance: ValueText;
+  duration: ValueText;
+  start_address?: string;
+  end_address?: string;
+  start_location: LatLngLocation;
+  end_location: LatLngLocation;
   steps: StepDto[];
 }
 
 export interface RouteDto {
-  distance: number;
-  duration: number;
-  geometry: GeometryDto;
-  legs?: LegDto[];
+  overview_polyline: { points: string };
+  legs: LegDto[];
+  summary?: string;
 }
 
 export interface RouteResponse {
-  code: string;
   routes: RouteDto[];
 }

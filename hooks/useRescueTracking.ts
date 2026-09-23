@@ -1,6 +1,7 @@
 import {
   calculateDistanceMeters,
   calculateEtaTime,
+  decodePolyline,
   easeOutQuad,
   formatDuration,
   formatRouteDistance,
@@ -219,18 +220,19 @@ export function useRescueTracking({
     lastFetchedLocationRef.current = { lat: latitude, lng: longitude };
     let isCancelled = false;
 
-    getRoute(latitude, longitude, requestId, "driving")
+    getRoute(latitude, longitude, requestId, "car")
       .then((res) => {
         if (isCancelled) return;
         const primary = res?.routes?.[0];
-        if (primary?.geometry?.coordinates) {
-          setRouteCoordinates(primary.geometry.coordinates);
+        if (primary?.overview_polyline?.points) {
+          setRouteCoordinates(decodePolyline(primary.overview_polyline.points));
         }
-        if (typeof primary?.duration === "number") {
-          setRouteDuration(primary.duration);
+        const leg = primary?.legs?.[0];
+        if (typeof leg?.duration?.value === "number") {
+          setRouteDuration(leg.duration.value);
         }
-        if (typeof primary?.distance === "number") {
-          setRouteDistance(primary.distance);
+        if (typeof leg?.distance?.value === "number") {
+          setRouteDistance(leg.distance.value);
         }
       })
       .catch((err) => {

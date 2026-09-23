@@ -27,7 +27,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
@@ -226,8 +226,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
             title="Thử lại"
             onPress={() => refetch()}
             variant="danger"
-            style={{ marginTop: 16 }}
-            contentStyle={{ minHeight: 40 }}
+            className="mt-4 min-h-[40px]"
           />
         </View>
       )}
@@ -281,7 +280,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
                         color={color}
                       />
                     )}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
                 )}
 
@@ -293,7 +292,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
                     icon={({ size, color }) => (
                       <Ionicons name="call-outline" size={size} color={color} />
                     )}
-                    style={{ flex: 1 }}
+                    className="flex-1"
                   />
                 )}
               </View>

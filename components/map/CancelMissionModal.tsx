@@ -135,7 +135,7 @@ export default function CancelMissionModal({
               variant="outline"
               onPress={handleClose}
               disabled={loading}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
             <Button
               title="Hủy ca"
@@ -143,7 +143,7 @@ export default function CancelMissionModal({
               onPress={handleConfirm}
               loading={loading}
               disabled={loading || !reason.trim()}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
           </View>
         </View>
