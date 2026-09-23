@@ -5,12 +5,11 @@ import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomShee
 import SosPointItem from "@/components/map/SosPointItem";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
+import { useMapPointsQuery } from "@/hooks/queries";
 import { useLocation } from "@/hooks/useLocation";
-import { getAllMapPoints } from "@/services/map.service";
-import type { EmergencyLevel, MapPointRes, RequestStatus, SosMapPointRes } from "@/types/map";
+import type { EmergencyLevel, RequestStatus, SosMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -50,11 +49,7 @@ export default function SosPointScreen() {
     isLoading,
     isRefetching,
     refetch,
-  } = useQuery<MapPointRes[]>({
-    queryKey: ["mapPoints", "SOS"],
-    queryFn: () => getAllMapPoints({ pointTypes: ["SOS"] }),
-    staleTime: 1000 * 60 * 3,
-  });
+  } = useMapPointsQuery({ pointTypes: ["SOS"] }, { staleTime: 1000 * 60 * 3 });
 
   const sosPoints = useMemo(() => {
     return (mapPoints as SosMapPointRes[])

@@ -1,9 +1,6 @@
 import { useAppTheme } from "@/contants/theme";
-import { useLocation } from "@/hooks/useLocation";
-import {
-  createHazardReports,
-  reverseGeocode,
-} from "@/services/dispatch.service";
+import { useCreateHazardReportMutation } from "@/hooks/queries";
+import { reverseGeocode } from "@/services/dispatch.service";
 import { RootState } from "@/store";
 import type { HazardType } from "@/types/map";
 import {
@@ -93,7 +90,8 @@ export const CreateHazardBottomSheet = React.forwardRef<
   );
   const lastGeocodedRef = useRef<string | null>(null);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { mutateAsync: createHazard, isPending: isSubmitting } =
+    useCreateHazardReportMutation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<ImageAsset[]>([]);
   const [resolvedAddress, setResolvedAddress] = useState<string>("");
@@ -299,7 +297,6 @@ export const CreateHazardBottomSheet = React.forwardRef<
       return;
     }
 
-    setIsSubmitting(true);
     try {
       // Đảm bảo có địa chỉ (từ API ngoài hoặc fallback)
       let finalAddress = resolvedAddress || values.address;
@@ -307,7 +304,7 @@ export const CreateHazardBottomSheet = React.forwardRef<
         finalAddress = await reverseGeocode(lat, lon);
       }
 
-      const response = await createHazardReports({
+      const response = await createHazard({
         hazardType: values.hazardType,
         address:
           finalAddress ||
@@ -353,8 +350,6 @@ export const CreateHazardBottomSheet = React.forwardRef<
         text1: "Lỗi kết nối máy chủ",
         text2: error?.message || "Không thể kết nối đến hệ thống cứu hộ.",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

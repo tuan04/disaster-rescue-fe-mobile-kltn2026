@@ -13,7 +13,7 @@ import {
 import { useLocation } from "@/hooks/useLocation";
 import { useRescue } from "@/hooks/useRescue";
 import { useActiveMission } from "@/hooks/useActiveMission";
-import { getMapPointDetail } from "@/services/map.service";
+import { useMapPointDetailQuery } from "@/hooks/queries";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import type BottomSheet from "@gorhom/bottom-sheet";
 import {
@@ -21,7 +21,6 @@ import {
   type CameraRef,
   Map,
 } from "@maplibre/maplibre-react-native";
-import { useQuery } from "@tanstack/react-query";
 import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -190,11 +189,9 @@ export default function MissionNavigationScreen() {
   const targetLng = activeMission?.target_longitude;
 
   // Truy vấn chi tiết yêu cầu cứu hộ từ backend
-  const { data: detailRes } = useQuery({
-    queryKey: ["mapPointDetail", activeMission?.request_id],
-    queryFn: () => getMapPointDetail(activeMission!.request_id),
-    enabled: !!activeMission?.request_id,
-  });
+  const { data: detailRes } = useMapPointDetailQuery(
+    activeMission?.request_id,
+  );
 
   const sosDetail =
     detailRes?.pointType === "SOS" ? detailRes.detail : null;

@@ -1,14 +1,13 @@
 import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import {
-  getAllSOSRequests,
   type MySOSRequestEntity,
   type SOSRescueStatus,
   type SOSSyncStatus,
 } from "@/database/sos-request.repository";
 import { formatDateTime } from "@/helpers/date";
+import { useMySOSRequestsQuery } from "@/hooks/queries";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -250,10 +249,7 @@ export default function MySOSRequestsScreen() {
     isLoading,
     refetch,
     isRefetching,
-  } = useQuery<MySOSRequestEntity[]>({
-    queryKey: ["my-sos-requests"],
-    queryFn: getAllSOSRequests,
-  });
+  } = useMySOSRequestsQuery();
 
   useFocusEffect(
     useCallback(() => {

@@ -6,12 +6,11 @@ import SafePointItem from "@/components/map/SafePointItem";
 import { safePointTypeLabel } from "@/contants/mapPointLables";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
+import { useMapPointsQuery } from "@/hooks/queries";
 import { useLocation } from "@/hooks/useLocation";
-import { getAllMapPoints } from "@/services/map.service";
-import type { MapPointRes, SafePointType, SafeZoneMapPointRes } from "@/types/map";
+import type { SafePointType, SafeZoneMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -59,11 +58,10 @@ export default function SafePointScreen() {
     isLoading,
     isRefetching,
     refetch,
-  } = useQuery<MapPointRes[]>({
-    queryKey: ["mapPoints", "SAFE_ZONE"],
-    queryFn: () => getAllMapPoints({ pointTypes: ["SAFE_ZONE"] }),
-    staleTime: 1000 * 60 * 3,
-  });
+  } = useMapPointsQuery(
+    { pointTypes: ["SAFE_ZONE"] },
+    { staleTime: 1000 * 60 * 3 },
+  );
 
   const safePoints = useMemo(() => {
     return (mapPoints as SafeZoneMapPointRes[])

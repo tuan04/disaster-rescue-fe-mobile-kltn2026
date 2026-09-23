@@ -7,7 +7,7 @@ import {
   rescueStatusLabel,
   safePointTypeLabel,
 } from "@/contants/mapPointLables";
-import { getMapPointDetail } from "@/services/map.service";
+import { useMapPointDetailQuery } from "@/hooks/queries";
 import type { RootState } from "@/store";
 import type { MapPointDetailRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +17,6 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -58,11 +57,7 @@ export const MapPointDetailBottomSheet = React.forwardRef<
     isLoading,
     isError,
     refetch,
-  } = useQuery<MapPointDetailRes>({
-    queryKey: ["mapPointDetail", pointId],
-    queryFn: () => getMapPointDetail(pointId!),
-    enabled: !!pointId,
-  });
+  } = useMapPointDetailQuery(pointId);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (

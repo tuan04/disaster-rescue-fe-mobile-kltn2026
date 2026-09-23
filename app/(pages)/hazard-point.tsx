@@ -7,12 +7,11 @@ import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomShee
 import { hazardTypeLabel } from "@/contants/mapPointLables";
 import { calculateDistanceKm } from "@/helpers/route";
 import { useAppTheme } from "@/contants/theme";
+import { useMapPointsQuery } from "@/hooks/queries";
 import { useLocation } from "@/hooks/useLocation";
-import { getAllMapPoints } from "@/services/map.service";
-import type { HazardMapPointRes, HazardType, MapPointRes } from "@/types/map";
+import type { HazardMapPointRes, HazardType } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -35,11 +34,7 @@ const HAZARD_TYPE_OPTIONS: Array<{ key: HazardType | "ALL"; label: string }> = [
 
 export default function HazardPointScreen() {
   const theme = useAppTheme();
-    const coords = useSelector(
-      (state: RootState) => state.location.coords,
-      (prev, next) =>
-        prev?.latitude === next?.latitude && prev?.longitude === next?.longitude,
-    );
+  const { coords } = useLocation();
   const params = useLocalSearchParams<{ pointId?: string }>();
   const detailSheetRef = useRef<BottomSheetModal>(null);
   const addHazardSheetRef = useRef<BottomSheetModal>(null);
@@ -65,11 +60,10 @@ export default function HazardPointScreen() {
     isLoading,
     isRefetching,
     refetch,
-  } = useQuery<MapPointRes[]>({
-    queryKey: ["mapPoints", "HAZARD"],
-    queryFn: () => getAllMapPoints({ pointTypes: ["HAZARD"] }),
-    staleTime: 1000 * 60 * 3,
-  });
+  } = useMapPointsQuery(
+    { pointTypes: ["HAZARD"] },
+    { staleTime: 1000 * 60 * 3 },
+  );
 
   const hazardPoints = useMemo(() => {
     return (mapPoints as HazardMapPointRes[])
