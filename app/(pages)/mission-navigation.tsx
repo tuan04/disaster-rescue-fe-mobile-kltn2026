@@ -6,7 +6,6 @@ import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
 import { MAP_STYLE_URL } from "@/contants/mapConfig";
 import {
-  calculateDistanceMeters,
   extractRouteSteps,
   getNavigationProgress,
 } from "@/helpers/navigation";
@@ -31,6 +30,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { calculateDistanceMeters } from "@/helpers/route";
 
 export default function MissionNavigationScreen() {
   const insets = useSafeAreaInsets();

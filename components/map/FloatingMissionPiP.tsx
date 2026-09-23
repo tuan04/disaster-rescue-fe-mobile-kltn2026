@@ -131,13 +131,10 @@ export default function FloatingMissionPiP() {
     };
   }, [activeMission?.route]);
 
-  // Ẩn khi không có ca cứu hộ, hoặc đang ở chính màn hình dẫn đường hoặc tab Bản đồ lớn
-  const isOnMapOrNav =
-    pathname?.includes("mission-navigation") ||
-    pathname === "/map" ||
-    pathname?.endsWith("/map");
+  // Chỉ ẩn khi không có ca cứu hộ hoặc đang ở chính màn hình dẫn đường chuyên dụng
+  const isNavScreen = pathname?.includes("mission-navigation");
 
-  if (!hasActiveMission || !activeMission || isOnMapOrNav) {
+  if (!hasActiveMission || !activeMission || isNavScreen) {
     return null;
   }
 
