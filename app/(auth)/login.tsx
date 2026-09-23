@@ -12,7 +12,8 @@ import { loginSchema } from "@/validations/registerValidation";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { router } from "expo-router";
 import { useForm } from "react-hook-form";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import Toast from "react-native-toast-message";
 import { useDispatch } from "react-redux";
 import { ApiError } from "@/services/api";
 
@@ -38,36 +39,34 @@ export default function LoginScreen() {
         password: values.password,
       });
 
-      console.log("response", response);
+      await saveTokens(response.data.accessToken, response.data.refreshToken);
+      dispatch(login(response.data.userInfoResponse));
 
-      if (response.success === true) {
-        await saveTokens(response.data.accessToken, response.data.refreshToken);
-        dispatch(login(response.data.userInfoResponse));
-
-        try {
-          const profileRes = await getMyProfile();
-          if (profileRes.success && profileRes.data) {
-            dispatch(setProfile(profileRes.data));
-          }
-        } catch (profileError) {
-          console.warn("Could not fetch full profile on login:", profileError);
+      try {
+        const profileRes = await getMyProfile();
+        if (profileRes.success && profileRes.data) {
+          dispatch(setProfile(profileRes.data));
         }
-
-        router.replace("/(app)");
-        return;
+      } catch (profileError) {
+        console.warn("Could not fetch full profile on login:", profileError);
       }
 
-      Alert.alert(
-        "Đăng nhập thất bại",
-        response.message || "Vui lòng thử lại.",
-      );
+      Toast.show({
+        type: "success",
+        text1: "Đăng nhập thành công",
+        text2: `Chào mừng ${response.data.userInfoResponse.fullName || "bạn"}!`,
+      });
+
+      router.replace("/(app)");
     } catch (error) {
-      Alert.alert(
-        "Đăng nhập thất bại",
-        error instanceof Error
-          ? error.message
-          : "Đã xảy ra lỗi, vui lòng thử lại.",
-      );
+      Toast.show({
+        type: "error",
+        text1: "Đăng nhập thất bại",
+        text2:
+          error instanceof Error
+            ? error.message
+            : "Đã xảy ra lỗi, vui lòng thử lại.",
+      });
     }
   };
 
@@ -91,7 +90,6 @@ export default function LoginScreen() {
           <FormInput
             control={control}
             name="phoneNumber"
-            label="Số điện thoại"
             icon="phone"
             error={errors.phoneNumber?.message}
             keyboardType="phone-pad"
@@ -100,7 +98,6 @@ export default function LoginScreen() {
           <FormInput
             control={control}
             name="password"
-            label="Mật khẩu"
             icon="lock-outline"
             error={errors.password?.message}
             secureTextEntry
@@ -112,21 +109,20 @@ export default function LoginScreen() {
           title="Quên mật khẩu?"
           align="right"
           onPress={() => router.push("/(auth)/forgot-password")}
-          style={{ marginTop: 12 }}
+          className="mt-3 mb-3"
         />
 
         <Button
           title={isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
           loading={isSubmitting}
           onPress={handleSubmit(onSubmit)}
-          style={{ marginTop: 32 }}
         />
 
         <TextLink
           text="Chưa có tài khoản?"
           title="Đăng ký"
           onPress={() => router.push("/(auth)/register")}
-          style={{ marginTop: 20 }}
+          className="mt-6"
         />
       </View>
     </ScreenContainer>

@@ -96,7 +96,7 @@ export default function OtpVerificationScreen() {
           title={isSubmitting ? "Đang xác thực..." : "Xác thực"}
           loading={isSubmitting}
           onPress={handleSubmit(submitOtp)}
-          style={{ marginTop: 24 }}
+          className="mt-6"
         />
       </View>
     </SafeAreaView>

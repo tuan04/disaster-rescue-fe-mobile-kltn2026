@@ -100,7 +100,7 @@ export default function VerifyResetOtpScreen() {
           title={isSubmitting ? "Đang xác thực..." : "Xác thực OTP"}
           loading={isSubmitting}
           onPress={handleSubmit(onSubmit)}
-          style={{ marginTop: 32 }}
+          className="mt-8"
         />
       </View>
     </SafeAreaView>

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 
 export type SettingItemType = "link" | "switch" | "info";
 

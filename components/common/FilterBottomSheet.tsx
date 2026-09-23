@@ -7,7 +7,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import React, { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface FilterBottomSheetProps {

@@ -1,114 +1,146 @@
+import { useAppTheme } from "@/contants/theme";
 import React from "react";
-import { StyleSheet, Text } from "react-native";
 import {
-  Button as PaperButton,
-  useTheme,
-  type ButtonProps as PaperButtonProps,
-} from "react-native-paper";
+  ActivityIndicator,
+  Pressable,
+  type PressableProps,
+  Text,
+  View,
+} from "react-native";
 
-type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "success";
 
-type ButtonProps = {
+export type ButtonProps = {
   title: string;
   loading?: boolean;
   disabled?: boolean;
   variant?: ButtonVariant;
+  className?: string;
   labelClassName?: string;
-} & Omit<
-  PaperButtonProps,
-  "children" | "loading" | "disabled" | "mode" | "buttonColor" | "textColor"
->;
+  icon?:
+    | React.ReactNode
+    | ((props: { size: number; color: string }) => React.ReactNode);
+} & Omit<PressableProps, "children" | "style">;
+
+const variantClasses: Record<
+  ButtonVariant,
+  { button: string; text: string; iconColorKey: "white" | "primary" }
+> = {
+  primary: {
+    button: "bg-primary border-transparent",
+    text: "text-white",
+    iconColorKey: "white",
+  },
+  secondary: {
+    button: "bg-secondary border-transparent",
+    text: "text-white",
+    iconColorKey: "white",
+  },
+  outline: {
+    button: "bg-transparent border border-primary",
+    text: "text-primary",
+    iconColorKey: "primary",
+  },
+  ghost: {
+    button: "bg-transparent border-transparent",
+    text: "text-primary",
+    iconColorKey: "primary",
+  },
+  danger: {
+    button: "bg-danger border-transparent",
+    text: "text-white",
+    iconColorKey: "white",
+  },
+  success: {
+    button: "bg-success border-transparent",
+    text: "text-white",
+    iconColorKey: "white",
+  },
+};
 
 export default function Button({
   title,
   loading = false,
   disabled = false,
   variant = "primary",
-  contentStyle,
-  labelStyle,
-  style,
-  labelClassName,
-  ...props
+  icon,
+  className = "",
+  labelClassName = "",
+  onPress,
+  ...pressableProps
 }: ButtonProps) {
-  const theme = useTheme();
-
-  const modeByVariant: Record<ButtonVariant, PaperButtonProps["mode"]> = {
-    primary: "contained",
-    secondary: "contained-tonal",
-    outline: "outlined",
-    ghost: "text",
-    danger: "contained",
-    success: "contained",
-  };
-
-  const colorByVariant: Record<
-    ButtonVariant,
-    Pick<PaperButtonProps, "buttonColor" | "textColor">
-  > = {
-    primary: {
-      buttonColor: theme.colors.primary,
-      textColor: theme.colors.onPrimary,
-    },
-    secondary: {
-      buttonColor: theme.colors.secondary,
-      textColor: theme.colors.onSecondary,
-    },
-    outline: {
-      textColor: theme.colors.primary,
-    },
-    ghost: {
-      textColor: theme.colors.primary,
-    },
-    danger: {
-      buttonColor: theme.colors.error,
-      textColor: theme.colors.onError,
-    },
-    success: {
-      buttonColor: (theme.colors as any).success,
-      textColor: "#ffffff",
-    },
-  };
-
+  const theme = useAppTheme();
+  const config = variantClasses[variant] || variantClasses.primary;
   const isMuted = disabled && !loading;
 
+  const iconColor = isMuted
+    ? variant === "outline" || variant === "ghost"
+      ? theme.colors.outline
+      : "#ffffffb3"
+    : config.iconColorKey === "white"
+      ? "#ffffff"
+      : theme.colors.primary;
+
+  const renderIcon = () => {
+    if (!icon || loading) return null;
+    if (typeof icon === "function") {
+      return (
+        <View className="mr-2 items-center justify-center">
+          {icon({ size: 18, color: iconColor })}
+        </View>
+      );
+    }
+    return <View className="mr-2 items-center justify-center">{icon}</View>;
+  };
+
   return (
-    <PaperButton
-      mode={modeByVariant[variant]}
-      loading={loading}
+    <Pressable
+      onPress={onPress}
       disabled={disabled || loading}
-      style={[styles.button, style, isMuted && styles.disabled]}
-      contentStyle={[styles.content, contentStyle]}
-      {...colorByVariant[variant]}
-      {...(isMuted && {
-        textColor: (theme.colors as any).textMuted || "#94a3af",
-      })}
-      {...props}
+      android_ripple={{
+        color:
+          disabled || loading
+            ? "transparent"
+            : variant === "outline" || variant === "ghost"
+              ? theme.colors.primary + "26"
+              : "rgba(255, 255, 255, 0.35)",
+        foreground: true,
+      }}
+      className={`flex-row items-center justify-center rounded-xl min-h-[48px] px-4 py-2.5 overflow-hidden active:scale-[0.99] ${
+        config.button
+      } ${
+        isMuted
+          ? "opacity-40"
+          : loading
+            ? "opacity-70"
+            : ""
+      } ${className}`}
+      {...pressableProps}
     >
+      {loading ? (
+        <View className="mr-2.5 items-center justify-center">
+          <ActivityIndicator size="small" color={iconColor} />
+        </View>
+      ) : (
+        renderIcon()
+      )}
       <Text
-        className={`text-md font-bold ${labelClassName || ""}`}
-        style={[
-          {
-            color: isMuted
-              ? (theme.colors as any).textMuted || "#94a3af"
-              : colorByVariant[variant].textColor,
-          },
-          labelStyle,
-        ]}
+        className={`text-base font-bold ${config.text} ${
+          isMuted
+            ? variant === "outline" || variant === "ghost"
+              ? "text-slate-400 dark:text-slate-500"
+              : "text-white/80"
+            : ""
+        } ${labelClassName}`}
       >
         {title}
       </Text>
-    </PaperButton>
+    </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    borderRadius: 12,
-  },
-  content: {
-    minHeight: 45,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-});

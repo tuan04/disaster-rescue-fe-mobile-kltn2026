@@ -17,13 +17,12 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import Toast from "react-native-toast-message";
@@ -428,41 +427,20 @@ export default function SOSRequestScreen() {
           onClearAll={handleClearAllSupplies}
         />
 
-        {/* 4. Mô tả chi tiết tình trạng cần cứu hộ */}
-        <View className="mt-1 mb-4">
-          <Text className="mb-1.5 text-sm font-bold text-text">
-            Mô tả tình trạng cụ thể
-          </Text>
-          <Controller
-            control={control}
-            name="content"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <View className="relative">
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  maxLength={1000}
-                  placeholder="Ví dụ: Số lượng người bị nạn, nước ngập sâu bao nhiêu mét, có người già, trẻ nhỏ hoặc người bị thương..."
-                  placeholderTextColor="#94a3b8"
-                  className={`min-h-[85px] rounded-xl border bg-white p-3 text-sm text-text dark:bg-gray-800 ${errors.content
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-700"
-                    }`}
-                />
-              </View>
-            )}
-          />
-
-          {errors.content && (
-            <Text className="mt-1 text-xs text-red-600">
-              {errors.content.message}
-            </Text>
-          )}
-        </View>
+        {/* 4. Mô tả chi tiết tình trạng cụ thể */}
+        <FormInput
+          control={control}
+          name="content"
+          label="Mô tả tình trạng cụ thể"
+          labelClassName="font-bold text-text"
+          placeholder="Ví dụ: Số lượng người bị nạn, nước ngập sâu bao nhiêu mét, có người già, trẻ nhỏ hoặc người bị thương..."
+          multiline
+          numberOfLines={3}
+          maxLength={1000}
+          showCharCount
+          wrapperClassName="mt-1 mb-4"
+          error={errors.content?.message}
+        />
 
         {/* Lưu ý khẩn cấp */}
         <View className="mb-5 flex-row items-start rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
@@ -485,7 +463,7 @@ export default function SOSRequestScreen() {
             variant="outline"
             disabled={submitMutation.isPending}
             onPress={handleBack}
-            style={{ flex: 1 }}
+            className="flex-1"
           />
           <Button
             title={
@@ -506,7 +484,7 @@ export default function SOSRequestScreen() {
             }
             loading={submitMutation.isPending}
             onPress={handleSubmit(onSubmit, onInvalid)}
-            style={{ flex: 2 }}
+            className="flex-[2]"
           />
         </View>
       </ScreenContainer>

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 
 export interface FilterIconButtonProps {
   iconName: keyof typeof Ionicons.glyphMap;

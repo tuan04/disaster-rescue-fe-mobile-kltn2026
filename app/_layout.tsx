@@ -19,7 +19,6 @@ import { useEffect } from "react";
 
 import { StatusBar, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Provider, useDispatch, useSelector } from "react-redux";
@@ -126,32 +125,30 @@ function RootNavigator() {
 
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={currentTheme}>
-        <BottomSheetModalProvider>
-          <StatusBar
-            barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-          />
+      <BottomSheetModalProvider>
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        />
 
-          <View
-            className={
-              colorScheme === "dark"
-                ? "dark flex-1 bg-background"
-                : "flex-1 bg-background"
-            }
-          >
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(app)" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(pages)" />
-            </Stack>
-          </View>
+        <View
+          className={
+            colorScheme === "dark"
+              ? "dark flex-1 bg-background"
+              : "flex-1 bg-background"
+          }
+        >
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(pages)" />
+          </Stack>
+        </View>
 
-          <FloatingMissionPiP />
+        <FloatingMissionPiP />
 
-          <Toast config={customToastConfig} />
-        </BottomSheetModalProvider >
-      </PaperProvider >
-    </SafeAreaProvider >
+        <Toast config={customToastConfig} />
+      </BottomSheetModalProvider>
+    </SafeAreaProvider>
   );
 }

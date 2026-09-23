@@ -15,7 +15,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, Text, View } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 
@@ -191,13 +191,13 @@ export const UpgradeRescuerModal = React.forwardRef<
               variant="outline"
               disabled={isSubmitting}
               onPress={handleClose}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
             <Button
               title={isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
               loading={isSubmitting}
               onPress={handleSubmit(onSubmit)}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
           </View>
         </View>

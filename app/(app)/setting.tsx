@@ -19,7 +19,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { useTheme } from "react-native-paper";
+import { useTheme } from "@/contants/theme";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function Setting() {

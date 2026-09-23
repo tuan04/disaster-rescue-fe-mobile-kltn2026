@@ -64,7 +64,7 @@ export default function CancelMissionModal({
       >
         <View
           style={{ backgroundColor: theme.colors.surface }}
-          className="w-full rounded-xl p-5 shadow-2xl"
+          className="w-full rounded-xl p-5"
         >
           {/* Header */}
           <View className="flex-row items-center mb-3">
