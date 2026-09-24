@@ -1,11 +1,13 @@
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import React from "react";
 import {
   ActivityIndicator,
   Pressable,
   type PressableProps,
+  type StyleProp,
   Text,
   View,
+  type ViewStyle,
 } from "react-native";
 
 export type ButtonVariant =
@@ -26,6 +28,7 @@ export type ButtonProps = {
   icon?:
     | React.ReactNode
     | ((props: { size: number; color: string }) => React.ReactNode);
+  style?: StyleProp<ViewStyle>;
 } & Omit<PressableProps, "children" | "style">;
 
 const variantClasses: Record<
@@ -73,6 +76,7 @@ export default function Button({
   className = "",
   labelClassName = "",
   onPress,
+  style,
   ...pressableProps
 }: ButtonProps) {
   const theme = useAppTheme();
@@ -103,6 +107,7 @@ export default function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      style={style}
       android_ripple={{
         color:
           disabled || loading

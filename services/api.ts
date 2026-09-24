@@ -175,7 +175,6 @@ api.interceptors.response.use(
       if (error.response) {
         const { status } = error.response;
         console.warn(`API Error: ${status} - ${error.message}`);
-        console.warn(error.response);
         const errorData = error.response.data as ErrorResponse;
 
         // Token không hợp lệ/hết hạn (401/403) và KHÔNG PHẢI là API auth công khai (login, register, ...):

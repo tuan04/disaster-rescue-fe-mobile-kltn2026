@@ -3,7 +3,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import SettingItem from "@/components/settings/SettingItem";
 import SettingSection from "@/components/settings/SettingSection";
 import UpgradeRescuerModal from "@/components/settings/UpgradeRescuerModal";
-import { ColorTokens } from "@/contants/theme";
+import { ColorTokens } from "@/constants/theme";
 import { clearTokens, getAccessToken, getRefreshToken } from "@/helpers/secureStore";
 import { logoutAccount } from "@/services/auth.service";
 import type { RootState } from "@/store";
@@ -19,7 +19,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function Setting() {

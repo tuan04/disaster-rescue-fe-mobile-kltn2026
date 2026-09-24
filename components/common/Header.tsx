@@ -1,4 +1,4 @@
-import { Spacing, useAppTheme } from "@/contants/theme";
+import { Spacing, useAppTheme } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";

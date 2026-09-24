@@ -15,7 +15,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Alert, Text, View } from "react-native";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 

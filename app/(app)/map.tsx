@@ -7,7 +7,7 @@ import MapClusterMarker from "@/components/map/MapClusterMarker";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import MapPointMarker from "@/components/map/MapPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
-import { MAP_STYLE_URL, TIME_OPTIONS } from "@/contants/mapConfig";
+import { MAP_STYLE_URL, TIME_OPTIONS } from "@/constants/mapConfig";
 import { useLocation } from "@/hooks/useLocation";
 import { useMapClustering } from "@/hooks/useMapClustering";
 import { useMapPoints } from "@/hooks/useMapPoints";
@@ -20,9 +20,9 @@ import {
   type CameraRef,
   Map,
 } from "@maplibre/maplibre-react-native";
-import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
-import { useTheme } from "@/contants/theme";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Pressable, StyleSheet, View } from "react-native";
+import { useTheme } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MapScreen() {
@@ -33,6 +33,21 @@ export default function MapScreen() {
   const criteriaSheetRef = useRef<BottomSheetModal>(null);
   const timeSheetRef = useRef<BottomSheetModal>(null);
   const detailSheetRef = useRef<BottomSheetModal>(null);
+
+  // Vòng lặp animation nhấp nháy dùng chung cho toàn bộ điểm SOS trên bản đồ (chỉ chạy 1 loop duy nhất)
+  const sharedPulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const pulseLoop = Animated.loop(
+      Animated.timing(sharedPulseAnim, {
+        toValue: 1,
+        duration: 1800,
+        useNativeDriver: true,
+      })
+    );
+    pulseLoop.start();
+    return () => pulseLoop.stop();
+  }, [sharedPulseAnim]);
 
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [zoomLevel] = useState<number>(14);
@@ -161,6 +176,7 @@ export default function MapScreen() {
                 key={item.id}
                 point={item.point}
                 onPress={handleMarkerPress}
+                sharedPulseAnim={sharedPulseAnim}
               />
             );
           }

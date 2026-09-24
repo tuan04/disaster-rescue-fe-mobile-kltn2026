@@ -4,7 +4,7 @@ import SearchBar from "@/components/common/SearchBar";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import SosPointItem from "@/components/map/SosPointItem";
 import { calculateDistanceKm } from "@/helpers/route";
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import { useMapPointsQuery } from "@/hooks/queries";
 import { useUserCoordinates } from "@/hooks/useLocation";
 import type { EmergencyLevel, RequestStatus, SosMapPointRes } from "@/types/map";

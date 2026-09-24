@@ -1,4 +1,4 @@
-import { ColorTokens } from "@/contants/theme";
+import { ColorTokens } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 
 export type SettingItemType = "link" | "switch" | "info";
 

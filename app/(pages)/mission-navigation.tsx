@@ -4,7 +4,7 @@ import RoutePolyline from "@/components/map/RoutePolyline";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
-import { MAP_STYLE_URL } from "@/contansts/mapConfig";
+import { MAP_STYLE_URL } from "@/constants/mapConfig";
 import {
   extractRouteSteps,
   getNavigationProgress,

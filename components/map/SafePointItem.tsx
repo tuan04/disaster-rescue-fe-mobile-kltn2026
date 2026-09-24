@@ -1,6 +1,6 @@
-import { safePointTypeLabel } from "@/contants/mapPointLables";
-import { getSafePointIconDetails } from "@/contants/mapPointMeta";
-import { useAppTheme } from "@/contants/theme";
+import { safePointTypeLabel } from "@/constants/mapPointLables";
+import { getSafePointIconDetails } from "@/constants/mapPointMeta";
+import { useAppTheme } from "@/constants/theme";
 import { formatDistance } from "@/helpers/route";
 import type { SafePointType, SafeZoneMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";

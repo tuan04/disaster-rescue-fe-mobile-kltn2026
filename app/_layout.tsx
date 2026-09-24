@@ -1,6 +1,6 @@
 import { customToastConfig } from "@/components/common/CustomToast";
 import FloatingMissionPiP from "@/components/map/FloatingMissionPiP";
-import { DarkTheme, LightTheme } from "@/contants/theme";
+import { DarkTheme, LightTheme } from "@/constants/theme";
 import { clearTokens, getAccessToken } from "@/helpers/secureStore";
 import { useForegroundLocationWatcher } from "@/hooks/useForegroundLocationWatcher";
 import { useMySOSStatusWatcher } from "@/hooks/useMySOSStatusWatcher";
@@ -57,14 +57,6 @@ function RootNavigator() {
   useNotificationSocket();
   // Lắng nghe cập nhật trạng thái các ca cứu hộ của người dùng
   useMySOSStatusWatcher();
-
-  // Tự động đồng bộ các yêu cầu SOS ngoại tuyến khi có kết nối mạng
-  useEffect(() => {
-    const cleanup = initSOSAutoSync();
-    return () => {
-      cleanup();
-    };
-  }, []);
 
   // Tự động đồng bộ các yêu cầu SOS ngoại tuyến khi có kết nối mạng
   useEffect(() => {

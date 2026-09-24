@@ -1,6 +1,6 @@
 import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
-import { rescueStatusLabel } from "@/contants/mapPointLables";
-import { useAppTheme } from "@/contants/theme";
+import { rescueStatusLabel } from "@/constants/mapPointLables";
+import { useAppTheme } from "@/constants/theme";
 import { formatDistance } from "@/helpers/route";
 import type { EmergencyLevel, RequestStatus, SosMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";

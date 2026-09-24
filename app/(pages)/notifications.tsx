@@ -1,7 +1,7 @@
 import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NotificationItem from "@/components/notification/NotificationItem";
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import {
   deleteAllNotifications,
   deleteNotification,

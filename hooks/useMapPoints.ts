@@ -4,7 +4,7 @@ import {
   pointTypeLabel,
   rescueStatusLabel,
   safePointTypeLabel,
-} from "@/contants/mapPointLables";
+} from "@/constants/mapPointLables";
 import { useMapPointsQuery } from "@/hooks/queries";
 import type {
   EmergencyLevel,

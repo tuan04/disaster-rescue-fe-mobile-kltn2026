@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function CitizenLayout() {

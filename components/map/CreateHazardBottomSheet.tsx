@@ -1,4 +1,4 @@
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import { useCreateHazardReportMutation } from "@/hooks/queries";
 import { reverseGeocode } from "@/services/dispatch.service";
 import { RootState } from "@/store";

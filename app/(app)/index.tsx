@@ -3,7 +3,6 @@ import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import NewsCard from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
-import { useAppTheme } from "@/contants/theme";
 import { useMySOSRequestsQuery } from "@/hooks/queries";
 import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
 import { getNotifications } from "@/services/notification.service";

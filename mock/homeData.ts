@@ -1,4 +1,4 @@
-import { ColorTokens } from "@/contants/theme";
+import { ColorTokens } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 

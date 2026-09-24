@@ -1,10 +1,8 @@
 import {
   calculateDistanceMeters,
-  calculateEtaTime,
+  calculateDirectMetrics,
   decodePolyline,
   easeOutQuad,
-  formatDuration,
-  formatRouteDistance,
   interpolateAngle,
   snapPointToRoute,
 } from "@/helpers/route";
@@ -261,7 +259,7 @@ export function useRescueTracking({
 
   // Tính toán khoảng cách & thời gian dự kiến (fallback chim bay nếu OSRM chưa phản hồi)
   const metrics = useMemo(() => {
-    if (routeCoordinates && routeCoordinates.length > 0) {
+    if (routeCoordinates?.length) {
       return {
         distanceText: liveDistanceText,
         durationText: liveDurationText,
@@ -274,23 +272,13 @@ export function useRescueTracking({
       typeof targetLat === "number" &&
       typeof targetLng === "number"
     ) {
-      const distMeters = calculateDistanceMeters(
+      return calculateDirectMetrics(
         effectiveLocation.latitude,
         effectiveLocation.longitude,
         targetLat,
         targetLng,
+        effectiveLocation.speed,
       );
-      const effectiveSpeed =
-        effectiveLocation.speed && effectiveLocation.speed > 5
-          ? (effectiveLocation.speed * 1000) / 3600
-          : 8.33;
-      const estimatedSec = Math.round(distMeters / effectiveSpeed);
-
-      return {
-        distanceText: formatRouteDistance(distMeters),
-        durationText: formatDuration(estimatedSec),
-        etaTimeStr: calculateEtaTime(estimatedSec),
-      };
     }
 
     return {

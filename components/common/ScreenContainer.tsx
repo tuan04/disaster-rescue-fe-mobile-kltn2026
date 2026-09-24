@@ -1,7 +1,7 @@
-import { Spacing } from "@/contants/theme";
+import { Spacing } from "@/constants/theme";
 import React from "react";
 import { ScrollView, StyleSheet, View, ViewStyle } from "react-native";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 import { EdgeInsets, useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Props {
