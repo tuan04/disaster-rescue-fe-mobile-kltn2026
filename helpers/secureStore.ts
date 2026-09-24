@@ -1,6 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
 
-
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 

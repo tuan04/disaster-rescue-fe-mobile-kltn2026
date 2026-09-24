@@ -3,7 +3,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import PendingAssignmentCard from "@/components/pending-assignment/PendingAssignmentCard";
 import PendingAssignmentDetailBottomSheet from "@/components/pending-assignment/PendingAssignmentDetailBottomSheet";
 import RejectAssignmentModal from "@/components/pending-assignment/RejectAssignmentModal";
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import { saveActiveMission } from "@/database";
 import { makePhoneCall } from "@/helpers/phone";
 import { calculateDistanceKm } from "@/helpers/route";

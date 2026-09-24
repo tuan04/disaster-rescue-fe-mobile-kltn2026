@@ -2,41 +2,44 @@ import {
   getHazardIconDetails,
   getSafePointIconDetails,
   getWarehouseIconDetails,
-} from "@/contants/mapPointMeta";
+} from "@/constants/mapPointMeta";
 import type { MapPointRes, SafeZoneMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import { Marker } from "@maplibre/maplibre-react-native";
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet, View } from "react-native";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 
 interface MapPointMarkerProps {
   point: MapPointRes;
   onPress?: (point: MapPointRes) => void;
+  sharedPulseAnim?: Animated.Value;
 }
 
-function MapPointMarker({ point, onPress }: MapPointMarkerProps) {
+function MapPointMarker({ point, onPress, sharedPulseAnim }: MapPointMarkerProps) {
   const theme = useTheme() as any;
 
-  // Pulse animation for active SOS points
-  const pulseAnim = useRef(new Animated.Value(0)).current;
+  // Pulse animation for active SOS points (ưu tiên dùng sharedPulseAnim để chỉ chạy 1 loop duy nhất)
+  const localPulseAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = sharedPulseAnim || localPulseAnim;
 
   const isSos = point.pointType === "SOS";
   const isCompleted = point.status === "COMPLETED";
 
   useEffect(() => {
-    if (isSos && !isCompleted) {
-      const animation = Animated.loop(
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1800,
-          useNativeDriver: true,
-        })
-      );
-      animation.start();
-      return () => animation.stop();
-    }
-  }, [isSos, isCompleted, pulseAnim]);
+    // Nếu component cha đã cấp sharedPulseAnim thì cha quản lý loop, không chạy thêm loop riêng
+    if (sharedPulseAnim || !isSos || isCompleted) return;
+
+    const animation = Animated.loop(
+      Animated.timing(localPulseAnim, {
+        toValue: 1,
+        duration: 1800,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [sharedPulseAnim, isSos, isCompleted, localPulseAnim]);
 
   // Handle SOS points rendering
   if (isSos) {
@@ -165,6 +168,7 @@ export default React.memo(MapPointMarker, (prevProps, nextProps) => {
     prevProps.point.latitude === nextProps.point.latitude &&
     prevProps.point.longitude === nextProps.point.longitude &&
     prevProps.point.subType === nextProps.point.subType &&
-    prevProps.onPress === nextProps.onPress
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.sharedPulseAnim === nextProps.sharedPulseAnim
   );
 });

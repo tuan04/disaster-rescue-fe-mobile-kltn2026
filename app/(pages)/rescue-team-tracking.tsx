@@ -3,7 +3,7 @@ import RescueTeamMarker from "@/components/map/RescueTeamMarker";
 import RoutePolyline from "@/components/map/RoutePolyline";
 import SheetDetailRow from "@/components/map/SheetDetailRow";
 import TargetPointMarker from "@/components/map/TargetPointMarker";
-import { MAP_STYLE_URL } from "@/contants/mapConfig";
+import { MAP_STYLE_URL } from "@/constants/mapConfig";
 import { makePhoneCall } from "@/helpers/phone";
 import { getCoordinatesBounds } from "@/helpers/route";
 import { useRescueTracking } from "@/hooks/useRescueTracking";

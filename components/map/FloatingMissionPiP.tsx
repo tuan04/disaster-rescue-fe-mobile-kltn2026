@@ -1,4 +1,4 @@
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import {
   extractRouteSteps,
   getManeuverInfo,

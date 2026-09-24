@@ -1,11 +1,5 @@
 /**
- * Helper tính toán và định dạng thông tin lộ trình và thời gian dự kiến đến (ETA)
- */
-
-/**
  * Tính giờ dự kiến đến nơi (ETA clock: HH:mm)
- * @param durationSec Thời gian di chuyển còn lại
- * @returns Chuỗi giờ:phút đến nơi
  */
 export function calculateEtaTime(durationSec?: number | null): string {
   if (
@@ -25,8 +19,6 @@ export function calculateEtaTime(durationSec?: number | null): string {
 
 /**
  * Format thời gian di chuyển thành chuỗi hiển thị dễ đọc
- * @param durationSec Thời gian tính bằng giây
- * @returns Chuỗi như "15 phút", "< 1 phút" hoặc "Đến nơi"
  */
 export function formatDuration(durationSec?: number | null): string {
   if (
@@ -104,12 +96,38 @@ export function calculateDistanceMeters(
 }
 
 /**
+ * Tính toán số liệu dự kiến (khoảng cách, thời gian, ETA) theo đường chim bay (Crow-flight fallback)
+ */
+export function calculateDirectMetrics(
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number,
+  speedKmH?: number | null,
+): {
+  distanceMeters: number;
+  durationSec: number;
+  distanceText: string;
+  durationText: string;
+  etaTimeStr: string;
+} {
+  const distanceMeters = calculateDistanceMeters(fromLat, fromLng, toLat, toLng);
+  // Tốc độ: nếu xe có tốc độ > 5 km/h thì lấy tốc độ thực tế, ngược lại giả định vận tốc 30 km/h (~8.33 m/s)
+  const speedMetersPerSec =
+    speedKmH && speedKmH > 5 ? (speedKmH * 1000) / 3600 : 8.33;
+  const durationSec = Math.round(distanceMeters / speedMetersPerSec);
+
+  return {
+    distanceMeters,
+    durationSec,
+    distanceText: formatRouteDistance(distanceMeters),
+    durationText: formatDuration(durationSec),
+    etaTimeStr: calculateEtaTime(durationSec),
+  };
+}
+
+/**
  * Tìm điểm và index trên route gần nhất với vị trí hiện tại (theo khoảng cách Haversine).
- * @param coordinates Danh sách tọa độ của route dạng [[longitude, latitude], ...]
- * @param currentLat Vĩ độ hiện tại của đội cứu hộ
- * @param currentLng Kinh độ hiện tại của đội cứu hộ
- * @param minIndex Index bắt đầu quét (mặc định = 0). Đặt minIndex = lastIndex giúp đảm bảo
- *                 route chỉ tiến tới, tránh bị nhảy giật lùi khi GPS dao động nhẹ.
  */
 export function findNearestRoutePointIndex(
   coordinates: number[][],
@@ -144,10 +162,6 @@ export function findNearestRoutePointIndex(
 
 /**
  * Cắt tuyến đường còn lại từ vị trí hiện tại đến đích:
- * - Không gọi lại Routing API.
- * - Tìm index gần nhất từ lastIndex trở đi (đảm bảo không nhảy lùi).
- * - Cắt route: coordinates.slice(nearestIndex).
- * - Nối vị trí hiện tại của đội cứu hộ vào đầu danh sách để Polyline vẽ liền mạch từ đội đến đích.
  */
 export function getRemainingRouteCoordinates(
   coordinates: number[][],

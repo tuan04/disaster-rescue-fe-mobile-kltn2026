@@ -6,7 +6,7 @@ import {
   pointTypeLabel,
   rescueStatusLabel,
   safePointTypeLabel,
-} from "@/contants/mapPointLables";
+} from "@/constants/mapPointLables";
 import { useMapPointDetailQuery } from "@/hooks/queries";
 import type { RootState } from "@/store";
 import type { MapPointDetailRes } from "@/types/map";
@@ -26,7 +26,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useTheme } from "@/contants/theme";
+import { useTheme } from "@/constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 

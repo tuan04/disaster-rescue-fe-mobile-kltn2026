@@ -2,7 +2,7 @@ import { calculateDistanceMeters, formatRouteDistance } from "@/helpers/route";
 import type { RouteResponse, StepDto } from "@/types/map";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { MANEUVER_MAP, type ManeuverInfo } from "@/contants/navigation";
+import { MANEUVER_MAP, type ManeuverInfo } from "@/constants/navigation";
 
 export interface NavigationState {
   currentStep: StepDto | null;

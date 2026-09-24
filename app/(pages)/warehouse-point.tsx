@@ -4,7 +4,7 @@ import ScreenContainer from "@/components/common/ScreenContainer";
 import MapPointDetailBottomSheet from "@/components/map/MapPointDetailBottomSheet";
 import { calculateDistanceKm } from "@/helpers/route";
 import WarehousePointItem from "@/components/map/WarehousePointItem";
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import { useMapPointsQuery } from "@/hooks/queries";
 import { useUserCoordinates } from "@/hooks/useLocation";
 import type { WarehouseMapPointRes } from "@/types/map";

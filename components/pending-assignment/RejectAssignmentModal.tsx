@@ -1,5 +1,5 @@
 import Button from "@/components/common/Button";
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import type { MapPointDetailRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -183,21 +183,23 @@ export default function RejectAssignmentModal({
 
           {/* Action Buttons */}
           <View className="flex-row gap-3">
-            <Button
-              title="Quay lại"
-              variant="outline"
-              onPress={handleClose}
-              disabled={loading}
-              style={{ flex: 1 }}
-            />
-            <Button
-              title="Xác nhận từ chối"
-              variant="danger"
-              onPress={handleConfirm}
-              loading={loading}
-              disabled={loading}
-              style={{ flex: 1 }}
-            />
+            <View className="flex-1">
+              <Button
+                title="Quay lại"
+                variant="outline"
+                onPress={handleClose}
+                disabled={loading}
+              />
+            </View>
+            <View className="flex-1">
+              <Button
+                title="Xác nhận từ chối"
+                variant="danger"
+                onPress={handleConfirm}
+                loading={loading}
+                disabled={loading}
+              />
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>

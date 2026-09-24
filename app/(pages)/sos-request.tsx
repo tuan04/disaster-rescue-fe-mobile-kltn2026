@@ -208,7 +208,6 @@ export default function SOSRequestScreen() {
 
   // Xử lý khi validation thất bại (chưa có tọa độ)
   const onInvalid = useCallback((formErrors: any) => {
-    console.log(isRealLocation);
     if (formErrors.latitude || formErrors.longitude) {
       Toast.show({
         type: "warning",

@@ -1,5 +1,5 @@
-import { getWarehouseIconDetails } from "@/contants/mapPointMeta";
-import { useAppTheme } from "@/contants/theme";
+import { getWarehouseIconDetails } from "@/constants/mapPointMeta";
+import { useAppTheme } from "@/constants/theme";
 import { formatDistance } from "@/helpers/route";
 import type { WarehouseMapPointRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";

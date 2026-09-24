@@ -1,4 +1,4 @@
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, Text, View } from "react-native";

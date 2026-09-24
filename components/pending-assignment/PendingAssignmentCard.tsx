@@ -1,5 +1,5 @@
 import EmergencyLevelBadge from "@/components/common/EmergencyLevelBadge";
-import { useAppTheme } from "@/contants/theme";
+import { useAppTheme } from "@/constants/theme";
 import { formatDistance } from "@/helpers/route";
 import type { MapPointDetailRes } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";

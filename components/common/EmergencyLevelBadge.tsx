@@ -1,4 +1,4 @@
-import { emergencyLevelLabel } from "@/contants/mapPointLables";
+import { emergencyLevelLabel } from "@/constants/mapPointLables";
 import type { EmergencyLevel } from "@/types/map";
 import React from "react";
 import { Text, View } from "react-native";

@@ -1,6 +1,6 @@
-import { hazardTypeLabel } from "@/contants/mapPointLables";
-import { getHazardIconDetails } from "@/contants/mapPointMeta";
-import { useAppTheme } from "@/contants/theme";
+import { hazardTypeLabel } from "@/constants/mapPointLables";
+import { getHazardIconDetails } from "@/constants/mapPointMeta";
+import { useAppTheme } from "@/constants/theme";
 import { formatDistance } from "@/helpers/route";
 import type { HazardMapPointRes, HazardType } from "@/types/map";
 import { Ionicons } from "@expo/vector-icons";

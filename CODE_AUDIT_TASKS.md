@@ -11,16 +11,6 @@
 - **Vấn đề**: Khi nhiều request 401 được xếp vào `pendingRequests`, nếu `refreshAccessToken()` gặp lỗi, các request trong hàng đợi không bao giờ được `reject` hay dọn dẹp, gây treo Promise và rò rỉ bộ nhớ.
 - **Giải pháp**: Thêm `reject` callback vào hàng đợi `pendingRequests` và xử lý reject tất cả khi refresh token thất bại.
 
-### [TASK-1.5] Kiểm soát Animation Pulse Ring trên Marker bản đồ
-- **File**: `components/map/MapPointMarker.tsx` (dòng 27–39)
-- **Vấn đề**: Mỗi marker SOS tự chạy 1 vòng lặp `Animated.loop` độc lập, nếu có hàng chục điểm SOS sẽ làm chậm JS thread.
-- **Giải pháp**: Dùng chung 1 Animated Value ở component cha hoặc chuyển sang hiệu ứng tối ưu hơn.
-
-### [TASK-1.6] Xóa Effect duplicate `initSOSAutoSync` ở Root Layout
-- **File**: `app/_layout.tsx` (dòng 62–75)
-- **Vấn đề**: Khai báo 2 `useEffect` giống hệt nhau cùng gọi `initSOSAutoSync()`, tạo ra 2 network listener và kích hoạt đồng bộ lặp 2 lần.
-- **Giải pháp**: Xóa bỏ 1 khối `useEffect` thừa.
-
 ---
 
 ## NHÓM 2: LỖI LOGIC & BẤT HỢP LÝ (Bugs & Anti-patterns)
@@ -39,11 +29,6 @@
 - **File**: `hooks/useNotificationSocket.ts` (dòng 46–57)
 - **Vấn đề**: Subscribe topic `/topic/notifications/${user.id}` nhưng truyền log là `/topic/notifications/${user.teamId}`.
 - **Giải pháp**: Tách rõ ràng 2 subscription riêng biệt (thông báo cá nhân và thông báo đội).
-
-### [TASK-2.4] Dọn dẹp `console.log` sót lại trong production code
-- **File**: `app/(pages)/sos-request.tsx` (dòng 211) & `services/api.ts` (dòng 178)
-- **Vấn đề**: Còn sót `console.log(isRealLocation)` và `console.warn(error.response)`.
-- **Giải pháp**: Xóa bỏ các dòng log debug thừa.
 
 ---
 
