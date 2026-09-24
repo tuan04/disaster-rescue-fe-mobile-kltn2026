@@ -54,7 +54,6 @@ export default function MissionNavigationScreen() {
     etaTimeStr,
     clearRoute,
     isRerouting,
-    reroute,
   } = useActiveMission({
     cameraRef,
     currentLat,
@@ -348,17 +347,6 @@ export default function MissionNavigationScreen() {
               )}
             </Text>
           </View>
-
-          {/* Nút bấm tìm lại đường thủ công khi cần */}
-          <Pressable
-            onPress={() => reroute()}
-            disabled={isRerouting}
-            className="w-10 h-10 rounded-full bg-white/15 items-center justify-center active:bg-white/25"
-            hitSlop={8}
-            accessibilityLabel="Tìm lại lộ trình"
-          >
-            <Ionicons name="refresh" size={20} color="#ffffff" />
-          </Pressable>
         </View>
 
         {navProgress.showSecondary && navProgress.secondaryManeuver && (

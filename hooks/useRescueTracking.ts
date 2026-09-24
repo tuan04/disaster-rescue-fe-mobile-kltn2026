@@ -16,6 +16,10 @@ import type {
 } from "@/types/assignment";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+// Ngưỡng tính toán lại đường phía người dân (chống hao quota)
+const OFF_ROUTE_MAX_DISTANCE_METERS = 45; // Chỉ tính lại đường khi xe cứu hộ lệch quá 45 mét
+const REROUTE_COOLDOWN_MS = 10000;       // Giãn cách tối thiểu 10 giây giữa 2 lần gọi lại API
+
 export interface UseRescueTrackingOptions {
   requestId?: string;
   targetLat?: number | null;
@@ -191,28 +195,58 @@ export function useRescueTracking({
     );
   }, [teamId]);
 
-  // Lấy lộ trình đường đi khi xe di chuyển > 30m (CHỈ kiểm tra theo targetLocation từ server, không chạy theo từng frame animation)
-  const lastFetchedLocationRef = useRef<{ lat: number; lng: number } | null>(
-    null,
-  );
+  const lastReroutedAtRef = useRef<number>(0);
+  const isFetchingRouteRef = useRef<boolean>(false);
 
+  // Reset dữ liệu lộ trình khi đổi ca cứu hộ (requestId thay đổi)
+  useEffect(() => {
+    setRouteCoordinates([]);
+    setRouteDuration(null);
+    setRouteDistance(null);
+    lastReroutedAtRef.current = 0;
+  }, [requestId]);
+
+  // Quản lý việc lấy lộ trình OSRM:
+  // - Lần đầu tiên khi có vị trí xe: Lấy 1 lần duy nhất để vẽ đường ban đầu.
+  // - Khi xe di chuyển bình thường: Hook useRoute tự động cắt ngắn lộ trình offline trong RAM, KHÔNG fetch lại API (bảo vệ quota tuyệt đối).
+  // - CHỈ fetch lại khi xe đi CHỆCH ĐƯỜNG > 45m so với lộ trình cũ (kèm cooldown 10s và chặn gọi trùng lặp).
   useEffect(() => {
     if (!targetLocation || !requestId) return;
 
     const { latitude, longitude } = targetLocation;
-    const lastLoc = lastFetchedLocationRef.current;
+    const currentCoords = routeCoordinatesRef.current;
+    const now = Date.now();
 
-    if (lastLoc) {
-      const movedDist = calculateDistanceMeters(
-        lastLoc.lat,
-        lastLoc.lng,
-        latitude,
-        longitude,
-      );
-      if (movedDist < 30) return;
+    // 1. Nếu đã có lộ trình: Kiểm tra xem xe có đang bám đường không
+    if (currentCoords && currentCoords.length >= 2) {
+      // Nếu xe đã đến rất gần điểm đích (bán kính <= 40m), không cần tính lại
+      if (
+        typeof targetLat === "number" &&
+        typeof targetLng === "number" &&
+        calculateDistanceMeters(latitude, longitude, targetLat, targetLng) <= 40
+      ) {
+        return;
+      }
+
+      // Kiểm tra xe có đi chệch khỏi tuyến đường hiện tại không
+      const snap = snapPointToRoute(latitude, longitude, currentCoords);
+      const isOffRoute = snap.distanceMeters > OFF_ROUTE_MAX_DISTANCE_METERS;
+
+      // Xe vẫn đang chạy trên lộ trình (<= 45m) -> Bỏ qua, useRoute sẽ tự xử lý cắt đường mượt mà
+      if (!isOffRoute) {
+        return;
+      }
+
+      // Nếu chệch đường: Chặn gọi liên tục bằng Cooldown 10s
+      if (now - lastReroutedAtRef.current < REROUTE_COOLDOWN_MS) {
+        return;
+      }
     }
 
-    lastFetchedLocationRef.current = { lat: latitude, lng: longitude };
+    // Đang có request fetch dở dang thì không gọi chồng chéo
+    if (isFetchingRouteRef.current) return;
+
+    isFetchingRouteRef.current = true;
     let isCancelled = false;
 
     getRoute(latitude, longitude, requestId, "car")
@@ -229,17 +263,28 @@ export function useRescueTracking({
         if (typeof leg?.distance?.value === "number") {
           setRouteDistance(leg.distance.value);
         }
+        lastReroutedAtRef.current = Date.now();
       })
       .catch((err) => {
         if (__DEV__) {
           console.warn("[RescueTracking] Route error:", err?.message);
         }
+      })
+      .finally(() => {
+        isFetchingRouteRef.current = false;
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [targetLocation?.latitude, targetLocation?.longitude, targetLocation, requestId]);
+  }, [
+    targetLocation?.latitude,
+    targetLocation?.longitude,
+    targetLocation,
+    requestId,
+    targetLat,
+    targetLng,
+  ]);
 
   // Áp dụng useRoute để cắt ngắn tuyến đường và tính toán cự ly/thời gian realtime theo xe cứu hộ
   // Sử dụng targetLocation để tránh tính toán lại polyline mỗi frame
@@ -296,45 +341,14 @@ export function useRescueTracking({
     targetLng,
   ]);
 
-  // GeoJSON cho tuyến đường trên MapLibre (ưu tiên tuyến đường đã cắt bám sát đầu xe)
+  // GeoJSON cho tuyến đường trên MapLibre (chỉ hiển thị khi có lộ trình thật từ OSRM)
   const routeGeoJSON = useMemo(() => {
-    if (remainingRouteGeoJSON) {
-      return {
-        type: "FeatureCollection" as const,
-        features: [remainingRouteGeoJSON],
-      };
-    }
-
-    if (
-      effectiveLocation &&
-      typeof targetLat === "number" &&
-      typeof targetLng === "number"
-    ) {
-      return {
-        type: "FeatureCollection" as const,
-        features: [
-          {
-            type: "Feature" as const,
-            properties: {},
-            geometry: {
-              type: "LineString" as const,
-              coordinates: [
-                [effectiveLocation.longitude, effectiveLocation.latitude],
-                [targetLng, targetLat],
-              ],
-            },
-          },
-        ],
-      };
-    }
-
-    return null;
-  }, [
-    remainingRouteGeoJSON,
-    effectiveLocation,
-    targetLat,
-    targetLng,
-  ]);
+    if (!remainingRouteGeoJSON) return null;
+    return {
+      type: "FeatureCollection" as const,
+      features: [remainingRouteGeoJSON],
+    };
+  }, [remainingRouteGeoJSON]);
 
   return {
     assignment,

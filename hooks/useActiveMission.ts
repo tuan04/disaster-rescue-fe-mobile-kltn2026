@@ -4,6 +4,7 @@ import {
   saveActiveMission,
 } from "@/database";
 import {
+  calculateDistanceMeters,
   decodePolyline,
   getCoordinatesBounds,
   snapPointToRoute,
@@ -30,8 +31,8 @@ const SYNC_THROTTLE_MS = 10000; // Giãn cách tối thiểu 10s giữa các l�
 
 // Ngưỡng tính toán tự động tìm lại đường (Automatic Rerouting)
 const OFF_ROUTE_MAX_DISTANCE_METERS = 45; // Lệch quá 45 mét so với tim đường
-const OFF_ROUTE_CONSECUTIVE_COUNT = 3;   // 3 nhịp GPS liên tiếp (tránh GPS nhảy ảo)
-const REROUTE_COOLDOWN_MS = 10000;       // Giãn cách tối thiểu 10 giây giữa 2 lần gọi lại API
+const OFF_ROUTE_CONSECUTIVE_COUNT = 3; // Phát hiện lệch ngay lập tức khi ra khỏi đường (phản hồi nhanh)
+const REROUTE_COOLDOWN_MS = 10000; // Giãn cách tối thiểu 10 giây giữa 2 lần gọi lại API
 
 export const ACTIVE_MISSION_QUERY_KEY = assignmentQueryKeys.localActive;
 
@@ -59,80 +60,113 @@ export function useActiveMission({
 
   // Tọa độ hợp lệ (chỉ nhận GPS thật hoặc prop truyền vào từ ngoài)
   const isReal = typeof currentLat === "number" || isRealLocation;
-  const effectiveLat = typeof currentLat === "number" ? currentLat : isReal ? coords?.latitude ?? null : null;
-  const effectiveLng = typeof currentLng === "number" ? currentLng : isReal ? coords?.longitude ?? null : null;
+  const effectiveLat =
+    typeof currentLat === "number"
+      ? currentLat
+      : isReal
+        ? (coords?.latitude ?? null)
+        : null;
+  const effectiveLng =
+    typeof currentLng === "number"
+      ? currentLng
+      : isReal
+        ? (coords?.longitude ?? null)
+        : null;
 
   const effectiveLocationRef = useRef({ lat: effectiveLat, lng: effectiveLng });
   effectiveLocationRef.current = { lat: effectiveLat, lng: effectiveLng };
 
   // 1. Luôn ưu tiên đọc dữ liệu cục bộ từ SQLite (Offline-first)
-  const { data: activeMission, isLoading, refetch } = useLocalActiveMissionQuery();
+  const {
+    data: activeMission,
+    isLoading,
+    refetch,
+  } = useLocalActiveMissionQuery();
 
   const invalidateActiveMission = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: assignmentQueryKeys.localActive });
+    queryClient.invalidateQueries({
+      queryKey: assignmentQueryKeys.localActive,
+    });
   }, [queryClient]);
 
   // 2. Logic đồng bộ dữ liệu với Backend máy chủ
-  const syncActiveMission = useCallback(async (force: boolean = false) => {
-    if (!isAuthenticated || !teamId) return;
+  const syncActiveMission = useCallback(
+    async (force: boolean = false) => {
+      if (!isAuthenticated || !teamId) return;
 
-    const now = Date.now();
-    if (!force && (isGlobalSyncing || now - lastSyncedAt < SYNC_THROTTLE_MS)) return;
+      const now = Date.now();
+      if (!force && (isGlobalSyncing || now - lastSyncedAt < SYNC_THROTTLE_MS))
+        return;
 
-    isGlobalSyncing = true;
-    setIsSyncing(true);
+      isGlobalSyncing = true;
+      setIsSyncing(true);
 
-    try {
-      const activeAssignment = (await getBackendActiveMission(teamId))?.data;
+      try {
+        const activeAssignment = (await getBackendActiveMission(teamId))?.data;
 
-      if (activeAssignment?.status === "ACCEPTED") {
-        const localMission = await getLocalActiveMission();
-        const isRouteReady =
-          localMission?.id === activeAssignment.id &&
-          Boolean(localMission.route?.routes?.[0]?.legs?.length);
+        if (activeAssignment?.status === "ACCEPTED") {
+          const localMission = await getLocalActiveMission();
+          const isRouteReady =
+            localMission?.id === activeAssignment.id &&
+            Boolean(localMission.route?.routes?.[0]?.legs?.length);
 
-        if (!isRouteReady) {
-          const detail = await getMapPointDetail(activeAssignment.requestId);
-          if (detail) {
-            const loc = effectiveLocationRef.current;
-            let routeData: RouteResponse | null = null;
+          if (!isRouteReady) {
+            const detail = await getMapPointDetail(activeAssignment.requestId);
+            if (detail) {
+              const loc = effectiveLocationRef.current;
+              let routeData: RouteResponse | null = null;
 
-            if (typeof loc.lat === "number" && typeof loc.lng === "number") {
-              try {
-                routeData = await getRoute(loc.lat, loc.lng, activeAssignment.requestId);
-              } catch (routeErr) {
-                console.warn("[useActiveMission] Lỗi khi tính toán lộ trình OSRM:", routeErr);
+              if (typeof loc.lat === "number" && typeof loc.lng === "number") {
+                try {
+                  routeData = await getRoute(
+                    loc.lat,
+                    loc.lng,
+                    activeAssignment.requestId,
+                  );
+                } catch (routeErr) {
+                  console.warn(
+                    "[useActiveMission] Lỗi khi tính toán lộ trình OSRM:",
+                    routeErr,
+                  );
+                }
               }
-            }
 
-            await saveActiveMission({
-              id: activeAssignment.id,
-              requestId: activeAssignment.requestId,
-              targetLatitude: detail.latitude,
-              targetLongitude: detail.longitude,
-              address: detail.address,
-              reporterPhone: detail.pointType === "SOS" ? detail.detail.reporterPhone : null,
-              routeData,
-            });
+              await saveActiveMission({
+                id: activeAssignment.id,
+                requestId: activeAssignment.requestId,
+                targetLatitude: detail.latitude,
+                targetLongitude: detail.longitude,
+                address: detail.address,
+                reporterPhone:
+                  detail.pointType === "SOS"
+                    ? detail.detail.reporterPhone
+                    : null,
+                routeData,
+              });
+              invalidateActiveMission();
+            }
+          }
+        } else {
+          const localMission = await getLocalActiveMission();
+          if (localMission) {
+            await clearActiveMission();
             invalidateActiveMission();
           }
         }
-      } else {
-        const localMission = await getLocalActiveMission();
-        if (localMission) {
-          await clearActiveMission();
-          invalidateActiveMission();
-        }
-      }
 
-      lastSyncedAt = Date.now();
-    } catch (err) {
-      console.warn("[useActiveMission] Lỗi khi đồng bộ ca cứu hộ từ backend:", err);
-    } finally {
-      isGlobalSyncing = false;
-      setIsSyncing(false);
-    }
-  }, [isAuthenticated, teamId, invalidateActiveMission]);
+        lastSyncedAt = Date.now();
+      } catch (err) {
+        console.warn(
+          "[useActiveMission] Lỗi khi đồng bộ ca cứu hộ từ backend:",
+          err,
+        );
+      } finally {
+        isGlobalSyncing = false;
+        setIsSyncing(false);
+      }
+    },
+    [isAuthenticated, teamId, invalidateActiveMission],
+  );
 
   // 3. Tự động kích hoạt đồng bộ nền khi hook được mount
   useEffect(() => {
@@ -162,7 +196,8 @@ export function useActiveMission({
   }, [activeMission?.id]);
 
   useEffect(() => {
-    if (!cameraRef?.current || !routeCoordinates?.length || !activeMission?.id) return;
+    if (!cameraRef?.current || !routeCoordinates?.length || !activeMission?.id)
+      return;
     if (lastFittedMissionIdRef.current === activeMission.id) return;
 
     const bounds = getCoordinatesBounds(routeCoordinates);
@@ -182,7 +217,7 @@ export function useActiveMission({
 
   // GeoJSON toàn bộ tuyến đường ban đầu
   const routeGeoJSON = useMemo(() => {
-    if (!routeCoordinates?.length) return null;
+    if (!routeCoordinates || routeCoordinates.length < 2) return null;
     return {
       type: "Feature" as const,
       properties: {},
@@ -212,56 +247,57 @@ export function useActiveMission({
   const lastReroutedAtRef = useRef<number>(0);
   const isReroutingRef = useRef<boolean>(false);
 
-  const triggerReroute = useCallback(async (manual: boolean = false) => {
-    const loc = effectiveLocationRef.current;
-    if (
-      !activeMission?.id ||
-      !activeMission.request_id ||
-      !loc.lat ||
-      !loc.lng ||
-      isReroutingRef.current
-    ) {
-      return;
-    }
+  const triggerReroute = useCallback(
+    async (manual: boolean = false) => {
+      const loc = effectiveLocationRef.current;
+      if (
+        !activeMission?.id ||
+        !activeMission.request_id ||
+        !loc.lat ||
+        !loc.lng ||
+        isReroutingRef.current
+      ) {
+        return;
+      }
+      const now = Date.now();
+      if (!manual && now - lastReroutedAtRef.current < REROUTE_COOLDOWN_MS)
+        return;
 
-    const now = Date.now();
-    if (!manual && now - lastReroutedAtRef.current < REROUTE_COOLDOWN_MS) return;
+      isReroutingRef.current = true;
+      setIsRerouting(true);
 
-    isReroutingRef.current = true;
-    setIsRerouting(true);
-
-    try {
+      try {
       const newRouteData = await getRoute(loc.lat, loc.lng, activeMission.request_id);
-
-      if (newRouteData?.routes?.length) {
-        await saveActiveMission({
-          id: activeMission.id,
-          requestId: activeMission.request_id,
-          targetLatitude: activeMission.target_latitude,
-          targetLongitude: activeMission.target_longitude,
-          address: activeMission.address,
-          reporterPhone: activeMission.reporter_phone,
-          routeData: newRouteData,
-        });
-
-        invalidateActiveMission();
-        offRouteCountRef.current = 0;
-        lastReroutedAtRef.current = Date.now();
+        if (newRouteData?.routes?.length) {
+          await saveActiveMission({
+            id: activeMission.id,
+            requestId: activeMission.request_id,
+            targetLatitude: activeMission.target_latitude,
+            targetLongitude: activeMission.target_longitude,
+            address: activeMission.address,
+            reporterPhone: activeMission.reporter_phone,
+            routeData: newRouteData,
+          });
+          invalidateActiveMission();
+          offRouteCountRef.current = 0;
+          lastReroutedAtRef.current = Date.now();
+        }
+      } catch (error) {
+        console.warn("[useActiveMission] Lỗi khi tính lại lộ trình:", error);
+        if (manual) {
+          Toast.show({
+            type: "error",
+            text1: "Không thể tính lại lộ trình",
+            text2: "Vui lòng kiểm tra lại kết nối mạng.",
+          });
+        }
+      } finally {
+        isReroutingRef.current = false;
+        setIsRerouting(false);
       }
-    } catch (error) {
-      console.warn("[useActiveMission] Lỗi khi tính lại lộ trình:", error);
-      if (manual) {
-        Toast.show({
-          type: "error",
-          text1: "Không thể tính lại lộ trình",
-          text2: "Vui lòng kiểm tra lại kết nối mạng.",
-        });
-      }
-    } finally {
-      isReroutingRef.current = false;
-      setIsRerouting(false);
-    }
-  }, [activeMission, invalidateActiveMission]);
+    },
+    [activeMission, invalidateActiveMission],
+  );
 
   // Lắng nghe vị trí xe so với vạch đường để phát hiện đi chệch hướng
   useEffect(() => {
@@ -276,7 +312,20 @@ export function useActiveMission({
       return;
     }
 
-    if (remainingDistance > 0 && remainingDistance <= 40) {
+    const targetLat = activeMission.target_latitude;
+    const targetLng = activeMission.target_longitude;
+    const distToTarget =
+      typeof targetLat === "number" && typeof targetLng === "number"
+        ? calculateDistanceMeters(
+            effectiveLat,
+            effectiveLng,
+            targetLat,
+            targetLng,
+          )
+        : Infinity;
+
+    // Chỉ bỏ qua tự động tính lại đường nếu xe đã đến sát điểm đích của nạn nhân (<= 40m)
+    if (distToTarget <= 40) {
       offRouteCountRef.current = 0;
       return;
     }
@@ -288,7 +337,10 @@ export function useActiveMission({
       OFF_ROUTE_MAX_DISTANCE_METERS,
     );
 
-    if (!snap.isSnapped && snap.distanceMeters > OFF_ROUTE_MAX_DISTANCE_METERS) {
+    if (
+      !snap.isSnapped &&
+      snap.distanceMeters > OFF_ROUTE_MAX_DISTANCE_METERS
+    ) {
       offRouteCountRef.current += 1;
       if (offRouteCountRef.current >= OFF_ROUTE_CONSECUTIVE_COUNT) {
         triggerReroute(false);
@@ -296,7 +348,13 @@ export function useActiveMission({
     } else {
       offRouteCountRef.current = 0;
     }
-  }, [activeMission, routeCoordinates, effectiveLat, effectiveLng, remainingDistance, triggerReroute]);
+  }, [
+    activeMission,
+    routeCoordinates,
+    effectiveLat,
+    effectiveLng,
+    triggerReroute,
+  ]);
 
   const reroute = useCallback(() => {
     triggerReroute(true);

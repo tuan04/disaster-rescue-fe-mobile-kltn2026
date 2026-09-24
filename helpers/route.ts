@@ -179,20 +179,38 @@ export function getRemainingRouteCoordinates(
     return { remainingCoordinates: coordinates, nearestIndex: lastIndex };
   }
 
-  const nearestIndex = findNearestRoutePointIndex(
+  const candidateIndex = findNearestRoutePointIndex(
     coordinates,
     currentLat,
     currentLng,
     lastIndex,
   );
 
+  const distToRoute = calculateDistanceMeters(
+    currentLat,
+    currentLng,
+    coordinates[candidateIndex][1],
+    coordinates[candidateIndex][0],
+  );
+
+  const isOnRoute = distToRoute <= 45;
+
+  // Nếu xe đang bám đường (<= 45m), cập nhật nearestIndex và cắt lộ trình theo điểm đó.
+  // Nếu xe đã đi chệch khỏi đường (> 45m), GIỮ NGUYÊN lastIndex (không nhảy cóc điểm gần nhất tới cuối đường),
+  // và giữ nguyên đoạn đường còn lại từ vị trí xe đã rời đi.
+  const nearestIndex = isOnRoute ? candidateIndex : lastIndex;
   const sliced = coordinates.slice(nearestIndex);
 
-  // Thêm vị trí hiện tại vào đầu để Polyline gắn trực tiếp vào xe cứu hộ
-  const remainingCoordinates: number[][] =
-    includeCurrentLocation && (currentLat !== 0 || currentLng !== 0)
-      ? [[currentLng, currentLat], ...sliced]
-      : sliced;
+  const shouldAttach =
+    isOnRoute &&
+    includeCurrentLocation &&
+    (currentLat !== 0 || currentLng !== 0);
+
+  const remainingCoordinates: number[][] = shouldAttach
+    ? [[currentLng, currentLat], ...sliced]
+    : sliced.length >= 2
+      ? sliced
+      : coordinates.slice(-2);
 
   return {
     remainingCoordinates,

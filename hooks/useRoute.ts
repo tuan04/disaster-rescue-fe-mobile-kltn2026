@@ -99,7 +99,7 @@ export function useRoute({
 
   // 2. GeoJSON Feature của tuyến đường còn lại
   const remainingRouteGeoJSON = useMemo(() => {
-    if (remainingCoordinates.length === 0) return null;
+    if (!remainingCoordinates || remainingCoordinates.length < 2) return null;
     return {
       type: "Feature" as const,
       properties: {},
