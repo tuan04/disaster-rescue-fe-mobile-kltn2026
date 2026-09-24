@@ -4,7 +4,7 @@ import RoutePolyline from "@/components/map/RoutePolyline";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
-import { MAP_STYLE_URL } from "@/contants/mapConfig";
+import { MAP_STYLE_URL } from "@/contansts/mapConfig";
 import {
   extractRouteSteps,
   getNavigationProgress,
@@ -23,6 +23,7 @@ import {
 import { makePhoneCall } from "@/helpers/phone";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Pressable,
   StyleSheet,
@@ -52,6 +53,8 @@ export default function MissionNavigationScreen() {
     durationText,
     etaTimeStr,
     clearRoute,
+    isRerouting,
+    reroute,
   } = useActiveMission({
     cameraRef,
     currentLat,
@@ -98,6 +101,11 @@ export default function MissionNavigationScreen() {
   }, [activeRoute, activeMission?.route]);
 
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+
+  // Reset bước dẫn đường khi lộ trình được tính lại
+  useEffect(() => {
+    setCurrentStepIndex(0);
+  }, [routeSteps]);
 
   const navProgress = useMemo(() => {
     return getNavigationProgress(
@@ -304,11 +312,15 @@ export default function MissionNavigationScreen() {
           }
         >
           <View className="w-12 items-center justify-center mr-2">
-            <MaterialCommunityIcons
-              name={navProgress.primaryManeuver.iconName}
-              size={35}
-              color="#ffffff"
-            />
+            {isRerouting ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <MaterialCommunityIcons
+                name={navProgress.primaryManeuver.iconName}
+                size={35}
+                color="#ffffff"
+              />
+            )}
           </View>
 
           <View className="flex-1 pr-2">
@@ -316,18 +328,37 @@ export default function MissionNavigationScreen() {
               className="text-2xl font-semibold text-white leading-tight"
               numberOfLines={1}
             >
-              {navProgress.primaryManeuver.streetName}
+              {isRerouting
+                ? "Đang tìm đường mới..."
+                : navProgress.primaryManeuver.streetName}
             </Text>
             <Text
               className="text-sm font-bold text-white/90 mt-0.5"
               numberOfLines={1}
             >
-              {navProgress.distanceText || "0 m"}
-              {navProgress.primaryManeuver.actionText
-                ? ` • ${navProgress.primaryManeuver.actionText}`
-                : ""}
+              {isRerouting ? (
+                "Vui lòng tiếp tục di chuyển..."
+              ) : (
+                <>
+                  {navProgress.distanceText || "0 m"}
+                  {navProgress.primaryManeuver.actionText
+                    ? ` • ${navProgress.primaryManeuver.actionText}`
+                    : ""}
+                </>
+              )}
             </Text>
           </View>
+
+          {/* Nút bấm tìm lại đường thủ công khi cần */}
+          <Pressable
+            onPress={() => reroute()}
+            disabled={isRerouting}
+            className="w-10 h-10 rounded-full bg-white/15 items-center justify-center active:bg-white/25"
+            hitSlop={8}
+            accessibilityLabel="Tìm lại lộ trình"
+          >
+            <Ionicons name="refresh" size={20} color="#ffffff" />
+          </Pressable>
         </View>
 
         {navProgress.showSecondary && navProgress.secondaryManeuver && (
