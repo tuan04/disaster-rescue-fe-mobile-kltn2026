@@ -50,6 +50,13 @@ export const hazardIconMeta: Record<HazardType, MapImageIconDetails> = {
   },
 };
 
+export const HAZARD_DANGER_RADIUS: Record<HazardType, number> = {
+  FALLEN_TREE: 40,
+  POWER_LINE_DOWN: 60,
+  FLOOD_DEEP: 120,
+  LANDSLIDE: 200,
+};
+
 export const safePointIconMeta: Record<SafePointType, MapImageIconDetails> = {
   EVACUATION_CENTER: {
     label: "Trung tam so tan",

@@ -371,6 +371,7 @@ export function useActiveMission({
     activeRoute,
     routeGeoJSON,
     remainingRouteGeoJSON,
+    routeHazards: activeMission?.route?.hazards ?? [],
     remainingDistance,
     remainingDuration,
     distanceText,

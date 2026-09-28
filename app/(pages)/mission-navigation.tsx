@@ -1,6 +1,7 @@
 import CancelMissionModal from "@/components/map/CancelMissionModal";
 import MissionNavigationBottomSheet from "@/components/map/MissionNavigationBottomSheet";
 import RoutePolyline from "@/components/map/RoutePolyline";
+import RouteHazardLayer from "@/components/map/RouteHazardLayer";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
@@ -48,6 +49,7 @@ export default function MissionNavigationScreen() {
     activeMission,
     routeGeoJSON,
     remainingRouteGeoJSON,
+    routeHazards,
     remainingDistance,
     distanceText,
     durationText,
@@ -276,7 +278,10 @@ export default function MissionNavigationScreen() {
         {/* 1. Lộ trình dẫn đường Polyline */}
         <RoutePolyline id="navRoute" data={currentRouteGeoJSON} />
 
-        {/* 2. Vị trí Đội cứu hộ (với la bàn & vệt sáng hình quạt) */}
+        {/* 2. Vùng nguy hiểm & Icon hiểm họa dọc hành lang */}
+        <RouteHazardLayer hazards={routeHazards} />
+
+        {/* 3. Vị trí Đội cứu hộ (với la bàn & vệt sáng hình quạt) */}
         <UserLocationMarker
           id="nav-user-location"
           latitude={currentLat}

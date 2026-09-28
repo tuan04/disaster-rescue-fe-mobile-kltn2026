@@ -14,6 +14,7 @@ import type {
   AssignmentStatus,
   TeamLocationPayload,
 } from "@/types/assignment";
+import type { RouteHazardDto } from "@/types/map";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // Ngưỡng tính toán lại đường phía người dân (chống hao quota)
@@ -40,6 +41,7 @@ export function useRescueTracking({
   );
   const [liveStatus, setLiveStatus] = useState<AssignmentStatus | null>(null);
   const [routeCoordinates, setRouteCoordinates] = useState<number[][]>([]);
+  const [routeHazards, setRouteHazards] = useState<RouteHazardDto[]>([]);
   const [routeDuration, setRouteDuration] = useState<number | null>(null);
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [isSocketConnected, setIsSocketConnected] = useState<boolean>(
@@ -256,6 +258,7 @@ export function useRescueTracking({
         if (primary?.overview_polyline?.points) {
           setRouteCoordinates(decodePolyline(primary.overview_polyline.points));
         }
+        setRouteHazards(res?.hazards ?? []);
         const leg = primary?.legs?.[0];
         if (typeof leg?.duration?.value === "number") {
           setRouteDuration(leg.duration.value);
@@ -361,6 +364,7 @@ export function useRescueTracking({
     durationText: metrics.durationText,
     etaTimeStr: metrics.etaTimeStr,
     routeGeoJSON,
+    routeHazards,
     refetch,
   };
 }

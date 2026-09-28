@@ -166,6 +166,14 @@ export interface RouteDto {
   summary?: string;
 }
 
+export interface RouteHazardDto {
+  id: string;
+  hazardType: HazardType;
+  latitude: number;
+  longitude: number;
+}
+
 export interface RouteResponse {
   routes: RouteDto[];
+  hazards?: RouteHazardDto[];
 }
