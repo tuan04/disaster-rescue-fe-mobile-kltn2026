@@ -19,6 +19,7 @@ import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -27,11 +28,13 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useSelector } from "react-redux";
+import { sendEmergencySOSviaSMS } from "@/services/sms.service";
 
 type LocationMode = "CURRENT_GPS" | "MANUAL_SEARCH";
 
 export default function SOSRequestScreen() {
-  const userPhone = useSelector((state: RootState) => state.auth.user?.phone);
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const userPhone = user?.phone;
 
   const [locationMode, setLocationMode] = useState<LocationMode>("CURRENT_GPS");
   const [selectedSupplies, setSelectedSupplies] = useState<string[]>([]);
@@ -239,7 +242,7 @@ export default function SOSRequestScreen() {
         address: data.locationAddress || undefined,
       });
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (locationMode === "CURRENT_GPS") {
         setHasPendingSelf(true);
       }
@@ -254,42 +257,169 @@ export default function SOSRequestScreen() {
           text2: "Yêu cầu khẩn cấp của bạn đã được chuyển tới Đội cứu hộ.",
           visibilityTime: 6000,
         });
-      } else if (result.mode === "OFFLINE") {
+        handleBack();
+      } else {
+        // Mode OFFLINE hoặc OFFLINE_FALLBACK khi mất kết nối mạng
         Toast.show({
           type: "info",
           text1: "Đã lưu ngoại tuyến",
           text2:
-            "Yêu cầu cứu hộ đã được lưu an toàn trên máy và sẽ tự động gửi khi có kết nối mạng.",
-          visibilityTime: 6000,
+            "Không có kết nối mạng. Yêu cầu cứu hộ đã được lưu an toàn trên máy.",
+          visibilityTime: 4000,
         });
-      } else {
-        Toast.show({
-          type: "info",
-          text1: "Đã lưu vào bộ nhớ máy",
-          text2:
-            "Không thể kết nối máy chủ lúc này. Yêu cầu đã được lưu và sẽ tự động gửi lại.",
-          visibilityTime: 6000,
-        });
-      }
 
-      handleBack();
-    },
-    onError: (error: any) => {
-      console.error("SOS Submit Error:", error);
-      if (error instanceof ApiError) {
-        Toast.show({
-          type: "error",
-          text1: `Lỗi (${error.code})`,
-          text2: error.message,
-        });
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Lỗi gửi yêu cầu",
-          text2: error?.message || "Đã xảy ra lỗi khi gửi yêu cầu cứu hộ.",
-        });
+        const userDesc = (variables.content || "").trim();
+        const suppliesParagraph =
+          selectedSupplies.length > 0
+            ? `Nhu yếu phẩm cần hỗ trợ: ${selectedSupplies.join(", ")}.`
+            : "";
+        const finalContent = [userDesc, suppliesParagraph]
+          .filter(Boolean)
+          .join("\n\n");
+
+        if (isAuthenticated) {
+          Alert.alert(
+            "Mất kết nối Internet",
+            "Yêu cầu đã được lưu vào máy. Bạn có muốn gửi tin nhắn SMS cứu hộ khẩn cấp tới tổng đài 0382452672 ngay bây giờ?",
+            [
+              {
+                text: "Để sau",
+                style: "cancel",
+                onPress: () => handleBack(),
+              },
+              {
+                text: "Gửi SMS ngay",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    await sendEmergencySOSviaSMS({
+                      content: finalContent,
+                      latitude: Number(variables.latitude),
+                      longitude: Number(variables.longitude),
+                    });
+                  } catch (smsErr: any) {
+                    Toast.show({
+                      type: "error",
+                      text1: "Không thể mở tin nhắn SMS",
+                      text2:
+                        smsErr?.message || "Vui lòng tự gửi SMS tới 0382452672",
+                    });
+                  } finally {
+                    handleBack();
+                  }
+                },
+              },
+            ],
+            { cancelable: false },
+          );
+        } else {
+          Alert.alert(
+            "Mất kết nối Internet",
+            "Yêu cầu cứu hộ đã được lưu an toàn vào máy. Tính năng gửi tin nhắn SMS cứu hộ khẩn cấp yêu cầu bạn phải đăng nhập tài khoản.",
+            [
+              {
+                text: "Đóng",
+                style: "cancel",
+                onPress: () => handleBack(),
+              },
+              {
+                text: "Đăng nhập",
+                onPress: () => {
+                  handleBack();
+                  router.push("/(auth)/login");
+                },
+              },
+            ],
+            { cancelable: false },
+          );
+        }
       }
     },
+    onError: (error: any, variables: SOSFormValues) => {
+      console.error("SOS Submit Error:", error);
+      const userDesc = (variables.content || "").trim();
+      const suppliesParagraph =
+        selectedSupplies.length > 0
+          ? `Nhu yếu phẩm cần hỗ trợ: ${selectedSupplies.join(", ")}.`
+          : "";
+      const finalContent = [userDesc, suppliesParagraph]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const handleShowErrorToast = () => {
+        if (error instanceof ApiError) {
+          Toast.show({
+            type: "error",
+            text1: `Lỗi (${error.code})`,
+            text2: error.message,
+          });
+        } else {
+          Toast.show({
+            type: "error",
+            text1: "Lỗi gửi yêu cầu",
+            text2: error?.message || "Đã xảy ra lỗi khi gửi yêu cầu cứu hộ.",
+          });
+        }
+      };
+
+      if (isAuthenticated) {
+        Alert.alert(
+          "Lỗi kết nối mạng",
+          "Không thể gửi yêu cầu cứu hộ qua mạng. Bạn có muốn chuyển sang gửi tin nhắn SMS khẩn cấp tới 0382452672?",
+          [
+            {
+              text: "Hủy",
+              style: "cancel",
+              onPress: handleShowErrorToast,
+            },
+            {
+              text: "Gửi SMS ngay",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  await sendEmergencySOSviaSMS({
+                    content: finalContent,
+                    latitude: Number(variables.latitude),
+                    longitude: Number(variables.longitude),
+                  });
+                } catch (smsErr: any) {
+                  Toast.show({
+                    type: "error",
+                    text1: "Không thể mở tin nhắn SMS",
+                    text2:
+                      smsErr?.message || "Vui lòng tự gửi SMS tới 0382452672",
+                  });
+                } finally {
+                  handleBack();
+                }
+              },
+            },
+          ],
+          { cancelable: false },
+        );
+      } else {
+        Alert.alert(
+          "Lỗi gửi yêu cầu",
+          "Không thể gửi yêu cầu cứu hộ qua mạng. Bạn cần đăng nhập tài khoản để sử dụng tính năng gửi SMS cứu hộ khẩn cấp.",
+          [
+            {
+              text: "Đóng",
+              style: "cancel",
+              onPress: handleShowErrorToast,
+            },
+            {
+              text: "Đăng nhập",
+              onPress: () => {
+                handleShowErrorToast();
+                router.push("/(auth)/login");
+              },
+            },
+          ],
+          { cancelable: false },
+        );
+      }
+    },
+
   });
 
   const onSubmit = useCallback(
@@ -451,9 +581,12 @@ export default function SOSRequestScreen() {
           />
           <Text className="ml-2 flex-1 text-xs leading-4 text-red-800 dark:text-red-200">
             Vui lòng giữ liên lạc qua số điện thoại trên để đội cứu trợ xác nhận
-            vị trí và hỗ trợ bạn tốt nhất.
+            vị trí và hỗ trợ bạn tốt nhất. Trường hợp mất kết nối Internet, người
+            dùng đã đăng nhập có thể gửi tin nhắn SMS cứu hộ khẩn cấp tới tổng
+            đài 0382452672.
           </Text>
         </View>
+
 
         {/* Action Buttons */}
         <View className="flex-row gap-3">
