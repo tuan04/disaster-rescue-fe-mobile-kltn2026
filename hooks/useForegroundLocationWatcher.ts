@@ -27,7 +27,6 @@ export function useForegroundLocationWatcher() {
   const headingSubRef = useRef<Location.LocationSubscription | null>(null);
   const isMountedRef = useRef<boolean>(true);
 
-  // Hàm tái sử dụng: Hủy lắng nghe vị trí
   const stopPositionWatcher = useCallback(() => {
     if (positionSubRef.current) {
       positionSubRef.current.remove();
@@ -35,7 +34,6 @@ export function useForegroundLocationWatcher() {
     }
   }, []);
 
-  // Hàm tái sử dụng: Hủy lắng nghe la bàn
   const stopHeadingWatcher = useCallback(() => {
     if (headingSubRef.current) {
       headingSubRef.current.remove();
@@ -43,7 +41,6 @@ export function useForegroundLocationWatcher() {
     }
   }, []);
 
-  // Hàm tái sử dụng: Chuẩn hóa tốc độ (km/h) và cập nhật tọa độ vào Redux
   const updateLocation = useCallback(
     (loc?: Location.LocationObject | null) => {
       if (!isMountedRef.current || !loc?.coords) return;

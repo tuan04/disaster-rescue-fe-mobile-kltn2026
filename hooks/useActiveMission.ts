@@ -77,96 +77,73 @@ export function useActiveMission({
   effectiveLocationRef.current = { lat: effectiveLat, lng: effectiveLng };
 
   // 1. Luôn ưu tiên đọc dữ liệu cục bộ từ SQLite (Offline-first)
-  const {
-    data: activeMission,
-    isLoading,
-    refetch,
-  } = useLocalActiveMissionQuery();
+  const { data: activeMission, isLoading, refetch } = useLocalActiveMissionQuery();
 
   const invalidateActiveMission = useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: assignmentQueryKeys.localActive,
-    });
+    queryClient.invalidateQueries({ queryKey: assignmentQueryKeys.localActive });
   }, [queryClient]);
 
   // 2. Logic đồng bộ dữ liệu với Backend máy chủ
-  const syncActiveMission = useCallback(
-    async (force: boolean = false) => {
-      if (!isAuthenticated || !teamId) return;
+  const syncActiveMission = useCallback(async (force: boolean = false) => {
+    if (!isAuthenticated || !teamId) return;
 
-      const now = Date.now();
-      if (!force && (isGlobalSyncing || now - lastSyncedAt < SYNC_THROTTLE_MS))
-        return;
+    const now = Date.now();
+    if (!force && (isGlobalSyncing || now - lastSyncedAt < SYNC_THROTTLE_MS)) return;
 
-      isGlobalSyncing = true;
-      setIsSyncing(true);
+    isGlobalSyncing = true;
+    setIsSyncing(true);
 
-      try {
-        const activeAssignment = (await getBackendActiveMission(teamId))?.data;
+    try {
+      const activeAssignment = (await getBackendActiveMission(teamId))?.data;
 
-        if (activeAssignment?.status === "ACCEPTED") {
-          const localMission = await getLocalActiveMission();
-          const isRouteReady =
-            localMission?.id === activeAssignment.id &&
-            Boolean(localMission.route?.routes?.[0]?.legs?.length);
+      if (activeAssignment?.status === "ACCEPTED") {
+        const localMission = await getLocalActiveMission();
+        const isRouteReady =
+          localMission?.id === activeAssignment.id &&
+          Boolean(localMission.route?.routes?.[0]?.legs?.length);
 
-          if (!isRouteReady) {
-            const detail = await getMapPointDetail(activeAssignment.requestId);
-            if (detail) {
-              const loc = effectiveLocationRef.current;
-              let routeData: RouteResponse | null = null;
+        if (!isRouteReady) {
+          const detail = await getMapPointDetail(activeAssignment.requestId);
+          if (detail) {
+            const loc = effectiveLocationRef.current;
+            let routeData: RouteResponse | null = null;
 
-              if (typeof loc.lat === "number" && typeof loc.lng === "number") {
-                try {
-                  routeData = await getRoute(
-                    loc.lat,
-                    loc.lng,
-                    activeAssignment.requestId,
-                  );
-                } catch (routeErr) {
-                  console.warn(
-                    "[useActiveMission] Lỗi khi tính toán lộ trình OSRM:",
-                    routeErr,
-                  );
-                }
+            if (typeof loc.lat === "number" && typeof loc.lng === "number") {
+              try {
+                routeData = await getRoute(loc.lat, loc.lng, activeAssignment.requestId);
+              } catch (routeErr) {
+                console.warn("[useActiveMission] Lỗi khi tính toán lộ trình OSRM:", routeErr);
               }
-
-              await saveActiveMission({
-                id: activeAssignment.id,
-                requestId: activeAssignment.requestId,
-                targetLatitude: detail.latitude,
-                targetLongitude: detail.longitude,
-                address: detail.address,
-                reporterPhone:
-                  detail.pointType === "SOS"
-                    ? detail.detail.reporterPhone
-                    : null,
-                routeData,
-              });
-              invalidateActiveMission();
             }
-          }
-        } else {
-          const localMission = await getLocalActiveMission();
-          if (localMission) {
-            await clearActiveMission();
+
+            await saveActiveMission({
+              id: activeAssignment.id,
+              requestId: activeAssignment.requestId,
+              targetLatitude: detail.latitude,
+              targetLongitude: detail.longitude,
+              address: detail.address,
+              reporterPhone: detail.pointType === "SOS" ? detail.detail.reporterPhone : null,
+              routeData,
+            });
             invalidateActiveMission();
           }
         }
-
-        lastSyncedAt = Date.now();
-      } catch (err) {
-        console.warn(
-          "[useActiveMission] Lỗi khi đồng bộ ca cứu hộ từ backend:",
-          err,
-        );
-      } finally {
-        isGlobalSyncing = false;
-        setIsSyncing(false);
+      } else {
+        const localMission = await getLocalActiveMission();
+        if (localMission) {
+          await clearActiveMission();
+          invalidateActiveMission();
+        }
       }
-    },
-    [isAuthenticated, teamId, invalidateActiveMission],
-  );
+
+      lastSyncedAt = Date.now();
+    } catch (err) {
+      console.warn("[useActiveMission] Lỗi khi đồng bộ ca cứu hộ từ backend:", err);
+    } finally {
+      isGlobalSyncing = false;
+      setIsSyncing(false);
+    }
+  }, [isAuthenticated, teamId, invalidateActiveMission]);
 
   // 3. Tự động kích hoạt đồng bộ nền khi hook được mount
   useEffect(() => {
@@ -196,8 +173,7 @@ export function useActiveMission({
   }, [activeMission?.id]);
 
   useEffect(() => {
-    if (!cameraRef?.current || !routeCoordinates?.length || !activeMission?.id)
-      return;
+    if (!cameraRef?.current || !routeCoordinates?.length || !activeMission?.id) return;
     if (lastFittedMissionIdRef.current === activeMission.id) return;
 
     const bounds = getCoordinatesBounds(routeCoordinates);
@@ -337,10 +313,7 @@ export function useActiveMission({
       OFF_ROUTE_MAX_DISTANCE_METERS,
     );
 
-    if (
-      !snap.isSnapped &&
-      snap.distanceMeters > OFF_ROUTE_MAX_DISTANCE_METERS
-    ) {
+    if (!snap.isSnapped && snap.distanceMeters > OFF_ROUTE_MAX_DISTANCE_METERS) {
       offRouteCountRef.current += 1;
       if (offRouteCountRef.current >= OFF_ROUTE_CONSECUTIVE_COUNT) {
         triggerReroute(false);
