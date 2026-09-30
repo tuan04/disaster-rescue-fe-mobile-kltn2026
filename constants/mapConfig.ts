@@ -7,7 +7,7 @@ export const GOONG_MAP_STYLES = {
   satellite: `https://tiles.goong.io/assets/goong_satellite.json?api_key=${GOONG_MAP_KEY}`,
 };
 
-export const MAP_STYLE_URL = GOONG_MAP_STYLES.default;
+export const MAP_STYLE_URL = GOONG_MAP_STYLES.highlight;
 
 export const TIME_OPTIONS = [
   { hours: 2, label: "Trong 2 giờ qua" },

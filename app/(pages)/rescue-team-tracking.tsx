@@ -1,6 +1,7 @@
 import ScreenContainer from "@/components/common/ScreenContainer";
 import RescueTeamMarker from "@/components/map/RescueTeamMarker";
 import RoutePolyline from "@/components/map/RoutePolyline";
+import RouteHazardLayer from "@/components/map/RouteHazardLayer";
 import SheetDetailRow from "@/components/map/SheetDetailRow";
 import TargetPointMarker from "@/components/map/TargetPointMarker";
 import { MAP_STYLE_URL } from "@/constants/mapConfig";
@@ -59,6 +60,7 @@ export default function RescueTeamTrackingScreen() {
     distanceText,
     durationText,
     routeGeoJSON,
+    routeHazards,
   } = useRescueTracking({
     requestId,
     targetLat,
@@ -285,6 +287,8 @@ export default function RescueTeamTrackingScreen() {
         />
 
         <RoutePolyline id="trackingRoute" data={routeGeoJSON} />
+
+        <RouteHazardLayer hazards={routeHazards} />
 
         {targetLat !== null && targetLng !== null && (
           <TargetPointMarker

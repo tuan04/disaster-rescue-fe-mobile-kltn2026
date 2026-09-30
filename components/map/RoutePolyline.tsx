@@ -22,6 +22,12 @@ export default function RoutePolyline({
 }: RoutePolylineProps) {
   if (!data) return null;
 
+  // Bảo vệ MapLibre Native: Bỏ qua nếu dữ liệu LineString không đủ 2 điểm tọa độ
+  const coords =
+    data?.geometry?.coordinates ??
+    data?.features?.[0]?.geometry?.coordinates;
+  if (Array.isArray(coords) && coords.length < 2) return null;
+
   return (
     <GeoJSONSource id={`${id}Source`} data={data}>
       {/* Lớp viền phát sáng (casing) phía dưới */}

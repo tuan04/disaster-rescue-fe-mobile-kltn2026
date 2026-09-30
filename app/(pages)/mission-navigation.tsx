@@ -1,6 +1,7 @@
 import CancelMissionModal from "@/components/map/CancelMissionModal";
 import MissionNavigationBottomSheet from "@/components/map/MissionNavigationBottomSheet";
 import RoutePolyline from "@/components/map/RoutePolyline";
+import RouteHazardLayer from "@/components/map/RouteHazardLayer";
 import ScreenContainer from "@/components/common/ScreenContainer";
 import TargetPointMarker from "@/components/map/TargetPointMarker";
 import UserLocationMarker from "@/components/map/UserLocationMarker";
@@ -48,13 +49,13 @@ export default function MissionNavigationScreen() {
     activeMission,
     routeGeoJSON,
     remainingRouteGeoJSON,
+    routeHazards,
     remainingDistance,
     distanceText,
     durationText,
     etaTimeStr,
     clearRoute,
     isRerouting,
-    reroute,
   } = useActiveMission({
     cameraRef,
     currentLat,
@@ -277,7 +278,10 @@ export default function MissionNavigationScreen() {
         {/* 1. Lộ trình dẫn đường Polyline */}
         <RoutePolyline id="navRoute" data={currentRouteGeoJSON} />
 
-        {/* 2. Vị trí Đội cứu hộ (với la bàn & vệt sáng hình quạt) */}
+        {/* 2. Vùng nguy hiểm & Icon hiểm họa dọc hành lang */}
+        <RouteHazardLayer hazards={routeHazards} />
+
+        {/* 3. Vị trí Đội cứu hộ (với la bàn & vệt sáng hình quạt) */}
         <UserLocationMarker
           id="nav-user-location"
           latitude={currentLat}
@@ -348,17 +352,6 @@ export default function MissionNavigationScreen() {
               )}
             </Text>
           </View>
-
-          {/* Nút bấm tìm lại đường thủ công khi cần */}
-          <Pressable
-            onPress={() => reroute()}
-            disabled={isRerouting}
-            className="w-10 h-10 rounded-full bg-white/15 items-center justify-center active:bg-white/25"
-            hitSlop={8}
-            accessibilityLabel="Tìm lại lộ trình"
-          >
-            <Ionicons name="refresh" size={20} color="#ffffff" />
-          </Pressable>
         </View>
 
         {navProgress.showSecondary && navProgress.secondaryManeuver && (
