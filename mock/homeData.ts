@@ -1,6 +1,5 @@
 import { ColorTokens } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
 
 export interface UtilityItem {
   id: string;
@@ -9,14 +8,6 @@ export interface UtilityItem {
   color: string;
   bgColor: string;
   route?: string;
-}
-
-export interface NewsItem {
-  id: string;
-  title: string;
-  source: string;
-  time: string;
-  image: string;
 }
 
 export const UTILITIES: UtilityItem[] = [
@@ -91,29 +82,3 @@ export const UTILITIES: UtilityItem[] = [
   },
 ];
 
-export const NEWS_ITEMS: NewsItem[] = [
-  {
-    id: "1",
-    title: "Cảnh báo bão số 3 diễn biến phức tạp, nguy cơ lũ quét tại các tỉnh phía Bắc",
-    source: "Trung tâm Dự báo KTTV",
-    time: "30 phút trước",
-    image:
-      "https://images.unsplash.com/photo-1527482797697-8795b05a13fe?q=80&w=400&auto=format&fit=crop",
-  },
-  {
-    id: "2",
-    title: "Hướng dẫn kỹ năng an toàn và ứng phó khi xảy ra ngập lụt diện rộng",
-    source: "Đội Cứu hộ Quốc gia",
-    time: "2 giờ trước",
-    image:
-      "https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=400&auto=format&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Hơn 500 chiến sĩ cứu hộ sẵn sàng túc trực tại các khu vực trọng điểm",
-    source: "Báo Cứu hộ & Thảm họa",
-    time: "5 giờ trước",
-    image:
-      "https://images.unsplash.com/photo-1516475429286-465d815a0df7?q=80&w=400&auto=format&fit=crop",
-  },
-];

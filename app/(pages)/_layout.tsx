@@ -14,6 +14,8 @@ export default function PagesLayout() {
       <Stack.Screen name="my-sos-requests" />
       <Stack.Screen name="rescue-team-tracking" />
       <Stack.Screen name="pending-assignments" />
+      <Stack.Screen name="news-list" />
+      <Stack.Screen name="news-detail" />
     </Stack>
   );
 }
