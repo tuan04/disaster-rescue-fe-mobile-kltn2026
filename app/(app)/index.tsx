@@ -1,10 +1,11 @@
 import Button from "@/components/common/Button";
 import Header from "@/components/common/Header";
 import ScreenContainer from "@/components/common/ScreenContainer";
-import NewsCard from "@/components/home/NewsCard";
+import NewsCard, { NewsCardSkeleton } from "@/components/home/NewsCard";
 import UtilityCard from "@/components/home/UtilityCard";
-import { useMySOSRequestsQuery } from "@/hooks/queries";
-import { NEWS_ITEMS, UTILITIES } from "@/mock/homeData";
+import { useAppTheme } from "@/constants/theme";
+import { useLatestNewsQuery, useMySOSRequestsQuery } from "@/hooks/queries";
+import { UTILITIES } from "@/mock/homeData";
 import { getNotifications } from "@/services/notification.service";
 import type { RootState } from "@/store";
 import type { NotificationItem } from "@/types/notification";
@@ -16,6 +17,7 @@ import { Pressable, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 export default function AppIndex() {
+  const theme = useAppTheme();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   const { data: serverNotifications = [] } = useQuery<NotificationItem[]>({
@@ -32,14 +34,19 @@ export default function AppIndex() {
     return serverNotifications.filter((n) => !n.isRead).length;
   }, [serverNotifications]);
 
-  // Lấy danh sách yêu cầu SOS trong máy để kiểm tra có ca nào đang PENDING (chờ cứu) không
-  const { data: mySOSRequests = [], refetch: refetchMySOS } =
-    useMySOSRequestsQuery();
+  const { data: mySOSRequests = [], refetch: refetchMySOS } = useMySOSRequestsQuery();
+
+  const {
+    data: latestNews = [],
+    isLoading: isLoadingNews,
+    refetch: refetchNews,
+  } = useLatestNewsQuery(3);
 
   useFocusEffect(
     useCallback(() => {
       refetchMySOS();
-    }, [refetchMySOS]),
+      refetchNews();
+    }, [refetchMySOS, refetchNews]),
   );
 
   const hasPendingSOS = useMemo(() => {
@@ -144,14 +151,41 @@ export default function AppIndex() {
       </View>
 
       <View>
-        <Text className="mb-3 text-base font-bold text-text">Tin tức</Text>
-        <View className="space-y-3">
-          {NEWS_ITEMS.map((news) => (
-            <NewsCard key={news.id} item={news} />
-          ))}
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="text-base font-bold text-text">Tin tức & Cảnh báo</Text>
+          <Pressable
+            hitSlop={8}
+            onPress={() => router.push("/(pages)/news-list" as any)}
+            className="flex-row items-center active:opacity-70"
+          >
+            <Text className="text-xs font-semibold text-primary mr-1">Xem tất cả</Text>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.primary} />
+          </Pressable>
         </View>
-      </View>
 
+        {isLoadingNews ? (
+          <View>
+            <NewsCardSkeleton />
+            <NewsCardSkeleton />
+            <NewsCardSkeleton />
+          </View>
+        ) : (
+          <View className="gap-3">
+            {latestNews.map((news) => (
+              <NewsCard
+                key={news.id}
+                item={news}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(pages)/news-detail" as any,
+                    params: { id: news.id },
+                  })
+                }
+              />
+            ))}
+          </View>
+        )}
+      </View>
     </ScreenContainer>
   );
 }
